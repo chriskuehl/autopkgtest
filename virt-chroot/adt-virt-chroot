@@ -33,17 +33,17 @@ case "$1" in
 *)	fail "bad usage - unknown chroot specification $1"	;;
 esac
 
-$down true
 echo ok
 
 close_down () {
-	:
+	[ "x$downtmp" = x ] || $down rm -rf -- "$downtmp"
+	downtmp=''
 }
 
 trap 'close_down; exit 12;' 0
 
-while read command arg1 arg2; do
-	case "$command" in
+while read command; do
+	case $command in
 	capabilities)
 		echo 'ok '
 		;;
@@ -52,6 +52,14 @@ while read command arg1 arg2; do
 		close_down
 		exit 0
 		;;
+	open)
+		[ "x$downtmp" = x ] || fail '"open" when already open'
+		downtmp="$($down mktemp -t -d)"
+		echo ok
+		;;
+	'stop *')
+		
+		
 	*)
 		fail "unrecognised command $command"
 		;;
