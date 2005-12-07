@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/python
 # usage:
 #	adt-virt-chroot =[CHROOTNAME]
 #		uses dchroot (but problems with spaces)
@@ -7,63 +7,127 @@
 #		uses GAINROOT chroot
 #		GAINROOT will be split up if it has spaces
 
-set -e
+import sys
+import string
+import urllib
+import signal
+from optparse import OptionParser
 
-fail () { echo >&2 "$0: $@"; exit 16; }
+debuglevel = None
 
-gainroot=''
+class Quit(ecode):
+	def __init__(q,ec): q.ec = ec;
 
-while [ $# -gt 0 ]; do
-	case "$1" in
-	--|-)	break=break; break; shift		;;
-	-r*)	gainroot="${1#-r}"			;;
-	-*)	fail "bad usage - unknown option $1"	;;
-	*)	break=break; break			;;
-	esac
-	$break
-	shift
-done
+def bomb(m):
+	print >> sys.stderr "adt-virtual-chroot: failure:", m
+	raise Quit(16)
 
-[ $# -eq 1 ] || fail "bad usage - need =DCHROOTNAME or /CHROOT/PATH"
+def debug(m):
+	if not debuglevel: return
+	print >> sys.stderr, "adt-virt-chroot: debug:", m
 
-case "$1" in
-/*)	down="$gainroot chroot $1 --"				;;
-=?*)	down="$gainroot dchroot -d\"${1#=}\" -q"		;;
-=)	down="$gainroot dchroot -q"				;;
-*)	fail "bad usage - unknown chroot specification $1"	;;
-esac
+def parse_args():
+	global down, debuglevel
 
-echo ok
+	usage = "%prog [options] =<dchroot>|/path/to/chroot"
+	parser = OptionParser(usage=usage)
+	pa = parser.add_option
+	pe = parser.error
 
-close_down () {
-	[ "x$downtmp" = x ] || $down rm -rf -- "$downtmp"
-	downtmp=''
-}
+	pa('-r', '--gain-root', type='string', dest='gain_root');
+	pa('-d', '--debug', action='store_true', dest='debug');
 
-trap 'close_down; exit 12;' 0
+	(opts,args) = parser.parse_args()
+	if len(args) != 1: pe("need exactly one arg, chroot specification")
 
-while read command; do
-	case $command in
-	capabilities)
-		echo 'ok '
-		;;
-	quit)
-		trap '' 0
-		close_down
-		exit 0
-		;;
-	open)
-		[ "x$downtmp" = x ] || fail '"open" when already open'
-		downtmp="$($down mktemp -t -d)"
-		echo ok
-		;;
-	'stop *')
-		
-		
-	*)
-		fail "unrecognised command $command"
-		;;
-	esac
-done
+	debuglevel = opts.debug
 
-fail 'unexpected EOF on control channel'
+	chroot_arg = args[0]
+	if not chroot_arg: pe("chroot specification may not be empty")
+	if chroot_arg == '=': down = ['dchroot','-q']
+	elif chroot_arg[0] == '=': down = ['dchroot','-q','-d'+chroot_arg[1:]]
+	elif chroot_arg[0] == '/': down = ['chroot',chroot_arg,'--']
+	else: pe("chroot spec must be =[DCHROOT] or /PATH/TO/CHROOT")
+
+	if opts.gain_root != None: down = opts.gain_root.split() + down
+
+	debug("down = %s" % string.join(down))	
+
+def ok(): print 'ok'
+
+def cmdnoargs(c, cu):
+	if len(c) == 1: return
+	bomb("too many arguments to command `%s'": cu[0])
+
+def cmd_capabilities(c, cu):
+	cmdnoargs(c, cu)
+
+def cmd_quit(c, cu):
+	cmdnoargs(c, cu)
+	raise Quit(0)
+
+def cmd_open(c, cu):
+	cmdnoargs(c, cu)
+	if downtmp: bomb("`open' when already open")
+	downtmp = sys.exec
+
+def command():
+	cu = sys.stdin.readline()
+	cu = c.rstrip().split()
+	c = map(urllib.unquote, cu)
+	if not c: bomb('empty commands are not permitted')
+	try: f = globals()['cmd_'+c[0]]
+	except ValueError: bomb("unknown command `%s'" % cu[0])
+	r = f(c, cu)
+	if not r: r = ()
+	r.insert(0, 'ok')
+	ru = map(urllib.quote, r)
+	print string.join(ru)
+
+def cleanup():
+	global downtmp, cleaning
+	cleaning = True
+	if downtmp:
+		pass
+	cleaning = False
+
+def prepare():
+	global downtmp, cleaning
+	downtmp = None
+	signal_list = [	signal.SIGHUP, signal.SIGTERM,
+			signal.SIGINT, signal.SIGPIPE ]
+	def sethandlers(f):
+		for signum in signal_list: signal(signum, f)
+	def handler(args):
+		sethandlers(signal.SIG_DFL)
+		cleanup()
+	sethandlers(handler)
+
+parse_args()
+ok()
+prepare()
+
+try:
+	while True: command()
+except Quit, q:
+	cleanup()
+	exit(q.ec)
+except:
+	cleanup()
+	raise
+
+# 	open)
+# 		[ "x$downtmp" = x ] || fail '"open" when already open'
+# 		downtmp="$($down mktemp -t -d)"
+# 		echo ok
+# 		;;
+# 	'stop *')
+# 		
+# 		
+# 	*)
+# 		fail "unrecognised command $command"
+# 		;;
+# 	esac
+# done
+# 
+# fail 'unexpected EOF on control channel'
