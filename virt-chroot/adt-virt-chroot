@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python2.4
 # usage:
 #	adt-virt-chroot =[CHROOTNAME]
 #		uses dchroot (but problems with spaces)
@@ -11,6 +11,7 @@ import sys
 import string
 import urllib
 import signal
+import subprocess
 from optparse import OptionParser
 
 debuglevel = None
@@ -69,7 +70,12 @@ def cmd_quit(c, cu):
 def cmd_open(c, cu):
 	cmdnoargs(c, cu)
 	if downtmp: bomb("`open' when already open")
-	downtmp = sys.exec
+	(dt, err) =
+		subpocess.Popen(args = down + 'mktemp -t -d'.split(),
+				stdin=PIPE, stdout=PIPE)
+				.communicate()
+	if err: bomb("down mktemp failed: %s" % err)
+	downtmp = dt.rstrip("\n")
 
 def command():
 	cu = sys.stdin.readline()
@@ -88,7 +94,11 @@ def cleanup():
 	global downtmp, cleaning
 	cleaning = True
 	if downtmp:
-		pass
+		(x, err) = subprocess.Popen(args = down
+				+ 'rm -rf --'.split() + [downtmp],
+				stdin=PIPE, stdout=PIPE)
+				.communicate()
+		if err: bomb("down rm -rf downtmp failed: %s" % err)
 	cleaning = False
 
 def prepare():
@@ -115,19 +125,3 @@ except Quit, q:
 except:
 	cleanup()
 	raise
-
-# 	open)
-# 		[ "x$downtmp" = x ] || fail '"open" when already open'
-# 		downtmp="$($down mktemp -t -d)"
-# 		echo ok
-# 		;;
-# 	'stop *')
-# 		
-# 		
-# 	*)
-# 		fail "unrecognised command $command"
-# 		;;
-# 	esac
-# done
-# 
-# fail 'unexpected EOF on control channel'
