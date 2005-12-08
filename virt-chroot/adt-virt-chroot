@@ -12,16 +12,16 @@ import string
 import urllib
 import signal
 import subprocess
+import traceback
 from optparse import OptionParser
 
 debuglevel = None
 
-class Quit(ecode):
-	def __init__(q,ec): q.ec = ec;
+class Quit:
+	def __init__(q,ec,m): q.ec = ec; q.m = m
 
 def bomb(m):
-	print >> sys.stderr "adt-virtual-chroot: failure:", m
-	raise Quit(16)
+	raise Quit(12, "adt-virtual-chroot: failure: %s" % m)
 
 def debug(m):
 	if not debuglevel: return
@@ -46,7 +46,8 @@ def parse_args():
 	chroot_arg = args[0]
 	if not chroot_arg: pe("chroot specification may not be empty")
 	if chroot_arg == '=': down = ['dchroot','-q']
-	elif chroot_arg[0] == '=': down = ['dchroot','-q','-d'+chroot_arg[1:]]
+	elif chroot_arg == '=': down = ['dchroot','-q']
+	elif chroot_arg[0] == '=': down = ['dchroot','-q','-c',chroot_arg[1:]]
 	elif chroot_arg[0] == '/': down = ['chroot',chroot_arg,'--']
 	else: pe("chroot spec must be =[DCHROOT] or /PATH/TO/CHROOT")
 
@@ -58,34 +59,62 @@ def ok(): print 'ok'
 
 def cmdnoargs(c, cu):
 	if len(c) == 1: return
-	bomb("too many arguments to command `%s'": cu[0])
+	bomb("too many arguments to command `%s'" % cu[0])
 
 def cmd_capabilities(c, cu):
 	cmdnoargs(c, cu)
 
 def cmd_quit(c, cu):
 	cmdnoargs(c, cu)
-	raise Quit(0)
+	raise Quit(0, '')
+
+def execute(cmd_string, cmd_list=[], downp=False, outp=True):
+	cmdl = cmd_string.split()
+
+	if downp: perhaps_down = down
+	else: downp = []
+
+	if outp: stdout = subprocess.PIPE
+	else: stdout = None
+
+	cmd = down + cmdl + cmd_list
+	debug(" + %s" % string.join(cmd))
+
+	sp = subprocess.Popen(cmd, stdin=file('/dev/null','r'), stdout=stdout)
+	(out, err) = sp.communicate()
+	status = sp.wait()
+
+	if status: bomb("%s%s failed (exit status %d)" %
+			((downp and "(down) " or ""), cmdl[0], status))
+	if err: bomb("%s unexpectedly produced stderr output which we"
+			"unexpectedly saw `%s'" % (cmdl[0], err))
+
+	if outp and out and out[-1]=='\n': out = out[:-1]
+
+	return out
 
 def cmd_open(c, cu):
+	global downtmp
 	cmdnoargs(c, cu)
 	if downtmp: bomb("`open' when already open")
-	(dt, err) =
-		subpocess.Popen(args = down + 'mktemp -t -d'.split(),
-				stdin=PIPE, stdout=PIPE)
-				.communicate()
-	if err: bomb("down mktemp failed: %s" % err)
-	downtmp = dt.rstrip("\n")
+	execute('true', downp=True, outp=False)
+	downtmp = execute('mktemp -t -d', downp=True)
+
+def cmd_close(c, cu):
+	global downtmp
+	cmdnoargs(c, cu)
+	if not downtmp: bomb("`close' when not open")
+	cleanup()
 
 def command():
 	cu = sys.stdin.readline()
-	cu = c.rstrip().split()
+	cu = cu.rstrip().split()
 	c = map(urllib.unquote, cu)
 	if not c: bomb('empty commands are not permitted')
 	try: f = globals()['cmd_'+c[0]]
 	except ValueError: bomb("unknown command `%s'" % cu[0])
 	r = f(c, cu)
-	if not r: r = ()
+	if not r: r = []
 	r.insert(0, 'ok')
 	ru = map(urllib.quote, r)
 	print string.join(ru)
@@ -93,13 +122,27 @@ def command():
 def cleanup():
 	global downtmp, cleaning
 	cleaning = True
-	if downtmp:
-		(x, err) = subprocess.Popen(args = down
-				+ 'rm -rf --'.split() + [downtmp],
-				stdin=PIPE, stdout=PIPE)
-				.communicate()
-		if err: bomb("down rm -rf downtmp failed: %s" % err)
+	if downtmp: execute('rm -rf --', [downtmp], downp=True, outp=False)
 	cleaning = False
+	downtmp = False
+
+def error_cleanup():
+	try:
+		ok = False
+		try:
+			cleanup()
+			ok = True
+		except Quit, q:
+			print >> sys.stderr, q.m
+		except:
+			print >> sys.stderr, "Unexpected cleanup error:"
+			traceback.print_exc()
+			print >> sys.stderr, ''
+		if not ok:
+			print >> sys.stderr, ("while cleaning up"
+				" because of another error:")
+	except:
+		pass
 
 def prepare():
 	global downtmp, cleaning
@@ -107,7 +150,7 @@ def prepare():
 	signal_list = [	signal.SIGHUP, signal.SIGTERM,
 			signal.SIGINT, signal.SIGPIPE ]
 	def sethandlers(f):
-		for signum in signal_list: signal(signum, f)
+		for signum in signal_list: signal.signal(signum, f)
 	def handler(args):
 		sethandlers(signal.SIG_DFL)
 		cleanup()
@@ -120,8 +163,11 @@ prepare()
 try:
 	while True: command()
 except Quit, q:
-	cleanup()
-	exit(q.ec)
+	error_cleanup()
+	if q.m: print >> sys.stderr, q.m
+	sys.exit(q.ec)
 except:
-	cleanup()
-	raise
+	error_cleanup()
+	print >> sys.stderr, "Unexpected error:"
+	traceback.print_exc()
+	sys.exit(16)
