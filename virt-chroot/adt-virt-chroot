@@ -8,6 +8,7 @@
 #		GAINROOT will be split up if it has spaces
 
 import sys
+import os
 import string
 import urllib
 import signal
@@ -151,9 +152,10 @@ def prepare():
 			signal.SIGINT, signal.SIGPIPE ]
 	def sethandlers(f):
 		for signum in signal_list: signal.signal(signum, f)
-	def handler(args):
+	def handler(sig, *any):
 		sethandlers(signal.SIG_DFL)
 		cleanup()
+		os.kill(os.getpid(), sig)
 	sethandlers(handler)
 
 parse_args()
