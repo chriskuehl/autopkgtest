@@ -1,0 +1,4 @@
+open
+execute id /dev/null out err
+copyup out /dev/tty
+quit
