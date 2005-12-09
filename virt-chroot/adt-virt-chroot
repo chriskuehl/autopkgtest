@@ -16,6 +16,8 @@ import subprocess
 import traceback
 from optparse import OptionParser
 
+devnull_read = file('/dev/null','r')
+
 debuglevel = None
 
 class Quit:
@@ -69,15 +71,14 @@ def cmd_quit(c, ce):
 	cmdnumargs(c, ce)
 	raise Quit(0, '')
 
-def execute_raw(what, *popenargs, **popenargsk):
+def execute_raw(what, instr, *popenargs, **popenargsk):
 	sp = subprocess.Popen(*popenargs, **popenargsk)
-	(out, err) = sp.communicate()
+	if instr is None: popenargsk['stdin'] = devnull_read
+	(out, err) = sp.communicate(instr)
+	if err: bomb("%s unexpectedly produced stderr output `%s'" %
+			(what, err))
 	status = sp.wait()
-	if status: bomb("%s%s failed (exit status %d)" %
-			((downp and "(down) " or ""), what, status))
-	if err: bomb("%s unexpectedly produced stderr output which we"
-			"unexpectedly saw `%s'" % (what, err))
-	return out
+	return (status, out)
 
 def execute(cmd_string, cmd_list=[], downp=False, outp=False):
 	cmdl = cmd_string.split()
@@ -91,8 +92,11 @@ def execute(cmd_string, cmd_list=[], downp=False, outp=False):
 	cmd = perhaps_down + cmdl + cmd_list
 	debug(" + %s" % string.join(cmd))
 
-	out = execute_raw(cmdl[0], cmd, stdin=file('/dev/null','r'),
-			stdout=stdout)
+	(status, out) = execute_raw(cmdl[0], None, cmd, stdout=stdout)
+
+	if status: bomb("%s%s failed (exit status %d)" %
+			((downp and "(down) " or ""), what, status))
+
 	if outp and out and out[-1]=='\n': out = out[:-1]
 	return out
 
@@ -117,11 +121,114 @@ def cmd_stop(c, ce):
 	os.mkdir(c[1])
 	cleanup()
 
+def down_python_script(gobody, functions=''):
+	# Many things are made much harder by dchroot's inability to
+	# cope without mangling the arguments.  So we run a
+	# sub-python on the testbed and feed it a script on stdin.
+	# The sub-python decodes the arguments.
+
+	script = (	"import urllib\n"
+			"import os\n"
+			"def setfd(fd,fnamee,write):\n"
+			"	fname = urllib.unquote(fnamee)\n"
+			"	if write: rw = os.O_WRONLY|os.O_CREAT\n"
+			"	else: rw = os.O_RDONLY\n"
+			"	nfd = os.open(fname, rw, 0666)\n"
+			"	os.dup2(nfd,fd)\n"
+			+ functions +
+			"def go():\n" )
+	script += (	"	os.chdir(urllib.unquote('%s'))\n" %
+				urllib.quote(downtmp)	)
+	script += (	gobody +
+			"go()\n" )
+
+	scripte = urllib.quote(script)
+	cmdl = down + ['python','-c',
+		"'import urllib; s = urllib.unquote(%s); exec s'" %
+			('"%s"' % scripte)]
+	return cmdl
+
 def cmd_execute(c, ce):
 	cmdnumargs(c, ce, 4)
-	al = down
-	for ion in range(3):
-		pass
+	gobody = ""
+	for ioe in range(3):
+		gobody += "	setfd(%d,'%s',%d)\n" % (
+			ioe, ce[ioe+2], ioe>0 )
+	gobody += "	cmd = '%s'\n" % ce[1]
+	gobody += ("	cmd = cmd.split(',')\n"
+		"	cmd = map(urllib.unquote, cmd)\n"
+		"	os.execvp(cmd[0], cmd)\n")
+
+	cmdl = down_python_script(gobody)
+
+	(status, out) = execute_raw('sub-python', None, cmdl,
+				stdin=devnull_read, stderr=subprocess.PIPE)
+	if out: bomb("sub-python unexpected produced stdout"
+			" visible to us `%s'" % out)
+	return [`status`]
+
+def copyupdown(c, ce, up_p):
+	cmdnumargs(c, ce, 2)
+	sd = c[2:4]
+	sde = ce[2:4]
+	if not sd[0] or not sd[1]:
+		bomb("%s paths must be nonempty" % ce[0])
+	dirsp = sd[0][-1]=='/'
+	functions = "import errno\n"
+	if dirsp != (sd[1][-1]=='/'):
+		bomb("% paths must agree about directoryness"
+			" (presence or absence of trailing /)" % ce[0])
+	localfd = None
+	deststdout = devnull_read
+	srcstdin = devnull_read
+	preexecfns = [None, None]
+	if not dirsp:
+		gobody = "	setfd(%s,'%s',%s)\n" % (up_p, sde[0], not up_p)
+		gobody += "	os.execvp('cat', ['cat'])\n"
+		if up_p: deststdout = os.open(ce[1], os.WRONLY|os.CREAT, 0666)
+		else: srcstdin = os.open(ce[0], os.RDONLY)
+		localcmdl = ['cat']
+	else:
+		paxbase = 'pax -p p -x cpio'
+		gobody = "	dir = urllib.unquote('%s'))\n" % ce[0]
+		if up_p:
+			try: os.mkdir(ce[1])
+			except OSError, oe:
+				if oe.errno != errno.EEXIST: raise
+		else:
+			gobody += ("	try: os.mkdir(dir)\n"
+				"	except OSError, oe:\n"
+				"		if oe.errno != errno.EEXIST: raise\n")
+		preexecfns[not up_p] = lambda *any: os.chdir(ce[not up_p])
+		gobody += "	os.chdir(dir)\n"
+		gobody += "	paxcmd = '%s'.split()\n" % paxbase
+		localcmdl = ['sh','-ec',
+				'cd "$1"; shift; exec "$@"',
+			'x'] + paxbase.split()
+		if up_p:
+			gobody += "	paxcmd += ['-w','.']\n"
+			localcmdl += ['-r']
+		else:
+			gobody += "	paxcmd += ['-r']\n"
+			localcmdl += ['-w','.']
+
+	downcmdl = down_python_script(gobody, functions)
+
+	if up_p: cmdls = (downcmdl, localcmdll)
+	else: cmdls = (localcmdll, downcmdl)
+
+	subprocs = [None,None]
+	subprocs[0] = subprocess.Popen(cmdls[0], stdin=srcstdin,
+			stdout=subprocess.PIPE, preexec_fn=preexecfns[0])
+	subprocs[1] = subprocess.Popen(cmdls[1], stdin=subprocs[0].stdout,
+			stdout=deststdout, preexec_fn=preexecfns[1])
+	for sd in [1,0]:
+		status = subprocs[sd].wait
+		if status: bomb("%s %s failed, status %d" %
+			(ce[0], ['source','destination'][sd], status))
+
+def cmd_copydown(c, ce): copyupdown(c, ce, False)
+def cmd_copyup(c, ce): copyupdown(c, ce, True)
 
 def command():
 	ce = sys.stdin.readline()
@@ -130,6 +237,7 @@ def command():
 	if not c: bomb('empty commands are not permitted')
 	try: f = globals()['cmd_'+c[0]]
 	except KeyError: bomb("unknown command `%s'" % cu[0])
+	ce = map(urllib.quote, c) # sanitise the quoted args
 	r = f(c, ce)
 	if not r: r = []
 	r.insert(0, 'ok')
