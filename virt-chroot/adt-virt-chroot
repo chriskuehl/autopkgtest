@@ -169,8 +169,12 @@ def cmd_execute(c, ce):
 			" visible to us `%s'" % out)
 	return [`status`]
 
-def copyupdown(c, ce, up_p):
+def copyupdown(c, ce, upp):
 	cmdnumargs(c, ce, 2)
+	isrc = 0
+	idst = 1
+	ilocal = 0 + upp
+	iremote = 1 - upp
 	wh = ce[0]
 	sd = c[1:]
 	sde = ce[1:]
@@ -187,38 +191,34 @@ def copyupdown(c, ce, up_p):
 	preexecfns = [None, None]
 	if not dirsp:
 		gobody = "	setfd(%s,'%s',%s)\n" % (
-					1-up_p, sde[0], not up_p)
+					1-upp, sde[iremote], not upp)
 		gobody += "	os.execvp('cat', ['cat'])\n"
-		if up_p: deststdout = file(sd[1], 'w')
-		else: srcstdin = file(sd[0], 'r')
+		if upp: deststdout = file(sd[idst], 'w')
+		else: srcstdin = file(sd[isrc], 'r')
 		localcmdl = ['cat']
 	else:
-		paxbase = 'pax -p p -x cpio'
-		gobody = "	dir = urllib.unquote('%s'))\n" % sde[0]
-		if up_p:
-			try: os.mkdir(sd[1])
+		gobody = "	dir = urllib.unquote('%s')\n" % sde[iremote]
+		if upp:
+			try: os.mkdir(sd[ilocal])
 			except OSError, oe:
 				if oe.errno != errno.EEXIST: raise
 		else:
 			gobody += ("	try: os.mkdir(dir)\n"
 				"	except OSError, oe:\n"
 				"		if oe.errno != errno.EEXIST: raise\n")
-		preexecfns[not up_p] = lambda *any: os.chdir(sd[not up_p])
-		gobody += "	os.chdir(dir)\n"
-		gobody += "	paxcmd = '%s'.split()\n" % paxbase
-		localcmdl = ['sh','-ec',
-				'cd "$1"; shift; exec "$@"',
-			'x'] + paxbase.split()
-		if up_p:
-			gobody += "	paxcmd += ['-w','.']\n"
-			localcmdl += ['-r']
-		else:
-			gobody += "	paxcmd += ['-r']\n"
-			localcmdl += ['-w','.']
+		gobody +=( "	os.chdir(dir)\n"
+			"	tarcmd = 'tar -f -'.split()\n")
+		localcmdl = 'tar -f -'.split()
+		taropts = [None, None]
+		taropts[isrc] = '-c .'
+		taropts[idst] = '-p -x --no-same-owner'
+		gobody += "	tarcmd += '%s'.split()\n" % taropts[iremote]
+		localcmdl += ['-C',sd[ilocal]]
+		localcmdl += taropts[ilocal].split()
 
 	downcmdl = down_python_script(gobody, functions)
 
-	if up_p: cmdls = (downcmdl, localcmdl)
+	if upp: cmdls = (downcmdl, localcmdl)
 	else: cmdls = (localcmdl, downcmdl)
 
 	debug(`["cmdls", `cmdls`]`)
