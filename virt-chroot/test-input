@@ -1,4 +1,7 @@
 open
-execute id /dev/null out err
+copydown test-input foo
+execute ls,-l /dev/null out err
 copyup out /dev/tty
+copyup out outh
+copyup err errh
 quit
