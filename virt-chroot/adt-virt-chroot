@@ -58,18 +58,28 @@ def parse_args():
 
 def ok(): print 'ok'
 
-def cmdnoargs(c, cu):
-	if len(c) == 1: return
-	bomb("too many arguments to command `%s'" % cu[0])
+def cmdnumargs(c, ce, nargs=0):
+	if len(c) == nargs + 1: return
+	bomb("wrong number of arguments to command `%s'" % ce[0])
 
-def cmd_capabilities(c, cu):
-	cmdnoargs(c, cu)
+def cmd_capabilities(c, ce):
+	cmdnumargs(c, ce)
 
-def cmd_quit(c, cu):
-	cmdnoargs(c, cu)
+def cmd_quit(c, ce):
+	cmdnumargs(c, ce)
 	raise Quit(0, '')
 
-def execute(cmd_string, cmd_list=[], downp=False, outp=True):
+def execute_raw(what, *popenargs, **popenargsk):
+	sp = subprocess.Popen(*popenargs, **popenargsk)
+	(out, err) = sp.communicate()
+	status = sp.wait()
+	if status: bomb("%s%s failed (exit status %d)" %
+			((downp and "(down) " or ""), what, status))
+	if err: bomb("%s unexpectedly produced stderr output which we"
+			"unexpectedly saw `%s'" % (what, err))
+	return out
+
+def execute(cmd_string, cmd_list=[], downp=False, outp=False):
 	cmdl = cmd_string.split()
 
 	if downp: perhaps_down = down
@@ -78,43 +88,49 @@ def execute(cmd_string, cmd_list=[], downp=False, outp=True):
 	if outp: stdout = subprocess.PIPE
 	else: stdout = None
 
-	cmd = down + cmdl + cmd_list
+	cmd = perhaps_down + cmdl + cmd_list
 	debug(" + %s" % string.join(cmd))
 
-	sp = subprocess.Popen(cmd, stdin=file('/dev/null','r'), stdout=stdout)
-	(out, err) = sp.communicate()
-	status = sp.wait()
-
-	if status: bomb("%s%s failed (exit status %d)" %
-			((downp and "(down) " or ""), cmdl[0], status))
-	if err: bomb("%s unexpectedly produced stderr output which we"
-			"unexpectedly saw `%s'" % (cmdl[0], err))
-
+	out = execute_raw(cmdl[0], cmd, stdin=file('/dev/null','r'),
+			stdout=stdout)
 	if outp and out and out[-1]=='\n': out = out[:-1]
-
 	return out
 
-def cmd_open(c, cu):
+def cmd_open(c, ce):
 	global downtmp
-	cmdnoargs(c, cu)
+	cmdnumargs(c, ce)
 	if downtmp: bomb("`open' when already open")
-	execute('true', downp=True, outp=False)
-	downtmp = execute('mktemp -t -d', downp=True)
+	execute('true', downp=True)
+	downtmp = execute('mktemp -t -d', downp=True, outp=True)
 
-def cmd_close(c, cu):
+def cmd_close(c, ce):
 	global downtmp
-	cmdnoargs(c, cu)
+	cmdnumargs(c, ce)
 	if not downtmp: bomb("`close' when not open")
 	cleanup()
 
+def cmd_stop(c, ce):
+	global downtmp
+	cmdnumargs(c, ce, 1)
+	if not downtmp: bomb("`stop' when not open")
+	execute('rm -rf --', c[1:2])
+	os.mkdir(c[1])
+	cleanup()
+
+def cmd_execute(c, ce):
+	cmdnumargs(c, ce, 4)
+	al = down
+	for ion in range(3):
+		pass
+
 def command():
-	cu = sys.stdin.readline()
-	cu = cu.rstrip().split()
-	c = map(urllib.unquote, cu)
+	ce = sys.stdin.readline()
+	ce = ce.rstrip().split()
+	c = map(urllib.unquote, ce)
 	if not c: bomb('empty commands are not permitted')
 	try: f = globals()['cmd_'+c[0]]
-	except ValueError: bomb("unknown command `%s'" % cu[0])
-	r = f(c, cu)
+	except KeyError: bomb("unknown command `%s'" % cu[0])
+	r = f(c, ce)
 	if not r: r = []
 	r.insert(0, 'ok')
 	ru = map(urllib.quote, r)
@@ -123,7 +139,7 @@ def command():
 def cleanup():
 	global downtmp, cleaning
 	cleaning = True
-	if downtmp: execute('rm -rf --', [downtmp], downp=True, outp=False)
+	if downtmp: execute('rm -rf --', [downtmp], downp=True)
 	cleaning = False
 	downtmp = False
 
