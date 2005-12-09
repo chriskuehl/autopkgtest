@@ -169,8 +169,8 @@ def cmd_execute(c, ce):
 
 def copyupdown(c, ce, up_p):
 	cmdnumargs(c, ce, 2)
-	sd = c[2:4]
-	sde = ce[2:4]
+	sd = c[1:]
+	sde = ce[1:]
 	if not sd[0] or not sd[1]:
 		bomb("%s paths must be nonempty" % ce[0])
 	dirsp = sd[0][-1]=='/'
