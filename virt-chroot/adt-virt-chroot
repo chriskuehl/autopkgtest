@@ -215,6 +215,7 @@ def copyupdown(c, ce, upp):
 		gobody += "	tarcmd += '%s'.split()\n" % taropts[iremote]
 		localcmdl += ['-C',sd[ilocal]]
 		localcmdl += taropts[ilocal].split()
+		gobody += "	os.execvp('tar', tarcmd)\n";
 
 	downcmdl = down_python_script(gobody, functions)
 
