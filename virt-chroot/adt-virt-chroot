@@ -241,6 +241,7 @@ def cmd_copydown(c, ce): copyupdown(c, ce, False)
 def cmd_copyup(c, ce): copyupdown(c, ce, True)
 
 def command():
+	sys.stdout.flush()
 	ce = sys.stdin.readline()
 	ce = ce.rstrip().split()
 	c = map(urllib.unquote, ce)
