@@ -106,6 +106,7 @@ def cmd_open(c, ce):
 	if downtmp: bomb("`open' when already open")
 	execute('true', downp=True)
 	downtmp = execute('mktemp -t -d', downp=True, outp=True)
+	return [downtmp]
 
 def cmd_close(c, ce):
 	global downtmp
@@ -243,6 +244,7 @@ def cmd_copyup(c, ce): copyupdown(c, ce, True)
 def command():
 	sys.stdout.flush()
 	ce = sys.stdin.readline()
+	if not ce: bomb('end of file - caller quit?')
 	ce = ce.rstrip().split()
 	c = map(urllib.unquote, ce)
 	if not c: bomb('empty commands are not permitted')
