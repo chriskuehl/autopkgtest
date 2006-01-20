@@ -1,9 +1,0 @@
-open
-copydown /u/ian/junk/d/pikdev-0.8.0/admin/ zork/
-copydown test-input zork/foo
-execute ls,-l,zork /dev/null out err
-copyup out /dev/tty
-copyup out outh
-copyup err errh
-copyup zork/ zork-up/
-quit
