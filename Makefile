@@ -36,7 +36,7 @@ programs =	virt-chroot/adt-virt-chroot \
 		runner/adt-run
 
 install:
-	$(INSTALL_DIRS) -d $(bindir) $(docdir)
+	$(INSTALL_DIRS) -d $(bindir) $(docdir) $(man1dir)
 	set -e; for f in $(programs); do \
 		$(INSTALL_PROGRAM) $$f $(bindir); \
 		test ! -f $$f.1 || $(INSTALL_DOC) $$f.1 $(man1dir); \
