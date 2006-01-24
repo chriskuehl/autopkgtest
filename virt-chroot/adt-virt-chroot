@@ -1,12 +1,5 @@
 #!/usr/bin/python2.4
-# usage:
-#	adt-virt-chroot =[CHROOTNAME]
-#		uses dchroot (but problems with spaces)
-#		spaces in CHROOTNAME also not permitted
-#	adt-virt-chroot [-rGAINROOT] /PATH/TO/CHROOT
-#		uses GAINROOT chroot
-#		GAINROOT will be split up if it has spaces
-
+#
 # adt-virt-chroot is part of autodebtest
 # autodebtest is a tool for testing Debian binary packages
 #
