@@ -106,7 +106,6 @@ def execute(cmd_string, cmd_list=[], downp=False, outp=False):
 	else: stdout = None
 
 	cmd = perhaps_down + cmdl + cmd_list
-
 	(status, out) = execute_raw(cmdl[0], None, cmd, stdout=stdout)
 
 	if status: bomb("%s%s failed (exit status %d)" %
@@ -153,8 +152,9 @@ def down_python_script(gobody, functions=''):
 			"	os.dup2(nfd,fd)\n"
 			+ functions +
 			"def go():\n" )
-	script += (	"	os.chdir(urllib.unquote('%s'))\n" %
+	script += (	"	os.environ['TMPDIR']= urllib.unquote('%s')\n" %
 				urllib.quote(downtmp)	)
+	script += (	"	os.chdir(os.environ['TMPDIR'])\n" )
 	script += (	gobody +
 			"go()\n" )
 
@@ -167,18 +167,25 @@ def down_python_script(gobody, functions=''):
 	return cmdl
 
 def cmd_execute(c, ce):
-	cmdnumargs(c, ce, 4)
+	cmdnumargs(c, ce, 5)
 	gobody = "	import sys\n"
 	for ioe in range(3):
 		gobody += "	setfd(%d,'%s',%d)\n" % (
 			ioe, ce[ioe+2], ioe>0 )
+	gobody += "	os.chdir(urllib.unquote('" + ce[5] +"'))\n"
 	gobody += "	cmd = '%s'\n" % ce[1]
 	gobody += ("	cmd = cmd.split(',')\n"
 		"	cmd = map(urllib.unquote, cmd)\n"
-		"	try: os.execvp(cmd[0], cmd)\n"
+		"	c0 = cmd[0]\n"
+		"	if '/' in c0:\n"
+		"		if not os.access(c0, os.X_OK):\n"
+		"			status = os.stat(c0)\n"
+		"			mode = status.st_mode | 0111\n"
+		"			os.chmod(c0, mode)\n"
+		"	try: os.execvp(c0, cmd)\n"
 		"	except OSError, e:\n"
 		"		print >>sys.stderr, \"%s: %s\" % (\n"
-		"			(cmd[0], os.strerror(e.errno)))\n"
+		"			(c0, os.strerror(e.errno)))\n"
 		"		os._exit(127)\n")
 	cmdl = down_python_script(gobody)
 
