@@ -145,11 +145,11 @@ def down_python_script(gobody, functions=''):
 
 	script = (	"import urllib\n"
 			"import os\n"
-			"def setfd(fd,fnamee,write):\n"
+			"def setfd(fd,fnamee,write,mode=0666):\n"
 			"	fname = urllib.unquote(fnamee)\n"
 			"	if write: rw = os.O_WRONLY|os.O_CREAT\n"
 			"	else: rw = os.O_RDONLY\n"
-			"	nfd = os.open(fname, rw, 0666)\n"
+			"	nfd = os.open(fname, rw, mode)\n"
 			"	os.dup2(nfd,fd)\n"
 			+ functions +
 			"def go():\n" )
@@ -168,15 +168,18 @@ def down_python_script(gobody, functions=''):
 
 def cmd_execute(c, ce):
 	cmdnumargs(c, ce, 4)
-	gobody = ""
+	gobody = "	import sys\n"
 	for ioe in range(3):
 		gobody += "	setfd(%d,'%s',%d)\n" % (
 			ioe, ce[ioe+2], ioe>0 )
 	gobody += "	cmd = '%s'\n" % ce[1]
 	gobody += ("	cmd = cmd.split(',')\n"
 		"	cmd = map(urllib.unquote, cmd)\n"
-		"	os.execvp(cmd[0], cmd)\n")
-
+		"	try: os.execvp(cmd[0], cmd)\n"
+		"	except OSError, e:\n"
+		"		print >>sys.stderr, \"%s: %s\" % (\n"
+		"			(cmd[0], os.strerror(e.errno)))\n"
+		"		os._exit(127)\n")
 	cmdl = down_python_script(gobody)
 
 	(status, out) = execute_raw('sub-python', None, cmdl,
@@ -206,11 +209,17 @@ def copyupdown(c, ce, upp):
 	srcstdin = devnull_read
 	preexecfns = [None, None]
 	if not dirsp:
-		gobody = "	setfd(%s,'%s',%s)\n" % (
-					1-upp, sde[iremote], not upp)
+		modestr = ''
+		if upp:
+			deststdout = file(sd[idst], 'w')
+		else:
+			srcstdin = file(sd[isrc], 'r')
+			status = os.fstat(srcstdin.fileno())
+			if status.st_mode & 0111: modestr = ',0777'
+			print >>sys.stderr, "not upp", "%o" % status.st_mode
+		gobody = "	setfd(%s,'%s',%s%s)\n" % (
+					1-upp, sde[iremote], not upp, modestr)
 		gobody += "	os.execvp('cat', ['cat'])\n"
-		if upp: deststdout = file(sd[idst], 'w')
-		else: srcstdin = file(sd[isrc], 'r')
 		localcmdl = ['cat']
 	else:
 		gobody = "	dir = urllib.unquote('%s')\n" % sde[iremote]
