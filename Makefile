@@ -1,7 +1,7 @@
-# This file is part of autodebtest
-# autodebtest is a tool for testing Debian binary packages
+# This file is part of autopkgtest
+# autopkgtest is a tool for testing Debian binary packages
 #
-# autodebtest is Copyright (C) 2006 Canonical Ltd.
+# autopkgtest is Copyright (C) 2006 Canonical Ltd.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,14 +18,14 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
 # See the file CREDITS for a full list of credits information (often
-# installed as /usr/share/doc/autodebtest/CREDITS).
+# installed as /usr/share/doc/autopkgtest/CREDITS).
 
 prefix =	/usr/local
 share =		$(prefix)/share
 bindir =	$(prefix)/bin
 mandir =	$(share)/man
 man1dir =	$(mandir)/man1
-docdir =	$(share)/doc/autodebtest
+docdir =	$(share)/doc/autopkgtest
 
 INSTALL =		install
 INSTALL_DIRS =		$(INSTALL) -d

@@ -1,7 +1,9 @@
-autodebtest, a tool for testing Debian binary packages
+autopkgtest, a tool for testing Debian binary packages
 
-autodebtest is Copyright (C) 2006 Canonical Ltd.
-autodebtest was written by Ian Jackson for Canonical.
+autopkgtest is Copyright (C) 2006 Canonical Ltd.
+autopkgtest was written by Ian Jackson for Canonical.
+
+(autopkgtest was previously known as autodebtest)
 
 
 This program is free software; you can redistribute it and/or modify
