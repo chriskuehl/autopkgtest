@@ -1,0 +1,45 @@
+#!/bin/sh
+
+set -e
+
+cd /lib
+
+eachfile () {
+	find -type f | sh -ec "while read f; do
+		$1
+	done"
+}
+
+case "$#.$1" in
+1.'do')
+	mkdir -p tls-aside
+	cd tls
+	find -type d -exec sh -c 'mkdir -p /lib/tls-aside/$1' x '{}' \;
+	eachfile 'dpkg-divert --add --divert "/lib/tls-aside/$f" "/lib/tls/$f"'
+	eachfile 'mv "/lib/tls/$f" "/lib/tls-aside/$f"'
+	chattr +i .
+	echo 'xen libc workaround enabled, diversions installed: 
+ tls disabled, libc upgrade may be troubled'
+	;;
+1.'undo')
+	chattr -i tls
+	if test -d tls-aside; then
+		cd tls-aside
+		eachfile 'mv "/lib/tls-aside/$f" "/lib/tls/$f"'
+		cd ..
+		rmdir tls-aside
+	fi
+	dpkg-divert --list | perl -ne '
+		next unless 
+	    s,^local diversion of (/lib/tls/),dpkg-divert --remove $1,;
+		next unless s, to /lib/tls-aside/\S+$,,;
+		print or die $!;
+	' | sh -e
+	echo 'xen libc workaround disabled, normal status restored: 
+ tls enabled, libc upgrade definitely possible'
+	;;
+*)
+	echo >&1 "usage: $0 do|undo"
+esac
+
+exit 0

@@ -1,0 +1,34 @@
+#!/bin/bash
+set -e
+
+trap 'exit 127' 0
+
+. ./config
+./cleanup
+
+modprobe dm-snapshot ||:
+
+#dd if=/dev/zero of=/dev/$lvcowdata bs=512 count=$cowchunk status=noxfer
+
+bdsize=$(blockdev --getsize $lvbase)
+dmsetup create $nsnap <<END
+0 $bdsize snapshot $lvbase $lvcowdata n $cowchunk
+END
+
+mkdir -p /dev/${pfx}_fs
+ln -s $lvsnap $lvfsptr
+
+xm restore $play/xen-save
+xm mem-set $xmname $tbmem
+udevsettle
+
+set +e
+"$@"
+rc=$?
+set -e
+
+xm destroy $xmname
+dmsetup remove $nsnap
+
+trap '' 0
+exit $rc

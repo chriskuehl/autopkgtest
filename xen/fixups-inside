@@ -1,0 +1,61 @@
+#!/bin/sh
+set -ex
+
+hosthname=$1
+guesthname=$2
+hostaddr=$3
+guestaddr=$4
+
+echo '(---'
+
+cd /root
+
+perl -i~ -pe 's/ main$/ main universe/ if m/^deb http/' /etc/apt/sources.list
+apt-get update
+
+apt-get -y --force-yes install libc6-xen || ./xen-divert-tls-libc do
+
+ldconfig
+
+cat >/etc/fstab <<END
+proc /proc proc defaults 0 0
+/dev/hda1 / ext3 defaults,errors=remount-ro 0 1
+END
+
+mkdir -p /etc/network
+cat >/etc/network/interfaces <<END
+auto lo
+iface lo inet loopback
+
+auto eth0
+iface eth0 inet static
+	address $guestaddr
+	broadcast $guestaddr
+	netmask 255.255.255.255
+	pointopoint $hostaddr
+	gateway $hostaddr
+END
+
+echo $guesthname >/etc/hostname
+
+apt-get -y --force-yes install \
+	openssh-server ed build-essential
+
+perl -i~ -wne '
+    BEGIN {
+        $pep= PermitEmptyPasswords;
+	$want= "$pep no\n";
+        $done= 0;
+    }
+    if (m/^\s*$pep/oi) {
+        $_= $want;
+        $done= 1;
+    }
+    $o .= $_;
+    END {
+        print $want or die $! unless $done;
+        print $o or die $!;
+    }
+' /etc/ssh/sshd_config
+
+echo '---)'

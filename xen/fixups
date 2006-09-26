@@ -1,0 +1,53 @@
+#!/bin/sh
+set -ex
+
+dest=$1
+hosthname=$2
+guesthname=$3; shift
+
+hostaddr=`adnshost -t a +Do +Dt +Dc $hosthname`
+guestaddr=`adnshost -t a +Do +Dt +Dc $guesthname`
+
+echo '---fixups:'
+
+cp 	xen-divert-tls-libc	\
+	fixups-inside		\
+	 $dest/root/
+
+mkdir -p $dest/lib/modules
+cp -a /lib/modules/`uname -r`/ $dest/lib/modules/.
+
+mkdir -p /root/.ssh
+id_dsa=/root/.ssh/id_dsa_adt
+test -f $id_dsa || ssh-keygen -t dsa -N '' -f $id_dsa
+mkdir -m 02700 -p $dest/root/.ssh
+cp $id_dsa.pub $dest/root/.ssh/authorized_keys
+
+cat <<END >$dest/etc/init.d/xenethtoolk
+#!/bin/sh
+case "$1" in
+start)
+	ethtool -K eth0 tx off
+	ethtool -K eth0 rx off
+	;;
+esac
+END
+chmod +x $dest/etc/init.d/xenethtoolk
+ln -s ../init.d/xenethtoolk $dest/etc/rc2.d/S21xenethtoolk
+
+chroot $dest root/fixups-inside "$@" "$hostaddr" "$guestaddr"
+
+kh=/etc/ssh/ssh_known_hosts
+test ! -f $kh || cp $kh $kh.new
+exec 3>$kh.new
+pfx="$guesthname,$guestaddr"
+test ! -f $kh || perl -pe '$_="" if m/^(\S+)\s/ && $1 eq "'$pfx'";' $kh >&3
+for f in $dest/etc/ssh/ssh_host_*_key.pub; do
+    perl -pe '$_= "'$pfx' ".$_;' $f >&3
+done
+exec 3>&-
+mv $kh.new $kh
+
+echo '
+=== adt xen fixups done.
+'

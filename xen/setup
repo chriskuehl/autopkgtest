@@ -1,0 +1,76 @@
+#!/bin/bash
+set -e
+. ./config
+./cleanup
+lvchange -a n $lvcowdata ||:
+lvremove $lvbase ||:
+lvremove $lvcowdata ||:
+
+lvcreate -L $fssize -n $lvbase $vg
+lvcreate -L $snapsize -n $ncowdata $vg
+#dd if=/dev/zero of=$lvbase
+mkfs -t ext3 $lvbase
+
+mkdir -p $play/base
+mount $lvbase $play/base
+
+#--basetgz $play/base.tgz --buildplace
+
+pbuilder create --configfile ./pbuilderrc --distribution $distro	\
+	--no-targz --buildplace $play/base				\
+	$pbuilderopts   --debootstrapopts --variant=''
+
+./fixups $play/base $hosthname $guesthname
+
+echo "
+--- writing $xmdomain ---
+"
+
+hostaddr=`adnshost -t a +Do +Dt +Dc $hosthname`
+
+cat <<END >$xmdomain
+kernel = "$kernel"
+memory = $tbmem
+root = "/dev/hda1"
+extra = "ro console=tty0"
+disk = [ "phy:$lvfsptrrhs,hda1,w" ]
+vif = [ "bridge=none,mac=00:16:3e:7c:aa:7f,ip=$guestaddr,script=/etc/xen/scripts/vif-route-adt" ]
+on_crash = "preserve"
+on_reboot = "preserve"
+on_shutdown = "preserve"
+END
+
+if [ "x$ramdisk" != x ]; then
+cat <<END >>$xmdomain
+ramdisk = "$ramdisk"
+END
+fi
+
+umount $lvbase
+
+mkdir -p /dev/${pfx}_fs
+ln -sf ../$lvbaserhs $lvfsptr
+xm create $xmdomain name=$xmname
+retries=10
+
+while true; do
+	if ping -c 1 $guestaddr && ./on-testbed id; then break; fi
+	if [ $retries -le 0 ]; then 
+		echo >&2 'no response from guest'
+		xm console $xmname
+		exit 1
+	fi
+	retries=$(($retries-1))
+	sleep 2
+done
+
+xm mem-set $xmname $frzmem
+retries=10
+while sleep 1; do
+  if xm mem-max $xmname $frzmem; then break; fi
+  if [ $retries -le 0 ]; then echo >&2 'cannot reduce memory'; exit 1; fi
+  retries=$(($retries-1))
+done
+
+xm save $xmname $play/xen-save
+rm $lvfsptr

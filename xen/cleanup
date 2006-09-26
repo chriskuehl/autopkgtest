@@ -1,0 +1,12 @@
+#!/bin/bash
+set -e
+. ./config
+
+mkdir -p $play $snap
+
+try () { "$@" >/dev/null 2>&1 ||:; }
+
+try xm destroy $xmname
+try umount $lvbase
+try dmsetup remove $nsnap
+rm -f $lvfsptr
