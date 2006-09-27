@@ -1,0 +1,111 @@
+case "$adt_vg" in
+'')
+	echo "searching for default volume group ..."
+	vgdisplay_out=`vgdisplay -c`
+	case "$vgdisplay_out" in
+	"")	fail 'no volume groups found';;
+	*"
+"*)		fail 'several volume groups, config must specify which';;
+	esac
+	$adt_vg=${vgdisplay_out%%:*}
+	echo "system has one volume group, $adt_vg, using that."
+	;;
+esac
+
+case "$adt_kernel" in
+'')
+	echo "searching for kernel ..."
+	for f in /boot/xen*"`uname -r`"; do
+		test -f "$f" || continue
+		test "x$adt_kernel" = x || \
+			fail 'several kernels, config must specify which'
+		adt_kernel="$f"
+	done
+	echo "... using currently booted kernel $adt_kernel"
+	;;
+esac
+
+case "$adt_ramdisk" in
+none)	echo "ramdisk \`none' specified, using static kernel"
+	adt_ramdisk='' ;;
+'')	adt_ramdisk="$adt_kernel.initrd.img"
+	echo "using default ramdisk <kernel>.initrd.img, $adt_ramdisk" ;;
+*)	;;
+esac
+
+case "$adt_distro" in
+'')
+	echo "considering which distro to use ..."
+	test -f /etc/lsb-release || \
+		fail 'no /etc/lsb-version, config must specify adt_distro'
+	. /etc/lsb-release
+	$adt_distro=$DISTRIB_CODENAME
+	;;
+esac
+
+hostname_from_ipaddr () {
+ eval '
+  if [ x"$adt_'$1'_hostname" = x ] && \
+     [ x"$adt_'$1'_ipaddr" != x ]; then
+   echo "finding '$1' hostname from IP address $adt_'$1'_ipaddr"
+   adt_'$1'_hostname=`adnshost -t ptr +Do +Dt +Dc -i $adt_'$1'_ipaddr`
+  fi
+ '
+}
+
+hostname_from_ipaddr guest
+hostname_from_ipaddr host
+
+if [ x"$adt_host_hostname" = x ]; then
+	echo "finding host hostname, supposely our own FQDN ..."
+	adt_host_hostname=`hostname -f`
+fi
+
+if [ x"$adt_guest_hostname" = x ]; then
+	case "$adt_guests_domain" in
+	'')	echo "guessing guest hostname from host hostname ..."
+ adt_guest_hostname=$adt_distro.$adt_nominum.${adt_host_hostname#*.} ;;
+	.*)	echo "setting guest hostname using distro and nominum ..."
+ adt_guest_hostname=$adt_distro.$adt_nominum$adt_guests_domain ;;
+	*)	echo "setting guest hostname using distro and domain ..."
+ adt_guest_hostname=$adt_distro.$adt_guests_domain ;;
+	esac
+fi
+
+ipaddr_from_hostname () {
+ eval '
+  if [ x"$adt_'$1'_ipaddr" = x ] && \
+     [ x"$adt_'$1'_hostname" != x ]; then
+   echo "finding '$1' IP address from hostname $adt_'$1'_hostname"
+   adt_'$1'_ipaddr=`adnshost -t a +Do +Dt +Dc -i - "$adt_'$1'_hostname"`
+  fi
+ '
+}
+
+ipaddr_from_hostname guest
+ipaddr_from_hostname host
+
+# SSH
+: ${adt_sshkey:=/root/.ssh/id_dsa_${adt_nominum}}
+
+# Xen
+: ${adt_xmname:=${adt_nominum}_${adt_distro}}
+
+# In-host-file-system playground
+: ${adt_play:=${adt_playbase}/${adt_distro}}
+: ${adt_xmconfig:=${adt_play}/xmconfig}
+
+# LVM
+: ${adt_nbase:=${adt_nominum}_${adt_distro}_base}
+: ${adt_lvbaserhs:=${adt_vg}/${adt_nbase}}
+: ${adt_lvbase:=/dev/${adt_lvbaserhs}}
+
+: ${adt_nsnap:=${adt_nominum}_${adt_distro}_snap}
+: ${adt_lvsnap:=/dev/mapper/${adt_nsnap}}
+
+: ${adt_ncowdata:=${adt_nominum}_${adt_distro}_cowdata}
+: ${adt_lvcowdatarhs:=${adt_vg}/${adt_ncowdata}}
+: ${adt_lvcowdata:=/dev/${adt_lvcowdatarhs}}
+
+: ${adt_lvfsptrrhs:=${adt_nominum}_fs/${adt_distro}}
+: ${adt_lvfsptr:=/dev/${adt_lvfsptrrhs}}

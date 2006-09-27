@@ -2,11 +2,8 @@
 set -ex
 
 dest=$1
-hosthname=$2
-guesthname=$3; shift
-
-hostaddr=`adnshost -t a +Do +Dt +Dc $hosthname`
-guestaddr=`adnshost -t a +Do +Dt +Dc $guesthname`
+adt_host_hostname=$2
+adt_guest_hostname=$3; shift
 
 echo '---fixups:'
 
@@ -35,12 +32,12 @@ END
 chmod +x $dest/etc/init.d/xenethtoolk
 ln -s ../init.d/xenethtoolk $dest/etc/rc2.d/S21xenethtoolk
 
-chroot $dest root/fixups-inside "$@" "$hostaddr" "$guestaddr"
+chroot $dest root/fixups-inside "$@" "$adt_host_ipaddr" "$adt_guest_ipaddr"
 
 kh=/etc/ssh/ssh_known_hosts
 test ! -f $kh || cp $kh $kh.new
 exec 3>$kh.new
-pfx="$guesthname,$guestaddr"
+pfx="$adt_guest_hostname,$adt_guest_ipaddr"
 test ! -f $kh || perl -pe '$_="" if m/^(\S+)\s/ && $1 eq "'$pfx'";' $kh >&3
 for f in $dest/etc/ssh/ssh_host_*_key.pub; do
     perl -pe '$_= "'$pfx' ".$_;' $f >&3

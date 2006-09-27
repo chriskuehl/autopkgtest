@@ -1,10 +1,10 @@
 #!/bin/sh
 set -ex
 
-hosthname=$1
-guesthname=$2
-hostaddr=$3
-guestaddr=$4
+adt_host_hostname=$1
+adt_guest_hostname=$2
+adt_host_ipaddr=$3
+adt_guest_ipaddr=$4
 
 echo '(---'
 
@@ -29,14 +29,14 @@ iface lo inet loopback
 
 auto eth0
 iface eth0 inet static
-	address $guestaddr
-	broadcast $guestaddr
+	address $adt_guest_ipaddr
+	broadcast $adt_guest_ipaddr
 	netmask 255.255.255.255
-	pointopoint $hostaddr
-	gateway $hostaddr
+	pointopoint $adt_host_ipaddr
+	gateway $adt_host_ipaddr
 END
 
-echo $guesthname >/etc/hostname
+echo $adt_guest_hostname >/etc/hostname
 
 apt-get -y --force-yes install \
 	openssh-server ed build-essential

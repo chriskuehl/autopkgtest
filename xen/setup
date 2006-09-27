@@ -20,28 +20,28 @@ pbuilder create --configfile ./pbuilderrc --distribution $distro	\
 	--no-targz --buildplace $play/base				\
 	$pbuilderopts   --debootstrapopts --variant=''
 
-./fixups $play/base $hosthname $guesthname
+./fixups $play/base $adt_host_hostname $adt_guest_hostname
 
 echo "
---- writing $xmdomain ---
+--- writing $adt_xmconfig ---
 "
 
-hostaddr=`adnshost -t a +Do +Dt +Dc $hosthname`
+adt_host_ipaddr=`adnshost -t a +Do +Dt +Dc $adt_host_hostname`
 
-cat <<END >$xmdomain
+cat <<END >$adt_xmconfig
 kernel = "$kernel"
 memory = $tbmem
 root = "/dev/hda1"
 extra = "ro console=tty0"
 disk = [ "phy:$lvfsptrrhs,hda1,w" ]
-vif = [ "bridge=none,mac=00:16:3e:7c:aa:7f,ip=$guestaddr,script=/etc/xen/scripts/vif-route-adt" ]
+vif = [ "bridge=none,mac=00:16:3e:7c:aa:7f,ip=$adt_guest_ipaddr,script=/etc/xen/scripts/vif-route-adt" ]
 on_crash = "preserve"
 on_reboot = "preserve"
 on_shutdown = "preserve"
 END
 
 if [ "x$ramdisk" != x ]; then
-cat <<END >>$xmdomain
+cat <<END >>$adt_xmconfig
 ramdisk = "$ramdisk"
 END
 fi
@@ -50,11 +50,11 @@ umount $lvbase
 
 mkdir -p /dev/${pfx}_fs
 ln -sf ../$lvbaserhs $lvfsptr
-xm create $xmdomain name=$xmname
+xm create $adt_xmconfig name=$xmname
 retries=10
 
 while true; do
-	if ping -c 1 $guestaddr && ./on-testbed id; then break; fi
+	if ping -c 1 $adt_guest_ipaddr && ./on-testbed id; then break; fi
 	if [ $retries -le 0 ]; then 
 		echo >&2 'no response from guest'
 		xm console $xmname

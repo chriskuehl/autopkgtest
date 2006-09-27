@@ -20,12 +20,11 @@
 # See the file CREDITS for a full list of credits information (often
 # installed as /usr/share/doc/autopkgtest/CREDITS).
 
-include settings.make
-
-programs =	virt-chroot/adt-virt-chroot \
-		runner/adt-run
+include ../settings.make
 
 install:
+	
+
 	$(INSTALL_DIRS) -d $(bindir) $(docdir) $(man1dir)
 	set -e; for f in $(programs); do \
 		$(INSTALL_PROGRAM) $$f $(bindir); \

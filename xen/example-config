@@ -1,0 +1,3 @@
+adt_pbuilderopts='--mirror http://mirror.relativity.greenend.org.uk/mirror/ubuntu.early'
+adt_guests_domain=.relativity.greenend.org.uk
+adt_host_hostname=samual.relativity.greenend.org.uk
