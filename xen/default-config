@@ -1,10 +1,7 @@
-tbmem=256
-frzmem=32
-fssize=1G
-snapsize=100M
-cowchunk=8
+adt_testbed_ram=256
+adt_freeze_ram=32
+adt_filesys_size=1G
+adt_filesys_snapsize=100M
+adt_filesys_cowchunk=8
 
 adt_nominum=${adt_nominum}
-
-sshkey=/root/.ssh/id_dsa_${adt_nominum}
-playbase=/var/lib/autopkgtest/xenlvm-play

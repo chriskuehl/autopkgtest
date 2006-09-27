@@ -1,4 +1,4 @@
-case "$adt_vg" in
+case "$adt_lvm_vg" in
 '')
 	echo "searching for default volume group ..."
 	vgdisplay_out=`vgdisplay -c`
@@ -7,7 +7,7 @@ case "$adt_vg" in
 	*"
 "*)		fail 'several volume groups, config must specify which';;
 	esac
-	$adt_vg=${vgdisplay_out%%:*}
+	$adt_lvm_vg=${vgdisplay_out%%:*}
 	echo "system has one volume group, $adt_vg, using that."
 	;;
 esac

@@ -8,18 +8,18 @@ trap 'exit 127' 0
 
 modprobe dm-snapshot ||:
 
-#dd if=/dev/zero of=/dev/$lvcowdata bs=512 count=$cowchunk status=noxfer
+#dd if=/dev/zero of=/dev/$lvcowdata bs=512 count=$adt_filesys_cowchunk status=noxfer
 
 bdsize=$(blockdev --getsize $lvbase)
 dmsetup create $nsnap <<END
-0 $bdsize snapshot $lvbase $lvcowdata n $cowchunk
+0 $bdsize snapshot $lvbase $lvcowdata n $adt_filesys_cowchunk
 END
 
 mkdir -p /dev/${pfx}_fs
 ln -s $lvsnap $lvfsptr
 
 xm restore $play/xen-save
-xm mem-set $xmname $tbmem
+xm mem-set $xmname $adt_testbed_ram
 udevsettle
 
 set +e
