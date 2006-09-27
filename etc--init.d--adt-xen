@@ -1,0 +1,122 @@
+#!/bin/sh
+
+set -e
+
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+default=/etc/default/adt-xen
+if test -f $default; then
+  . $default
+fi
+
+chains='AdtXenIn AdtXenFwd AdtXenIcmp'
+
+if ! type iptables >/dev/null 2>&1 || ! type xm >/dev/null 2>&1; then
+  exit 0
+fi
+
+safety () {
+  iptables -I INPUT -j DROP
+  iptables -I FORWARD -j DROP
+  trap '
+    for chain in $chains; do iptables -I $chain -j DROP; done
+    unsafety
+    exit 127
+  ' 0
+}
+
+unsafety () {
+  iptables -D INPUT -j DROP
+  iptables -D FORWARD -j DROP
+  trap '' 0
+}
+
+case "$1" in
+stop)
+  safety
+  for chain in $chains; do
+    if iptables -L $chain >/dev/null 2>&1; then
+      iptables -F $chain
+      iptables -X $chain
+    fi
+  done
+  unsafety
+  exit 0
+  ;;
+start|restart|force-reload)
+  ;;
+'')
+  echo >&2 "usage: /etc/init.d/adt-xen stop|start|restart|force-reload"
+  exit 1
+  ;;
+*)
+  echo >&2 "init.d/adt-xen unsupported action $1"
+  exit 1
+  ;;
+esac
+
+safety
+for chain in $chains; do
+  iptables -N $chain >/dev/null 2>&1 || iptables -F $chain
+  iptables -I $chain -j DROP
+done
+unsafety
+
+iptables -A AdtXenIcmp -j ACCEPT -p icmp --icmp-type echo-request
+# per RFC1122, allow ICMP echo exchanges with anyone we can talk to at all
+
+for oktype in					\
+	echo-reply				\
+	destination-unreachable source-quench	\
+	time-exceeded parameter-problem		\
+;do
+  iptables -A AdtXenIcmp -j ACCEPT -m conntrack --ctstate ESTABLISHED \
+		-p icmp --icmp-type  $oktype
+done
+
+main=AdtXenFwd
+
+for i in $LOCAL_MIRROR_IPS; do
+  iptables -A $main -d $i -j ACCEPT -p tcp --dport 80
+  iptables -A $main -d $i -j AdtXenIcmp -p icmp
+done
+
+exec </etc/resolv.conf
+while read command rest; do
+  if [ "x$command" = "xnameserver" ]; then
+    iptables -A $main -d $rest -j ACCEPT -p tcp --dport 53
+    iptables -A $main -d $rest -j ACCEPT -p udp --dport 53
+    iptables -A $main -d $rest -j AdtXenIcmp -p icmp
+  fi
+done
+
+for i in $LOCAL_CLIENT_IPS; do
+  iptables -A $main -d $i -j ACCEPT -p tcp ! --syn
+  iptables -A $main -d $i -j AdtXenIcmp -p icmp
+done
+
+for i in $LOCAL_NETWORKS; do
+  iptables -A $main -d $i -j REJECT --reject-with icmp-net-prohibited
+done
+
+case "$ALLOW_GLOBAL_HTTP" in
+y*|1*|t*) 
+  iptables -A $main -p tcp --dport 80 -j ACCEPT
+  iptables -A $main -p icmp -j AdtXenIcmp
+  ;;
+esac
+
+if test -f $default-rules; then
+  . $default-rules
+fi
+
+iptables -A $main -j REJECT --reject-with icmp-admin-prohibited
+iptables -A $main -j ACCEPT
+iptables -D $main -j DROP
+
+iptables -A AdtXenIn -j ACCEPT -p icmp --icmp-type echo-request
+iptables -A AdtXenIn -j ACCEPT -m conntrack --ctstate ESTABLISHED
+iptables -A AdtXenIn -j AdtXenFwd
+iptables -D AdtXenIn -j DROP
+
+echo 1 >/proc/sys/net/ipv4/conf/eth0/proxy_arp 
