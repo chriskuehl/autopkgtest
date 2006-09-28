@@ -1,39 +1,36 @@
 #!/bin/bash
 set -e
-. ./config
-./cleanup
-lvchange -a n $lvcowdata ||:
-lvremove $lvbase ||:
-lvremove $lvcowdata ||:
+. ${ADT_XENLVM_SHARE:=/usr/share/autopkgtest/xenlvm}/readconfig
 
-lvcreate -L $adt_filesys_size -n $lvbase $adt_lvm_vg
-lvcreate -L $adt_filesys_snapsize -n $ncowdata $adt_lvm_vg
-#dd if=/dev/zero of=$lvbase
-mkfs -t ext3 $lvbase
+$ADT_XENLVM_SHARE/cleanup
+lvchange -a n $lvm_cowdata_namepath ||:
+lvremove $lvm_baselv_namepath ||:
+lvremove $lvm_cowdata_namepath ||:
 
-mkdir -p $play/base
-mount $lvbase $play/base
+lvcreate -L $adt_fs_size -n $adt_lvm_baselv $adt_lvm_vg
+lvcreate -L $adt_fs_snapsize -n $adt_lvm_cowdatalv $adt_lvm_vg
+dd if=/dev/zero of=$lvm_baselv_namepath
+mkfs -t $adt_fs_type $adt_mkfs_args $lvm_baselv_namepath
 
-#--basetgz $play/base.tgz --buildplace
+mkdir -p $adt_play/base
+mount $adt_lvm_baselv $adt_play/base
 
-pbuilder create --configfile ./pbuilderrc --distribution $distro	\
-	--no-targz --buildplace $play/base				\
-	$pbuilderopts   --debootstrapopts --variant=''
+pbuilder create --configfile /dev/null --distribution $distro	\
+	--no-targz --buildplace $adt_play/base			\
+	$adt_pbuilder_args   --debootstrapopts --variant=''
 
-./fixups $play/base $adt_host_hostname $adt_guest_hostname
+$ADT_XENLVM_SHARE/fixups "$@"
 
 echo "
 --- writing $adt_xmconfig ---
 "
-
-adt_host_ipaddr=`adnshost -t a +Do +Dt +Dc $adt_host_hostname`
 
 cat <<END >$adt_xmconfig
 kernel = "$kernel"
 memory = $adt_testbed_ram
 root = "/dev/hda1"
 extra = "ro console=tty0"
-disk = [ "phy:$lvfsptrrhs,hda1,w" ]
+disk = [ "phy:$lvm_fslink_ptrrhs,hda1,w" ]
 vif = [ "bridge=none,mac=00:16:3e:7c:aa:7f,ip=$adt_guest_ipaddr,script=/etc/xen/scripts/vif-route-adt" ]
 on_crash = "preserve"
 on_reboot = "preserve"
@@ -46,31 +43,31 @@ ramdisk = "$ramdisk"
 END
 fi
 
-umount $lvbase
+umount $adt_lvm_baselv
 
-mkdir -p /dev/${pfx}_fs
-ln -sf ../$lvbaserhs $lvfsptr
-xm create $adt_xmconfig name=$xmname
+mkdir -p /dev/${lvm_fslink_dirpath}
+ln -sf ../$lvm_baselv_namerhs ${lvm_fslink_ptr}
+xm create $adt_xmconfig name=$adt_xmname
 retries=10
 
 while true; do
 	if ping -c 1 $adt_guest_ipaddr && ./on-testbed id; then break; fi
 	if [ $retries -le 0 ]; then 
 		echo >&2 'no response from guest'
-		xm console $xmname
+		xm console $adt_xmname
 		exit 1
 	fi
 	retries=$(($retries-1))
 	sleep 2
 done
 
-xm mem-set $xmname $adt_freeze_ram
-retries=10
+xm mem-set $adt_xmname $adt_freeze_ram
+retries=$adt_vm_reduce_retries
 while sleep 1; do
-  if xm mem-max $xmname $adt_freeze_ram; then break; fi
+  if xm mem-max $adt_xmname $adt_freeze_ram; then break; fi
   if [ $retries -le 0 ]; then echo >&2 'cannot reduce memory'; exit 1; fi
   retries=$(($retries-1))
 done
 
-xm save $xmname $play/xen-save
-rm $lvfsptr
+xm save $adt_xmname $adt_play/xen-save
+rm ${lvm_fslink_ptr}

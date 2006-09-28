@@ -2,11 +2,11 @@
 set -e
 . ./config
 
-mkdir -p $play $snap
+mkdir -p $adt_play $snap
 
 try () { "$@" >/dev/null 2>&1 ||:; }
 
-try xm destroy $xmname
-try umount $lvbase
-try dmsetup remove $nsnap
+try xm destroy $adt_xmname
+try umount $adt_lvm_baselv
+try dmsetup remove $adt_devmapper_cowdev
 rm -f $lvfsptr

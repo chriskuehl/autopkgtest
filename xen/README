@@ -1,0 +1,155 @@
+---------- Introduction ----------
+
+The configuration is read as follows:
+ 1. set all variables whose defaults are fixed strings to
+     those built-in default values
+ 2. process the command line arguments
+ 3. read the user configuration file (sourced by bash)
+ 4. process the command line arguments again, so they
+     can easily be made to override the user configuration file
+ 5. calculate the values for variables which haven't been set
+     and whose default values depend on circumstances (including
+     on other variables)
+
+---------- Items which definitely need attention ----------
+
+adt_guests_domain	.<domain-of-host_hostname>
+adt_guest_hostname	<distro>.[<nominum>.]<domain>
+adt_guest_ipaddr	from looking hostname up in the DNS
+	Hostname and IP address for the testbed.
+	If the configuration specifies one of the address and hostname
+	but not the other, the missing information will be found with
+	a DNS lookup.  If neither is specified, adt_guests_domain is
+	used; if it starts with `.' then <distro>.<nominum> is
+	prepended; otherwise just <distro>. is prepended.  NOTE: some
+	effort by the local network administrator to allocate an IP
+	address (and ideally create DNS entries) is essential.  It is
+	not possible to use DHCP for IP address allocation for the
+	testbed.
+
+---------- Items that are likely to need attention ----------
+
+adt_kernel		the booted kernel file /boot/xen*`uname -r`
+	Kernel to boot in the testbed image
+
+adt_ramdisk		<kernel>.initrd.img
+	Initial ramdisk to provide to the testbid image.
+	"none" means do not provide an initial ramdisk.
+
+adt_modules		/lib/modules/`uname -r`
+	Directory with modules to be copied into the testbed.
+
+adt_lvm_vg		the system's LVM volume group if there is only one
+	LVM volume group to create base filesystem image in.
+
+adt_fs_type		ext3
+adt_fs_mkfs_args	<none>
+	Filesystem type and any additional arguments to mkfs.  If
+	_args contains whitespace, it results in multiple arguments;
+	it is not possible to pass whitespace-containing arguments to
+	mkfs.
+
+adt_pbuilder_args	<none>
+	Extra arguments to pass to pbuilder.
+
+---------- Tuning parameters ----------
+
+adt_testbed_ram		256 [Mby]
+	Physical RAM allocated for each testbed instance while
+	creating and running.
+
+adt_freeze_ram		32 [Mby]
+	Physical RAM size for frozen image; we reduce the testbed
+	to this before freezing it and grow it again when we resume
+	it.
+
+adt_fs_size		1G
+	Size of base filesystem image.  Should be big enough to
+	contain all of the software under test and all of its working
+	space, as no running testbed can ever use more than this
+	(despite copy-on-write).
+
+adt_fs_snapsize		500M
+	Space to allocate for copy-on-write snapshot data.  This is
+	the maximum amount of data that a running testbed can use.
+	This value should be less than the adt_fs_size.
+
+adt_fs_cowchunk		8 [Mby]
+	Copy-on-write chunk size.
+
+adt_vm_reduce_retries	10 [seconds]
+	Time to wait for VM to reduce its memory following
+	xm mem-set.
+
+---------- Configuration for advanced uses ----------
+
+adt_config		/etc/autopkgtest/xenlvm_<nominum>_conf
+
+adt_ssh_keytype		dsa
+adt_ssh_privkey		/root/.ssh/id_<ssh_keytype>_<nominum>
+adt_ssh_pubkey		<ssh_privkey>.pub
+adt_ssh_keyident_args	-i <ssh_privkey>
+adt_ssh_keygen_args	-t <ssh_keytype>
+	SSH keypair to use for authentication to the testbed.
+	If the pubkey file and privkey file do not exist and
+	correspond to each other, a new key will be generated.
+	The best combinations of these variables to set are:
+	  keytype [& keygen_args] - just change the key type
+	  privkey [& keygen_args] - generate/use a different keypair
+	  pubkey, keyident_args - use an existing key via agent etc.,
+		privkey is ignored if pubkey and keyident_args
+		are set and pubkey file exists
+
+adt_nominum		adt
+	Namespace prefix for Xen domains, LVM volumes, devmapper
+	devices, entries in /dev, files in /var, and so on.  You may
+	run several instances of the adt virtualisation system with
+	different nominums and they won't interact.  It is best for
+	this to be a legal DNS label (using alphanumerics and hyphens
+	only); normally it when it is used to construct an identifier
+	it will be separated by other parts by underscores `_', so
+	they should be avoided.
+
+
+---------- Items which should not usually need to be changed ----------
+
+adt_host_hostname	`hostname -f`
+adt_host_ipaddr		from looking hostname up in the DNS
+	Hostname and IP address for the host, ie the Xen dom0 system.
+	If the configuration specifies one of the address and hostname
+	but not the other, the missing information will be found with
+	a DNS lookup.  Note that if the host system uses a dynamically
+	allocated DHCP address, things will go wrong when the address
+	changes.
+
+adt_playbase		/var/lib/autopkgtest/xenlvm
+	Base of filesystem playground areas.
+
+adt_play		<playbase>/<nominum>_<distro>
+	Playground area for this particular testbed construction and
+	data.
+
+adt_xmconfig		<play>/xmconfig
+	Xen virtual machine creation configuration for xm create.
+	This file will be (over)written during testbed setup.
+
+adt_lvm_baselv		<nominum>_<distro>_base
+adt_lvm_cowdatalv	<nominum>_<distro>_cowdata
+	LVM volume for base filesystem image, and copy-on-write
+	buffer.  Will be created during testbed setup, destroying any
+	previous volume if necessary.  This is the logical volume name
+	not including /dev/<lvm_vg>.
+
+adt_devmapper_cowdev	<nominum>_<distro>_snap
+	devmapper device for copy-on-write image used by testbed when
+	running.  This is the device name in the devmapper namespace,
+	ie not including /dev/mapper.
+
+adt_fslink_dir		adt-xenlvm
+adt_fslink_name		<nominum>_<distro>_fs
+	Directory in /dev, and filename in that directory, where the
+	scripts put the symlink used to trick Xen into using a
+	different block device on resume than was used for creation.
+
+adt_xmname		<nominum>_<distro>
+	Xen virtual machine name, as passed to xm create.

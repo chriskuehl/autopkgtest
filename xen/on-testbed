@@ -1,4 +1,4 @@
 #!/bin/sh
 set -e
 . ./config
-ssh -i $sshkey $adt_guest_ipaddr "$@"
+ssh -i $adt_sshkey $adt_guest_ipaddr "$@"

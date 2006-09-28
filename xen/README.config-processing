@@ -1,5 +1,0 @@
-1. read config-defaults
-2. process command line args
-3. read user config
-4. process command line args again
-5. process tail-config

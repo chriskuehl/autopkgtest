@@ -8,18 +8,18 @@ trap 'exit 127' 0
 
 modprobe dm-snapshot ||:
 
-#dd if=/dev/zero of=/dev/$lvcowdata bs=512 count=$adt_filesys_cowchunk status=noxfer
+#dd if=/dev/zero of=/dev/$lvm_cowdata_namepath bs=512 count=$adt_fs_cowchunk status=noxfer
 
-bdsize=$(blockdev --getsize $lvbase)
-dmsetup create $nsnap <<END
-0 $bdsize snapshot $lvbase $lvcowdata n $adt_filesys_cowchunk
+bdsize=$(blockdev --getsize $adt_lvm_baselv)
+dmsetup create $adt_devmapper_cowdev <<END
+0 $bdsize snapshot $adt_lvm_baselv $lvm_cowdata_namepath n $adt_fs_cowchunk
 END
 
-mkdir -p /dev/${pfx}_fs
-ln -s $lvsnap $lvfsptr
+mkdir -p $lvm_fslink_dirpath
+ln -s $lvm_snapdev $lvm_fslink_ptr
 
-xm restore $play/xen-save
-xm mem-set $xmname $adt_testbed_ram
+xm restore $adt_play/xen-save
+xm mem-set $adt_xmname $adt_testbed_ram
 udevsettle
 
 set +e
@@ -27,8 +27,8 @@ set +e
 rc=$?
 set -e
 
-xm destroy $xmname
-dmsetup remove $nsnap
+xm destroy $adt_xmname
+dmsetup remove $adt_devmapper_cowdev
 
 trap '' 0
 exit $rc

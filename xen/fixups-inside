@@ -5,21 +5,28 @@ adt_host_hostname=$1
 adt_guest_hostname=$2
 adt_host_ipaddr=$3
 adt_guest_ipaddr=$4
+adt_fs_type=$5
 
 echo '(---'
 
 cd /root
 
-perl -i~ -pe 's/ main$/ main universe/ if m/^deb http/' /etc/apt/sources.list
-apt-get update
+if test -f /etc/lsb-release; then
+	. /etc/lsb-release
+	if [ "x$DISTRIB_ID" = xUbuntu ]; then
+		perl -i~ -pe 's/ main$/ main universe/ if m/^deb http/' \
+			/etc/apt/sources.list
+	fi
+fi
 
-apt-get -y --force-yes install libc6-xen || ./xen-divert-tls-libc do
+apt-get update
+apt-get -y --force-yes install libc6-xen
 
 ldconfig
 
 cat >/etc/fstab <<END
 proc /proc proc defaults 0 0
-/dev/hda1 / ext3 defaults,errors=remount-ro 0 1
+/dev/hda1 / $adt_fs_type defaults,errors=remount-ro 0 1
 END
 
 mkdir -p /etc/network

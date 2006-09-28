@@ -1,0 +1,56 @@
+# This bash script is sourced by the various tools to set the
+# adt_... variables.
+
+fail () {
+	echo >&2 "xenlvm: ${0##*/}: error: $*"
+	exit 16
+}
+
+cmdline_args () {
+	while [ $# -gt 0 ]; do
+		arg="$1"
+		case "$arg" in
+		--*=*)
+			value="${arg#*=}"
+
+			var=${arg%%=*}
+			var=${var#--}
+			case "$var" in
+			*-*)	var="$(printf "%s" "$var" | tr -- - _)" ;;
+			esac
+			var=${var#adt_}
+
+			case $var in
+			*) ;; # @@varlist@@
+			*) fail "unknown configuration variable \`$var'" ;;
+			esac
+
+			eval "$var=\"\$value\""
+			shift ;;
+
+		--)	break ;;
+		-*)	fail "unknown option \`$arg'" ;;
+		*)	shift; break ;;
+		esac
+	done
+	test $# = 0 || fail "non-option arguments not allowed"
+}
+
+. $ADT_XENLVM_SHARE/config-default
+cmdline_args
+. ${adt_config}
+
+. 
+
+
+lvm_baselv_namerhs=${adt_vg}/${adt_lvm_baselv}
+lvm_baselv_namepath=/dev/${adt_lvbaserhs}
+
+lvm_cowdata_namerhs:=${adt_vg}/${adt_lvm_cowdatalv}
+adt_cowdata_namepath:=/dev/${lvm_cowdata_namerhs}
+
+lvm_snapdev=/dev/mapper/${adt_devmapper_cowdev}
+
+lvm_fslink_ptrrhs=${adt_fslink_dir}/${adt_fslink_name}
+lvm_fslink_dirpath=/dev/${adt_fslink_dir}
+lvm_fslink_ptr=/dev/${lvm_fslink_dir}/${adt_fslink_name}

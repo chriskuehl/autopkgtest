@@ -33,6 +33,11 @@ none)	echo "ramdisk \`none' specified, using static kernel"
 *)	;;
 esac
 
+case "$adt_modules" in
+'')	/lib/modules/`uname -r` ;;
+*)	;;
+esac
+
 case "$adt_distro" in
 '')
 	echo "considering which distro to use ..."
@@ -85,27 +90,25 @@ ipaddr_from_hostname () {
 ipaddr_from_hostname guest
 ipaddr_from_hostname host
 
+: ${adt_config:=/etc/autopkgtest/xenlvm_${adt_nominum}_config}
+
 # SSH
-: ${adt_sshkey:=/root/.ssh/id_dsa_${adt_nominum}}
+: ${adt_ssh_privkey:=/root/.ssh/id_${adt_ssh_keytype}_${adt_nominum}}
+: ${adt_ssh_pubkey:=${adt_ssh_privkey}.pub}
+: ${adt_ssh_keyident_args:=-i ${adt_ssh_privkey}}
+: ${adt_ssh_keygen_args:=-t ${adt_ssh_keytype}}
 
 # Xen
 : ${adt_xmname:=${adt_nominum}_${adt_distro}}
 
 # In-host-file-system playground
-: ${adt_play:=${adt_playbase}/${adt_distro}}
+: ${adt_play:=${adt_playbase}/${adt_nominum}_${adt_distro}}
 : ${adt_xmconfig:=${adt_play}/xmconfig}
 
 # LVM
-: ${adt_nbase:=${adt_nominum}_${adt_distro}_base}
-: ${adt_lvbaserhs:=${adt_vg}/${adt_nbase}}
-: ${adt_lvbase:=/dev/${adt_lvbaserhs}}
+: ${adt_lvm_baselv:=${adt_nominum}_${adt_distro}_base}
+: ${adt_lvm_cowdatalv:=${adt_nominum}_${adt_distro}_cowdata}
+: ${adt_devmapper_cowdev:=${adt_nominum}_${adt_distro}_snap}
 
-: ${adt_nsnap:=${adt_nominum}_${adt_distro}_snap}
-: ${adt_lvsnap:=/dev/mapper/${adt_nsnap}}
-
-: ${adt_ncowdata:=${adt_nominum}_${adt_distro}_cowdata}
-: ${adt_lvcowdatarhs:=${adt_vg}/${adt_ncowdata}}
-: ${adt_lvcowdata:=/dev/${adt_lvcowdatarhs}}
-
-: ${adt_lvfsptrrhs:=${adt_nominum}_fs/${adt_distro}}
-: ${adt_lvfsptr:=/dev/${adt_lvfsptrrhs}}
+: ${adt_fslink_dir:=adt-xenlvm}
+: ${adt_fslink_name:=${adt_nominum}_${adt_distro}_fs}
