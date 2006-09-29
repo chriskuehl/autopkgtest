@@ -20,46 +20,45 @@
 #         this script).
 #============================================================================
 
-exec 2>>/var/log/xen-hotplug.log
-set -x
 case $0 in */*) dir=${0%/*};; *) dir=.;; esac
 . "$dir/vif-common.sh"
 
 main_ip=$(dom0_ip)
+mac=$(xenstore_read "$XENBUS_PATH/mac")
 
 case "$command" in
     online)
         ifconfig ${vif} ${main_ip} netmask 255.255.255.255 \
 		broadcast ${main_ip} up
 	ip -f inet6 addr delete dev ${vif} local fe80::fcff:ffff:feff:ffff/64
-	ip -f inet neigh add \
-	    to 172.18.45.66 \
-	    dev ${vif} \
-	    lladdr 00:16:3e:7c:aa:7f \
-	    nud permanent
-	arp -i ${vif} -s 172.18.45.66 00:16:3e:7c:aa:7f pub
-        ipcmd='a'
+        ipcmd='add'
 	iptcmd='-A'
+	cmdprefix=''
+	add_only=''
         ;;
     offline)
         ifdown ${vif}
-        ipcmd='d'
+        ipcmd='del'
 	iptcmd='-D'
+	cmdprefix='do_without_error'
+	add_only=:
         ;;
 esac
-
-iptables "$iptcmd" INPUT -i "$vif" -j AdtXenIn
-iptables "$iptcmd" FORWARD -i "$vif" -j AdtXenFwd
 
 if [ "${ip}" ] ; then
     # If we've been given a list of IP addresses, then add routes from dom0 to
     # the guest using those addresses.
     for addr in ${ip} ; do
-      ip r ${ipcmd} ${addr} dev ${vif} src ${main_ip}
+      ${cmdprefix} ip route ${ipcmd} ${addr} dev ${vif} src ${main_ip}
+      ${add_only} ip -f inet neigh add to ${addr} dev ${vif} lladdr ${mac} nud permanent
+      ${add_only} arp -i ${vif} -s ${addr} ${mac} pub
     done 
 fi
 
-#S log debug "Successful vif-route $command for $vif."
+iptables "$iptcmd" INPUT -i "$vif" -j AdtXenIn
+iptables "$iptcmd" FORWARD -i "$vif" -j AdtXenFwd
+
+log debug "Successful vif-route $command for $vif."
 if [ "$command" == "online" ]
 then
   success

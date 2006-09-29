@@ -22,13 +22,35 @@
 
 include ../settings.make
 
-install:
-	
+programs =	cleanup setup on-testbed with-testbed
+shareprograms =	fixups fixups-inside
+sharefiles =	readconfig
 
-	$(INSTALL_DIRS) -d $(bindir) $(docdir) $(man1dir)
-	set -e; for f in $(programs); do \
-		$(INSTALL_PROGRAM) $$f $(bindir); \
-		test ! -f $$f.1 || $(INSTALL_DOC) $$f.1 $(man1dir); \
+exec_prefix =	adt-xenlvm-
+
+install:	all
+	$(INSTALL_DIRS) -d $(bindir) $(docdir) $(man1dir) \
+		$(sharedir) $(etcinitdddir) $(xenscripts)
+	set -e; for f in $(programs) $(shareprograms); do \
+		$(INSTALL_PROGRAM) $$f $(sharedir); \
 		done
-	cd xen && $(MAKE) install
-	$(INSTALL_DOC) CREDITS debian/changelog $(docdir)
+	set -e; for f in $(programs); do \
+		ln -s $(sharedir)/$$f $(bindir)/$(exec_prefix)$$f; \
+		test ! -f $$f.1 || $(INSTALL_DOC) $$f.1 \
+			$(man1dir)/$(exec_prefix)$$f; \
+		done
+	set -e; for f in $(sharefiles); do \
+		$(INSTALL_DATA) $$f $(sharedir); \
+		done
+	$(INSTALL_DATA) initscript $(etcinitddir)/adtxenlvm$(cfg_suffix)
+	$(INSTALL_DATA) vif-route-adt $(xenscripts)/vif-route-adt$(cfg_suffix)
+
+all:		readconfig
+
+readconfig:	sed-readconfig readconfig.in
+	sed -f $^ >$@.new && mv -f $@.new $@
+
+sed-readconfig:	README Makefile
+	echo '/@@varlist@@/{h' >$@.new
+	sed -n 's,^adt_\([_0-9a-z]*\)[ 	].*,s/\\*/\1/p;g,p' <$< >>$@.new
+	echo 'd}' >>$@.new && mv -f $@.new $@

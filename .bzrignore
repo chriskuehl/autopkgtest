@@ -1,3 +1,5 @@
 debian/autodebtest
 debian/tmp
 debian/files
+xen/sed-readconfig
+xen/readconfig

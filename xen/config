@@ -1,8 +1,0 @@
-#----------
-# must install
-#   autopkgtest pbuilder libadns1-bin chiark-utils-bin
-#
-# /etc/xen/scripts/vif-route-adt
-# /etc/default/adt-xen
-# /etc/init.d/adt-xen and links
-#----------

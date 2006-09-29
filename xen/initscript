@@ -1,7 +1,6 @@
 #!/bin/sh
-
 set -e
-
+. ${ADT_XENLVM_SHARE:=/usr/share/autopkgtest/xenlvm}/readconfig
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
 default=/etc/default/adt-xen
@@ -76,7 +75,7 @@ done
 
 main=AdtXenFwd
 
-for i in $LOCAL_MIRROR_IPS; do
+for i in $adt_fw_localmirrors; do
   iptables -A $main -d $i -j ACCEPT -p tcp --dport 80
   iptables -A $main -d $i -j AdtXenIcmp -p icmp
 done
@@ -90,21 +89,21 @@ while read command rest; do
   fi
 done
 
-for i in $LOCAL_CLIENT_IPS; do
+for i in $adt_fw_testbedclients; do
   iptables -A $main -d $i -j ACCEPT -p tcp ! --syn
   iptables -A $main -d $i -j AdtXenIcmp -p icmp
 done
 
-for i in $LOCAL_NETWORKS; do
+for i in $adt_fw_prohibnets; do
   iptables -A $main -d $i -j REJECT --reject-with icmp-net-prohibited
 done
 
-case "$ALLOW_GLOBAL_HTTP" in
-y*|1*|t*) 
-  iptables -A $main -p tcp --dport 80 -j ACCEPT
+if [ x"$adt_fw_allowglobalports" != x ]; then
   iptables -A $main -p icmp -j AdtXenIcmp
-  ;;
-esac
+fi
+for port in $adt_fw_allowglobalports; do
+  iptables -A $main -p tcp --dport $port -j ACCEPT
+done
 
 if test -f $default-rules; then
   . $default-rules

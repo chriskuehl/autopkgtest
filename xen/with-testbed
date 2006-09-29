@@ -3,12 +3,10 @@ set -e
 
 trap 'exit 127' 0
 
-. ./config
-./cleanup
+. ${ADT_XENLVM_SHARE:=/usr/share/autopkgtest/xenlvm}/readconfig
+${ADT_XENLVM_SHARE}/cleanup
 
 modprobe dm-snapshot ||:
-
-#dd if=/dev/zero of=/dev/$lvm_cowdata_namepath bs=512 count=$adt_fs_cowchunk status=noxfer
 
 bdsize=$(blockdev --getsize $adt_lvm_baselv)
 dmsetup create $adt_devmapper_cowdev <<END

@@ -31,7 +31,7 @@ memory = $adt_testbed_ram
 root = "/dev/hda1"
 extra = "ro console=tty0"
 disk = [ "phy:$lvm_fslink_ptrrhs,hda1,w" ]
-vif = [ "bridge=none,mac=00:16:3e:7c:aa:7f,ip=$adt_guest_ipaddr,script=/etc/xen/scripts/vif-route-adt" ]
+vif = [ "bridge=none,mac=$adt_guest_macaddr,ip=${adt_guest_ipaddr},script=${adt_net_vifscript}" ]
 on_crash = "preserve"
 on_reboot = "preserve"
 on_shutdown = "preserve"

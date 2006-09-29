@@ -1,9 +1,0 @@
-kernel = "/boot/boot/vmlinuz-2.6-xen"
-memory = 128
-root = "/dev/hda1"
-extra = "ro console=tty0"
-disk = [ "phy:glalonde/adt_dapper_base,hda1,w" ]
-vif = [ "bridge=none,mac=00:16:3e:7c:aa:7f,ip=172.18.45.65,script=/etc/xen/scripts/vif-route-adt" ]
-on_crash = "preserve"
-on_reboot = "preserve"
-on_shutdown = "preserve"

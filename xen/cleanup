@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e
-. ./config
+. ${ADT_XENLVM_SHARE:=/usr/share/autopkgtest/xenlvm}/readconfig
 
 mkdir -p $adt_play $snap
 

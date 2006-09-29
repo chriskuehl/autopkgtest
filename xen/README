@@ -27,6 +27,25 @@ adt_guest_ipaddr	from looking hostname up in the DNS
 	not possible to use DHCP for IP address allocation for the
 	testbed.
 
+---------- Firewall policy items ----------
+
+adt_fw_localmirrors	<none>
+	List of IP addresses of local mirrors, to which the
+	testbed should allowed to make HTTP requests.
+
+adt_fw_testbedclients	<host_ipaddr>
+	List of IP addresses of hosts which will be allowed to make
+	connections into the testbed system.
+
+adt_fw_prohibnets	192.168.0.0/24 172.16.0.0/12 10.0.0.0/8
+	List of network ranges with which the testbed will be
+	prohibited from communicating, notwithstanding
+	allowglobalports.
+
+adt_fw_allowglobalports	80
+	List of ports to which the testbed will be allowed to make
+	outgoing connections.
+
 ---------- Items that are likely to need attention ----------
 
 adt_kernel		the booted kernel file /boot/xen*`uname -r`
@@ -42,17 +61,17 @@ adt_modules		/lib/modules/`uname -r`
 adt_lvm_vg		the system's LVM volume group if there is only one
 	LVM volume group to create base filesystem image in.
 
+adt_pbuilder_args	<none>
+	Extra arguments to pass to pbuilder.
+
+---------- Tuning parameters ----------
+
 adt_fs_type		ext3
 adt_fs_mkfs_args	<none>
 	Filesystem type and any additional arguments to mkfs.  If
 	_args contains whitespace, it results in multiple arguments;
 	it is not possible to pass whitespace-containing arguments to
 	mkfs.
-
-adt_pbuilder_args	<none>
-	Extra arguments to pass to pbuilder.
-
----------- Tuning parameters ----------
 
 adt_testbed_ram		256 [Mby]
 	Physical RAM allocated for each testbed instance while
@@ -110,6 +129,8 @@ adt_nominum		adt
 	it will be separated by other parts by underscores `_', so
 	they should be avoided.
 
+adt_guest_macaddr	00:16:3e:7c:aa:7f
+adt_net_vifscript	/etc/xen/scripts/vif-route-adt
 
 ---------- Items which should not usually need to be changed ----------
 
