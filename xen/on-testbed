@@ -1,4 +1,4 @@
 #!/bin/sh
 set -e
 . ${ADT_XENLVM_SHARE:=/usr/share/autopkgtest/xenlvm}/readconfig
-ssh -i $adt_sshkey $adt_guest_ipaddr "$@"
+ssh $adt_ssh_keyident_args $adt_guest_ipaddr "$@"

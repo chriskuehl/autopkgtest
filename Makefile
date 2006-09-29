@@ -38,3 +38,6 @@ install-here:
 
 install: install-here
 	cd xen && $(MAKE) install
+
+clean:
+	cd xen && $(MAKE) clean
