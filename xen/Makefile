@@ -31,7 +31,7 @@ exec_prefix =	adt-xenlvm-
 all:		readconfig
 
 install:	all
-	$(INSTALL_DIRS) -d $(bindir) $(docdir) $(man1dir) \
+	$(INSTALL_DIRS) $(bindir) $(docdir) $(man1dir) \
 		$(sharedir) $(etcinitddir) $(xenscripts)
 	set -e; for f in $(programs) $(shareprograms); do \
 		$(INSTALL_PROGRAM) $$f $(sharedir); \
