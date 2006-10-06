@@ -30,7 +30,7 @@ case "$command" in
     online)
         ifconfig ${vif} ${main_ip} netmask 255.255.255.255 \
 		broadcast ${main_ip} up
-	ip -f inet6 addr delete dev ${vif} local fe80::fcff:ffff:feff:ffff/64
+	ip -f inet6 addr delete dev $vif local fe80::fcff:ffff:feff:ffff/64 ||:
         ipcmd='add'
 	iptcmd='-A'
 	cmdprefix=''
