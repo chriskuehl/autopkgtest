@@ -184,34 +184,41 @@ ipaddr_from_hostname () {
 ipaddr_from_hostname guest
 ipaddr_from_hostname host
 
-printf "looking for firewall hook ... "
-case "$adt_fw_hook" in
-'')
-	case "$adt_config" in
-	*_config)
-		adt_fw_hook=${adt_config%_config}_fwhook
-		if test -e "$adt_fw_hook"; then
-			echo "default exists: $adt_fw_hook"
-		else
-			echo "default $adt_fw_hook is not a file, so: none"
-			adt_fw_hook=''
-		fi
-		;;
-	*)
-		echo "not specified, not computable from config, so: none"
-		adt_fw_hook=''
-		;;
-	esac
-	;;
-*)
-	if test -e "$adt_fw_hook"; then
-		echo "exists: $adt_fw_hook"
-	else
-		echo "specified as $adt_fw_hook, but not a file, so: none"
-		adt_fw_hook=''
-	fi
-	;;
-esac
+search_hook () {
+ eval '
+  printf "looking for '$2' hook ... "
+  case "$adt_'$1'_hook" in
+  "")
+    case "$adt_config" in
+    *_config)
+      adt_'$1'_hook=${adt_config%_config}_'$3'
+      if test -e "$adt_'$1'_hook"; then
+	      echo "default exists: $adt_'$1'_hook"
+      else
+	      echo "default $adt_'$1'_hook is not a file, so: none"
+	      adt_'$1'_hook=""
+      fi
+      ;;
+    *)
+      echo "not specified, not computable from config, so: none"
+      adt_'$1'_hook=""
+      ;;
+    esac
+    ;;
+  *)
+    if test -e "$adt_'$1'_hook"; then
+      echo "exists: $adt_'$1'_hook"
+    else
+      echo "specified as $adt_'$1'_hook, but not a file, so: none"
+      adt_'$1'_hook=""
+    fi
+    ;;
+  esac
+ '
+}
+
+search_hook fw firewall fwhook
+search_hook setup setup setuphook
 
 boolean_config () {
   eval '

@@ -2,11 +2,7 @@
 set -e
 
 trap 'exit 127' 0
-
-exec 10>&1 >/dev/null
-. ${ADT_XENLVM_SHARE:=/usr/share/autopkgtest/xenlvm}/readconfig
-exec >&10 10>&-
-
+. ${ADT_XENLVM_SHARE:=/usr/share/autopkgtest/xenlvm}/justconfig
 while test $# -gt $nonoptargs; do shift; done
 
 ${ADT_XENLVM_SHARE}/cleanup >/dev/null

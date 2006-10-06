@@ -24,7 +24,7 @@ include ../settings.make
 
 programs =	cleanup setup on-testbed with-testbed
 shareprograms =	fixups fixups-inside
-sharefiles =	readconfig
+sharefiles =	readconfig justconfig
 
 exec_prefix =	adt-xenlvm-
 

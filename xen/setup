@@ -27,12 +27,6 @@ x debootstrap \
 	"$adt_distro" "$adt_play/base"		\
 	"$adt_debootstrap_mirrors" "$adt_debootstrap_script"
 
-#x pbuilder create 							\
-#	--configfile /usr/share/autopkgtest/xenlvm/pbuilderrc		\
-#	--distribution "$adt_distro"					\
-#	--no-targz --buildplace $adt_play/base				\
-#	$adt_pbuilder_args   --debootstrapopts --variant=''
-
 $ADT_XENLVM_SHARE/fixups "$@"
 
 echo "
@@ -55,6 +49,10 @@ if [ "x$adt_ramdisk" != x ]; then
 cat <<END >>$adt_xmconfig
 ramdisk = "$adt_ramdisk"
 END
+fi
+
+if [ "x$adt_setup_hook" != x ]; then
+	$adt_setup_hook ${adt_play}/base
 fi
 
 x umount $lvm_baselv_namepath

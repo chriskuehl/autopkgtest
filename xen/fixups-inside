@@ -42,7 +42,8 @@ END
 
 echo $adt_guest_hostname >/etc/hostname
 
-perl -i~ -wne '
+essc=/etc/ssh/sshd_config
+perl -wne '
     BEGIN {
         $pep= PermitEmptyPasswords;
 	$want= "$pep no\n";
@@ -57,6 +58,7 @@ perl -i~ -wne '
         print $want or die $! unless $done;
         print $o or die $!;
     }
-' /etc/ssh/sshd_config
+' $essc >$essc.new
+mv $essc.new $essc
 
 echo '---)'

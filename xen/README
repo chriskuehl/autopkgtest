@@ -144,6 +144,17 @@ adt_debootstrap_mirrors		<empty string>
 adt_debootstrap_script		<empty string>
 	Third and fourth arguments to debootstrap.
 
+adt_setup_hook			<config> with _config replaced with
+				 _setuphook, as for adt_fw_hook
+	Program to run at last moment before we freeze the image.
+	Will be invoked with one argument: the directory containing
+	the root of the testbed.  In the future more arguments may be
+	defined, so the hook script should not fail if more are
+	supplied.  The supplied hook value will be split at
+	whitespace before execution as if
+		$adt_setup_hook /path/to/root
+	was run from within a shellscript.
+
 ---------- Tuning parameters ----------
 
 adt_fs_type		ext3
