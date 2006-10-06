@@ -1,4 +1,9 @@
-#!/bin/sh
+#!/bin/bash
 set -e
+exec 10>&1 >/dev/null
 . ${ADT_XENLVM_SHARE:=/usr/share/autopkgtest/xenlvm}/readconfig
+exec >&10
+exec 10>&-
+while test $# -gt $nonoptargs; do shift; done
+
 ssh $adt_ssh_keyident_args $adt_guest_ipaddr "$@"

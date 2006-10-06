@@ -1,6 +1,12 @@
-adt_pbuilder_args='--mirror http://mirror.relativity.greenend.org.uk/mirror/ubuntu.early'
+adt_debootstrap_mirrors=http://mirror.relativity.greenend.org.uk/mirror/ubuntu
 adt_guests_domain=.relativity.greenend.org.uk
 adt_host_hostname=samual.relativity.greenend.org.uk
 
 adt_fw_localmirrors=172.18.45.6
 adt_fw_testbedclients='172.18.45.97 172.18.45.6'
+
+adt_lvm_erasebase=n
+
+#export http_proxy=http://www-cache.relativity.greenend.org.uk:3128/
+
+

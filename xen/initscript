@@ -1,12 +1,16 @@
-#!/bin/sh
+#!/bin/bash
 set -e
-. ${ADT_XENLVM_SHARE:=/usr/share/autopkgtest/xenlvm}/readconfig
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
-default=/etc/default/adt-xen
-if test -f $default; then
-  . $default
+lsbif=/lib/lsb/init-functions
+if test -e $lsbif; then
+  . $lsbif
+else
+  log_daemon_msg () { printf "%s: " "$1"; }
+  log_progress_msg () { printf "%s " "$1"; }
+  log_end_msg () { echo "done."; }
 fi
+. /etc/default/rcS
 
 chains='AdtXenIn AdtXenFwd AdtXenIcmp'
 
@@ -15,6 +19,7 @@ if ! type iptables >/dev/null 2>&1 || ! type xm >/dev/null 2>&1; then
 fi
 
 safety () {
+  log_progress_msg block
   iptables -I INPUT -j DROP
   iptables -I FORWARD -j DROP
   trap '
@@ -25,6 +30,7 @@ safety () {
 }
 
 unsafety () {
+  log_progress_msg unblock
   iptables -D INPUT -j DROP
   iptables -D FORWARD -j DROP
   trap '' 0
@@ -32,14 +38,18 @@ unsafety () {
 
 case "$1" in
 stop)
+  log_daemon_msg "adtxenlvm: removing firewall rules"
   safety
+  log_progress_msg clear
   for chain in $chains; do
-    if iptables -L $chain >/dev/null 2>&1; then
+    if iptables -L -n $chain >/dev/null 2>&1; then
+      log_progress_msg $chain
       iptables -F $chain
       iptables -X $chain
     fi
   done
   unsafety
+  log_end_msg 0
   exit 0
   ;;
 start|restart|force-reload)
@@ -54,12 +64,31 @@ start|restart|force-reload)
   ;;
 esac
 
+set --
+
+exec 10>&1
+case "$VERBOSE" in
+no)	exec >/dev/null ;;
+esac
+
+printf "adtxenlvm: reading configuration for firewall setup:\n"
+. ${ADT_XENLVM_SHARE:=/usr/share/autopkgtest/xenlvm}/readconfig
+
+exec >&10 10>&-
+
+log_daemon_msg "adtxenlvm: installing firewall rules"
+
 safety
+
+log_progress_msg create
 for chain in $chains; do
+  log_progress_msg $chain
   iptables -N $chain >/dev/null 2>&1 || iptables -F $chain
   iptables -I $chain -j DROP
 done
 unsafety
+
+log_progress_msg rules
 
 iptables -A AdtXenIcmp -j ACCEPT -p icmp --icmp-type echo-request
 # per RFC1122, allow ICMP echo exchanges with anyone we can talk to at all
@@ -105,17 +134,27 @@ for port in $adt_fw_allowglobalports; do
   iptables -A $main -p tcp --dport $port -j ACCEPT
 done
 
-if test -f $default-rules; then
-  . $default-rules
+if [ "x$adt_fw_hook" != x ]; then
+  log_progress_msg hook
+  . $adt_fw_hook
 fi
 
+log_progress_msg confirm
+
 iptables -A $main -j REJECT --reject-with icmp-admin-prohibited
-iptables -A $main -j ACCEPT
 iptables -D $main -j DROP
+
+log_progress_msg engage
 
 iptables -A AdtXenIn -j ACCEPT -p icmp --icmp-type echo-request
 iptables -A AdtXenIn -j ACCEPT -m conntrack --ctstate ESTABLISHED
 iptables -A AdtXenIn -j AdtXenFwd
 iptables -D AdtXenIn -j DROP
 
+iptables -D AdtXenIcmp -j DROP
+
+log_progress_msg proxyarp
+
 echo 1 >/proc/sys/net/ipv4/conf/eth0/proxy_arp 
+
+log_end_msg 0

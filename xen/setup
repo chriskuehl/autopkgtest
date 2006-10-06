@@ -1,23 +1,37 @@
 #!/bin/bash
 set -e
 . ${ADT_XENLVM_SHARE:=/usr/share/autopkgtest/xenlvm}/readconfig
+test $nonoptargs = 0 || fail "non-option arguments not allowed"
 
 $ADT_XENLVM_SHARE/cleanup
-lvchange -a n $lvm_cowdata_namepath ||:
-lvremove $lvm_baselv_namepath ||:
-lvremove $lvm_cowdata_namepath ||:
+x lvchange -a n $lvm_baselv_namepath ||:
+x lvchange -a n $lvm_cowdata_namepath ||:
+x lvremove $lvm_baselv_namepath ||:
+x lvremove $lvm_cowdata_namepath ||:
 
-lvcreate -L $adt_fs_size -n $adt_lvm_baselv $adt_lvm_vg
-lvcreate -L $adt_fs_snapsize -n $adt_lvm_cowdatalv $adt_lvm_vg
-dd if=/dev/zero of=$lvm_baselv_namepath
-mkfs -t $adt_fs_type $adt_mkfs_args $lvm_baselv_namepath
+x lvcreate -L $adt_fs_size -n $adt_lvm_baselv $adt_lvm_vg
+x lvcreate -L $adt_fs_snapsize -n $adt_lvm_cowdatalv $adt_lvm_vg
+
+if $adt_lvm_erasebase; then
+  x dd if=/dev/zero of=$lvm_baselv_namepath
+fi
+x mkfs -t $adt_fs_type $adt_mkfs_args $lvm_baselv_namepath
 
 mkdir -p $adt_play/base
-mount $adt_lvm_baselv $adt_play/base
+x mount $lvm_baselv_namepath $adt_play/base
 
-pbuilder create --configfile /dev/null --distribution $distro	\
-	--no-targz --buildplace $adt_play/base			\
-	$adt_pbuilder_args   --debootstrapopts --variant=''
+x debootstrap \
+	--components="${adt_debootstrap_components}" \
+	--include=${adt_debootstrap_include},${adt_debootstrap_includemore} \
+	$adt_debootstrap_opts			\
+	"$adt_distro" "$adt_play/base"		\
+	"$adt_debootstrap_mirrors" "$adt_debootstrap_script"
+
+#x pbuilder create 							\
+#	--configfile /usr/share/autopkgtest/xenlvm/pbuilderrc		\
+#	--distribution "$adt_distro"					\
+#	--no-targz --buildplace $adt_play/base				\
+#	$adt_pbuilder_args   --debootstrapopts --variant=''
 
 $ADT_XENLVM_SHARE/fixups "$@"
 
@@ -26,7 +40,7 @@ echo "
 "
 
 cat <<END >$adt_xmconfig
-kernel = "$kernel"
+kernel = "$adt_kernel"
 memory = $adt_testbed_ram
 root = "/dev/hda1"
 extra = "ro console=tty0"
@@ -37,37 +51,38 @@ on_reboot = "preserve"
 on_shutdown = "preserve"
 END
 
-if [ "x$ramdisk" != x ]; then
+if [ "x$adt_ramdisk" != x ]; then
 cat <<END >>$adt_xmconfig
-ramdisk = "$ramdisk"
+ramdisk = "$adt_ramdisk"
 END
 fi
 
-umount $adt_lvm_baselv
+x umount $lvm_baselv_namepath
 
-mkdir -p /dev/${lvm_fslink_dirpath}
+mkdir -p ${lvm_fslink_dirpath}
 ln -sf ../$lvm_baselv_namerhs ${lvm_fslink_ptr}
-xm create $adt_xmconfig name=$adt_xmname
+x xm create $adt_xmconfig name=$adt_xmname
 retries=10
 
 while true; do
-	if ping -c 1 $adt_guest_ipaddr && ./on-testbed id; then break; fi
+	if ping -c 1 $adt_guest_ipaddr && \
+	   /usr/share/autopkgtest/xenlvm/on-testbed id; then break; fi
 	if [ $retries -le 0 ]; then 
 		echo >&2 'no response from guest'
-		xm console $adt_xmname
+		x xm console $adt_xmname
 		exit 1
 	fi
 	retries=$(($retries-1))
 	sleep 2
 done
 
-xm mem-set $adt_xmname $adt_freeze_ram
+x xm mem-set $adt_xmname $adt_freeze_ram
 retries=$adt_vm_reduce_retries
 while sleep 1; do
-  if xm mem-max $adt_xmname $adt_freeze_ram; then break; fi
+  if x xm mem-max $adt_xmname $adt_freeze_ram; then break; fi
   if [ $retries -le 0 ]; then echo >&2 'cannot reduce memory'; exit 1; fi
   retries=$(($retries-1))
 done
 
-xm save $adt_xmname $adt_play/xen-save
+x xm save $adt_xmname $adt_play/xen-save
 rm ${lvm_fslink_ptr}

@@ -1,10 +1,68 @@
----------- Introduction ----------
+========== Introduction ==========
+
+Basic approach:
+    1. Get yourself a working Xen dom0 setup, eg according to
+	https://wiki.ubuntu.com/XenOnEdgy
+    2. Configure adtxenlvm:
+        - assign a fixed IP address for the host and the testbed
+        - create DNS entries (forward and reverse)
+           for the testbed hostname edgy.adt.<your.domain.here>
+        - read below about settings you might want to set
+           creating /etc/autopkgtest/xenlvm_adt_config if needed
+    3. adt-xenlvm-setup
+    4. adt-xenlvm-with-testbed
+    5. adt-xenlvm-on-testbed
+
+In some more detail, there are four main programs provided:
+
+  adt-xenlvm-setup [<config settings>]
+	Creates the snapshot.  Broadly speaking, does the following:
+	- deletes any existing snapshot, virtual machine, etc.
+	- creates a new lvm volume and filesystem for the snapshot base
+	- runs debootstrap to install a system into the new filesystem
+	- makes necessary config changes to the testbed and the host
+	- boots the testbed and waits for it to start
+	- freezes the testbed into a snapshot file
+	After this, you can run with-testbed.
+
+  adt-xenlvm-with-testbed [<config settings>] [<master> [<args...>]]
+	Starts the testbed and runs <master> _on the HOST_.  When
+	<master> finishes, the testbed state will be discarded.  While
+	<master> is running, you can interact with the testbed.  If
+	<master> is not specified, you get an interactive shell.
+
+  adt-xenlvm-on-testbed [<config settings>] [<command and args>]
+	Runs <command and args> on the running testbed.  A <master>
+	child of adt-xenlvm-with-testbed must be running, or the
+	behaviour is not defined.  However, adt-xenlvm-on-testbed does
+	not need to be a descendent of adt-xenlvm-with-testbed.
+	The arguments <command and args> are passed to ssh verbatim
+	and are therefore subject to ssh's unpleasant mangling.
+
+  adt-xenlvm-cleanup [<config settings>]
+	Cleans up any running testbed state.  This is not normally
+	needed, as adt-xenlvm-with-testbed and adt-xenlvm-setup run it
+	at appropriate moments.  However, if one of these should fail
+	and it is desirable to reclaim any resources used by the
+	testbed, cleanup will do this job.
+
+Note that there is NO LOCKING.  If you run more than one of either
+adt-xenlvm-with-testbed or adt-xenlvm-setup (or one of each)
+simultaneously, the behaviour is not defined, except that the host
+will definitely not be trashed, and just two or more copies of
+adt-xenlvm-with-testbed at once has no bad effects that
+adt-xenlvm-cleanup won't fix.
+
+
+========== Configuration ==========
 
 The configuration is read as follows:
  1. set all variables whose defaults are fixed strings to
      those built-in default values
  2. process the command line arguments
  3. read the user configuration file (sourced by bash)
+     this file must not use fds 10 onwards, which may have been used
+     for other purposes by other adtxenlvm machinery
  4. process the command line arguments again, so they
      can easily be made to override the user configuration file
  5. calculate the values for variables which haven't been set
@@ -46,6 +104,10 @@ adt_fw_allowglobalports	80
 	List of ports to which the testbed will be allowed to make
 	outgoing connections.
 
+adt_fw_hook		<config> with _config replaced with _fwhook
+			 or none of <config> doesn't end in _config
+	bash fragment to source during firewall setup
+
 ---------- Items that are likely to need attention ----------
 
 adt_kernel		the booted kernel file /boot/xen*`uname -r`
@@ -63,6 +125,24 @@ adt_lvm_vg		the system's LVM volume group if there is only one
 
 adt_pbuilder_args	<none>
 	Extra arguments to pass to pbuilder.
+
+adt_lvm_erasebase	yes
+	Whether the base filesystem image needs to be filled with
+	zeroes.  If you are going to be using the image only locally
+	and so don't care whether the base image contains bits of
+	previous data from the disk, you may set this to `no'.
+
+adt_debootstrap_includemore	<empty>
+adt_debootstrap_include		libc6-xen,openssh-server,ed
+	Comma-separated lists of packages for --include option to
+	debootstrap.  It is best to set includemore.
+
+adt_debootstrap_components	*
+	Components of the distribution to consider.  (Eg, `main'.)
+
+adt_debootstrap_mirrors		<empty string>
+adt_debootstrap_script		<empty string>
+	Third and fourth arguments to debootstrap.
 
 ---------- Tuning parameters ----------
 

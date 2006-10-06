@@ -1,5 +1,5 @@
-#!/bin/sh
-set -ex
+#!/bin/bash
+set -e${ADT_SHELLX}
 
 adt_host_hostname=$1
 adt_guest_hostname=$2
@@ -18,9 +18,6 @@ if test -f /etc/lsb-release; then
 			/etc/apt/sources.list
 	fi
 fi
-
-apt-get update
-apt-get -y --force-yes install libc6-xen
 
 ldconfig
 
@@ -44,9 +41,6 @@ iface eth0 inet static
 END
 
 echo $adt_guest_hostname >/etc/hostname
-
-apt-get -y --force-yes install \
-	openssh-server ed build-essential
 
 perl -i~ -wne '
     BEGIN {

@@ -1,5 +1,5 @@
-#!/bin/sh
-set -ex
+#!/bin/bash
+set -e
 . ${ADT_XENLVM_SHARE:=/usr/share/autopkgtest/xenlvm}/readconfig
 
 dest=$adt_play/base
@@ -10,6 +10,8 @@ cp ${ADT_XENLVM_SHARE}/fixups-inside $dest/root/
 
 mkdir -p $dest/lib/modules
 cp -a "${adt_modules}" $dest/lib/modules/.
+
+echo xennet >>$dest/etc/modules
 
 if ! test -f "${adt_ssh_pubkey}"; then
 	if [ "x${adt_ssh_pubkey}" != "x${adt_ssh_privkey}.priv" ]; then

@@ -31,13 +31,13 @@ exec_prefix =	adt-xenlvm-
 all:		readconfig
 
 install:	all
-	$(INSTALL_DIRS) $(bindir) $(docdir) $(man1dir) \
+	$(INSTALL_DIRS) $(bindir) $(docdir) $(man1dir) $(etcconfdir) \
 		$(sharedir) $(etcinitddir) $(xenscripts)
 	set -e; for f in $(programs) $(shareprograms); do \
 		$(INSTALL_PROGRAM) $$f $(sharedir); \
 		done
 	set -e; for f in $(programs); do \
-		ln -sf $(sharedir)/$$f $(bindir)/$(exec_prefix)$$f; \
+		ln -sf $(sharedir_lnfrom)/$$f $(bindir)/$(exec_prefix)$$f; \
 		test ! -f $$f.1 || $(INSTALL_DOC) $$f.1 \
 			$(man1dir)/$(exec_prefix)$$f; \
 		done
@@ -46,7 +46,7 @@ install:	all
 		done
 	$(INSTALL_DATA) initscript $(etcinitddir)/adtxenlvm$(cfg_suffix)
 	$(INSTALL_DATA) vif-route-adt $(xenscripts)/vif-route-adt$(cfg_suffix)
-	$(INSTALL_DOC) README $(docdir)
+	$(INSTALL_DOC) README example-config $(docdir)
 
 readconfig:	sed-readconfig readconfig.in
 	sed -f $^ >$@.new && mv -f $@.new $@

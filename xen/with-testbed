@@ -3,14 +3,19 @@ set -e
 
 trap 'exit 127' 0
 
+exec 10>&1 >/dev/null
 . ${ADT_XENLVM_SHARE:=/usr/share/autopkgtest/xenlvm}/readconfig
-${ADT_XENLVM_SHARE}/cleanup
+exec >&10 10>&-
+
+while test $# -gt $nonoptargs; do shift; done
+
+${ADT_XENLVM_SHARE}/cleanup >/dev/null
 
 modprobe dm-snapshot ||:
 
-bdsize=$(blockdev --getsize $adt_lvm_baselv)
+bdsize=$(blockdev --getsize $lvm_baselv_namepath)
 dmsetup create $adt_devmapper_cowdev <<END
-0 $bdsize snapshot $adt_lvm_baselv $lvm_cowdata_namepath n $adt_fs_cowchunk
+0 $bdsize snapshot $lvm_baselv_namepath $lvm_cowdata_namepath n $adt_fs_cowchunk
 END
 
 mkdir -p $lvm_fslink_dirpath
@@ -21,7 +26,10 @@ xm mem-set $adt_xmname $adt_testbed_ram
 udevsettle
 
 set +e
-"$@"
+case $# in
+0) debian_chroot="<with-adtxenlvm_$adt_nominum>$debian_chroot" $SHELL -i ;;
+*) "$@" ;;
+esac
 rc=$?
 set -e
 
