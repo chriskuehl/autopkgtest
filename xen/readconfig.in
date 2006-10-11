@@ -2,6 +2,7 @@
 # adt_... variables and some other useful ones.
 
 set -e${ADT_SHELLX}
+set -o pipefail
 
 #---------- useful general functions ----------
 

@@ -20,12 +20,17 @@ x mkfs -t $adt_fs_type $adt_mkfs_args $lvm_baselv_namepath
 mkdir -p $adt_play/base
 x mount $lvm_baselv_namepath $adt_play/base
 
-x debootstrap \
-	--components="${adt_debootstrap_components}" \
+x debootstrap								 \
+	--components="${adt_debootstrap_components}"			 \
 	--include=${adt_debootstrap_include},${adt_debootstrap_includemore} \
-	$adt_debootstrap_opts			\
-	"$adt_distro" "$adt_play/base"		\
-	"$adt_debootstrap_mirrors" "$adt_debootstrap_script"
+	$adt_debootstrap_opts						\
+	"$adt_distro" "$adt_play/base"					\
+	"$adt_debootstrap_mirrors" "$adt_debootstrap_script"		\
+ |perl -pe '
+ s/^(I: (?:Retrieving|Validating|Extracting|Unpacking|Configuring) [^A-Z].*)\n/
+  sprintf "%-75s\r", $1
+  /e
+'
 
 $ADT_XENLVM_SHARE/fixups "$@"
 
@@ -62,9 +67,23 @@ ln -sf ../$lvm_baselv_namerhs ${lvm_fslink_ptr}
 x xm create $adt_xmconfig name=$adt_xmname
 retries=10
 
+if grep 0 /proc/sys/net/ipv4/ip_forward >/dev/null; then
+	cat <<END
+
+********** WARNING - IP FORWARDING IS TURNED OFF **********
+Your testbed will probably have trouble with downloads, DNS, etc.
+You must turn this on manually, since it is a major config change.
+
+END
+fi
+
 while true; do
 	if ping -c 1 $adt_guest_ipaddr && \
-	   /usr/share/autopkgtest/xenlvm/on-testbed id; then break; fi
+	   /usr/share/autopkgtest/xenlvm/on-testbed '
+		set -e; umask 002; cd /var/lib;
+		mkdir -p autopkgtest; cd autopkgtest;
+		touch xenlvm-created
+	'; then break; fi
 	if [ $retries -le 0 ]; then 
 		echo >&2 'no response from guest'
 		x xm console $adt_xmname
