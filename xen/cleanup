@@ -1,0 +1,14 @@
+#!/bin/bash
+set -e
+. ${ADT_XENLVM_SHARE:=/usr/share/autopkgtest/xenlvm}/readconfig
+test $nonoptargs = 0 || fail "non-option arguments not allowed"
+
+mkdir -p $adt_play $snap
+
+try () { printf "%s\n" "- $*"; "$@" >/dev/null 2>&1 ||:; }
+
+n=0
+if xm destroy $adt_xmname 2>/dev/null; then sleep 5; fi
+try umount $lvm_baselv_namepath
+try dmsetup remove $adt_devmapper_cowdev
+rm -f $lvm_fslink_ptr

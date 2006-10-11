@@ -39,7 +39,7 @@ class Quit:
 	def __init__(q,ec,m): q.ec = ec; q.m = m
 
 def bomb(m):
-	raise Quit(12, "adt-virtual-chroot: failure: %s" % m)
+	raise Quit(12, "adt-virt-chroot: failure: %s" % m)
 
 def debug(m):
 	if not debuglevel: return

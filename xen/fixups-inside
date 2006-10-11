@@ -1,0 +1,64 @@
+#!/bin/bash
+set -e${ADT_SHELLX}
+
+adt_host_hostname=$1
+adt_guest_hostname=$2
+adt_host_ipaddr=$3
+adt_guest_ipaddr=$4
+adt_fs_type=$5
+
+echo '(---'
+
+cd /root
+
+if test -f /etc/lsb-release; then
+	. /etc/lsb-release
+	if [ "x$DISTRIB_ID" = xUbuntu ]; then
+		perl -i~ -pe 's/ main$/ main universe/ if m/^deb http/' \
+			/etc/apt/sources.list
+	fi
+fi
+
+ldconfig
+
+cat >/etc/fstab <<END
+proc /proc proc defaults 0 0
+/dev/hda1 / $adt_fs_type defaults,errors=remount-ro 0 1
+END
+
+mkdir -p /etc/network
+cat >/etc/network/interfaces <<END
+auto lo
+iface lo inet loopback
+
+auto eth0
+iface eth0 inet static
+	address $adt_guest_ipaddr
+	broadcast $adt_guest_ipaddr
+	netmask 255.255.255.255
+	pointopoint $adt_host_ipaddr
+	gateway $adt_host_ipaddr
+END
+
+echo $adt_guest_hostname >/etc/hostname
+
+essc=/etc/ssh/sshd_config
+perl -wne '
+    BEGIN {
+        $pep= PermitEmptyPasswords;
+	$want= "$pep no\n";
+        $done= 0;
+    }
+    if (m/^\s*$pep/oi) {
+        $_= $want;
+        $done= 1;
+    }
+    $o .= $_;
+    END {
+        print $want or die $! unless $done;
+        print $o or die $!;
+    }
+' $essc >$essc.new
+mv $essc.new $essc
+
+echo '---)'

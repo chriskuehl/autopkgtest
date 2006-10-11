@@ -1,3 +1,7 @@
-debian/autodebtest
+debian/autopkgtest
+debian/autopkgtest-xenlvm
+debian/*.debhelper
 debian/tmp
 debian/files
+xen/sed-readconfig
+xen/readconfig

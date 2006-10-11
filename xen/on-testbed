@@ -1,0 +1,6 @@
+#!/bin/bash
+set -e
+. ${ADT_XENLVM_SHARE:=/usr/share/autopkgtest/xenlvm}/justconfig
+while test $# -gt $nonoptargs; do shift; done
+
+ssh $adt_ssh_keyident_args $adt_guest_ipaddr "$@"

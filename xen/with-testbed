@@ -1,0 +1,36 @@
+#!/bin/bash
+set -e
+
+trap 'exit 127' 0
+. ${ADT_XENLVM_SHARE:=/usr/share/autopkgtest/xenlvm}/justconfig
+while test $# -gt $nonoptargs; do shift; done
+
+${ADT_XENLVM_SHARE}/cleanup >/dev/null
+
+modprobe dm-snapshot ||:
+
+bdsize=$(blockdev --getsize $lvm_baselv_namepath)
+dmsetup create $adt_devmapper_cowdev <<END
+0 $bdsize snapshot $lvm_baselv_namepath $lvm_cowdata_namepath n $adt_fs_cowchunk
+END
+
+mkdir -p $lvm_fslink_dirpath
+ln -s $lvm_snapdev $lvm_fslink_ptr
+
+xm restore $adt_play/xen-save
+xm mem-set $adt_xmname $adt_testbed_ram
+udevsettle
+
+set +e
+case $# in
+0) debian_chroot="<with-adtxenlvm_$adt_nominum>$debian_chroot" $SHELL -i ;;
+*) "$@" ;;
+esac
+rc=$?
+set -e
+
+xm destroy $adt_xmname
+dmsetup remove $adt_devmapper_cowdev
+
+trap '' 0
+exit $rc

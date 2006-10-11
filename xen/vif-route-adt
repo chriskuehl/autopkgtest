@@ -1,0 +1,65 @@
+#!/bin/bash -e
+#============================================================================
+# /etc/xen/vif-route
+#
+# Script for configuring a vif in routed mode.
+# The hotplugging system will call this script if it is specified either in
+# the device configuration given to Xend, or the default Xend configuration
+# in /etc/xen/xend-config.sxp.  If the script is specified in neither of those
+# places, then vif-bridge is the default.
+#
+# Usage:
+# vif-route (add|remove|online|offline)
+#
+# Environment vars:
+# vif         vif interface name (required).
+# XENBUS_PATH path to this device's details in the XenStore (required).
+#
+# Read from the store:
+# ip      list of IP networks for the vif, space-separated (default given in
+#         this script).
+#============================================================================
+
+case $0 in */*) dir=${0%/*};; *) dir=.;; esac
+. "$dir/vif-common.sh"
+
+main_ip=$(dom0_ip)
+mac=$(xenstore_read "$XENBUS_PATH/mac")
+
+case "$command" in
+    online)
+        ifconfig ${vif} ${main_ip} netmask 255.255.255.255 \
+		broadcast ${main_ip} up
+	ip -f inet6 addr delete dev $vif local fe80::fcff:ffff:feff:ffff/64 ||:
+        ipcmd='add'
+	iptcmd='-A'
+	cmdprefix=''
+	add_only=''
+        ;;
+    offline)
+        ifdown ${vif}
+        ipcmd='del'
+	iptcmd='-D'
+	cmdprefix='do_without_error'
+	add_only=:
+        ;;
+esac
+
+if [ "${ip}" ] ; then
+    # If we've been given a list of IP addresses, then add routes from dom0 to
+    # the guest using those addresses.
+    for addr in ${ip} ; do
+      ${cmdprefix} ip route ${ipcmd} ${addr} dev ${vif} src ${main_ip}
+      ${add_only} ip -f inet neigh add to ${addr} dev ${vif} lladdr ${mac} nud permanent
+      ${add_only} arp -i ${vif} -s ${addr} ${mac} pub
+    done 
+fi
+
+iptables "$iptcmd" INPUT -i "$vif" -j AdtXenIn
+iptables "$iptcmd" FORWARD -i "$vif" -j AdtXenFwd
+
+log debug "Successful vif-route $command for $vif."
+if [ "$command" == "online" ]
+then
+  success
+fi

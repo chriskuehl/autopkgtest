@@ -1,0 +1,105 @@
+#!/bin/bash
+set -e
+. ${ADT_XENLVM_SHARE:=/usr/share/autopkgtest/xenlvm}/readconfig
+test $nonoptargs = 0 || fail "non-option arguments not allowed"
+
+$ADT_XENLVM_SHARE/cleanup
+x lvchange -a n $lvm_baselv_namepath ||:
+x lvchange -a n $lvm_cowdata_namepath ||:
+x lvremove $lvm_baselv_namepath ||:
+x lvremove $lvm_cowdata_namepath ||:
+
+x lvcreate -L $adt_fs_size -n $adt_lvm_baselv $adt_lvm_vg
+x lvcreate -L $adt_fs_snapsize -n $adt_lvm_cowdatalv $adt_lvm_vg
+
+if $adt_lvm_erasebase; then
+  x dd if=/dev/zero of=$lvm_baselv_namepath
+fi
+x mkfs -t $adt_fs_type $adt_mkfs_args $lvm_baselv_namepath
+
+mkdir -p $adt_play/base
+x mount $lvm_baselv_namepath $adt_play/base
+
+x debootstrap								 \
+	--components="${adt_debootstrap_components}"			 \
+	--include=${adt_debootstrap_include},${adt_debootstrap_includemore} \
+	$adt_debootstrap_opts						\
+	"$adt_distro" "$adt_play/base"					\
+	"$adt_debootstrap_mirrors" "$adt_debootstrap_script"		\
+ |perl -pe '
+ s/^(I: (?:Retrieving|Validating|Extracting|Unpacking|Configuring) [^A-Z].*)\n/
+  sprintf "%-75s\r", $1
+  /e
+'
+
+$ADT_XENLVM_SHARE/fixups "$@"
+
+echo "
+--- writing $adt_xmconfig ---
+"
+
+cat <<END >$adt_xmconfig
+kernel = "$adt_kernel"
+memory = $adt_testbed_ram
+root = "/dev/hda1"
+extra = "ro console=tty0"
+disk = [ "phy:$lvm_fslink_ptrrhs,hda1,w" ]
+vif = [ "bridge=none,mac=$adt_guest_macaddr,ip=${adt_guest_ipaddr},script=${adt_net_vifscript}" ]
+on_crash = "preserve"
+on_reboot = "preserve"
+on_shutdown = "preserve"
+END
+
+if [ "x$adt_ramdisk" != x ]; then
+cat <<END >>$adt_xmconfig
+ramdisk = "$adt_ramdisk"
+END
+fi
+
+if [ "x$adt_setup_hook" != x ]; then
+	$adt_setup_hook ${adt_play}/base
+fi
+
+x umount $lvm_baselv_namepath
+
+mkdir -p ${lvm_fslink_dirpath}
+ln -sf ../$lvm_baselv_namerhs ${lvm_fslink_ptr}
+x xm create $adt_xmconfig name=$adt_xmname
+retries=10
+
+if grep 0 /proc/sys/net/ipv4/ip_forward >/dev/null; then
+	cat <<END
+
+********** WARNING - IP FORWARDING IS TURNED OFF **********
+Your testbed will probably have trouble with downloads, DNS, etc.
+You must turn this on manually, since it is a major config change.
+
+END
+fi
+
+while true; do
+	if ping -c 1 $adt_guest_ipaddr && \
+	   /usr/share/autopkgtest/xenlvm/on-testbed '
+		set -e; umask 002; cd /var/lib;
+		mkdir -p autopkgtest; cd autopkgtest;
+		touch xenlvm-created
+	'; then break; fi
+	if [ $retries -le 0 ]; then 
+		echo >&2 'no response from guest'
+		x xm console $adt_xmname
+		exit 1
+	fi
+	retries=$(($retries-1))
+	sleep 2
+done
+
+x xm mem-set $adt_xmname $adt_freeze_ram
+retries=$adt_vm_reduce_retries
+while sleep 1; do
+  if x xm mem-max $adt_xmname $adt_freeze_ram; then break; fi
+  if [ $retries -le 0 ]; then echo >&2 'cannot reduce memory'; exit 1; fi
+  retries=$(($retries-1))
+done
+
+x xm save $adt_xmname $adt_play/xen-save
+rm ${lvm_fslink_ptr}

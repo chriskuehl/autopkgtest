@@ -1,0 +1,267 @@
+========== Introduction ==========
+
+Basic approach:
+    1. Get yourself a working Xen dom0 setup, eg according to
+	https://wiki.ubuntu.com/XenOnEdgy
+    2. Configure adtxenlvm:
+        - assign a fixed IP address for the host and the testbed
+        - create DNS entries (forward and reverse)
+           for the testbed hostname edgy.adt.<your.domain.here>
+        - read below about settings you might want to set
+           creating /etc/autopkgtest/xenlvm_adt_config if needed
+    3. adt-xenlvm-setup
+    4. adt-xenlvm-with-testbed
+    5. adt-xenlvm-on-testbed
+
+In some more detail, there are four main programs provided:
+
+  adt-xenlvm-setup [<config settings>]
+	Creates the snapshot.  Broadly speaking, does the following:
+	- deletes any existing snapshot, virtual machine, etc.
+	- creates a new lvm volume and filesystem for the snapshot base
+	- runs debootstrap to install a system into the new filesystem
+	- makes necessary config changes to the testbed and the host
+	- boots the testbed and waits for it to start
+	- freezes the testbed into a snapshot file
+	After this, you can run with-testbed.
+
+  adt-xenlvm-with-testbed [<config settings>] [<master> [<args...>]]
+	Starts the testbed and runs <master> _on the HOST_.  When
+	<master> finishes, the testbed state will be discarded.  While
+	<master> is running, you can interact with the testbed.  If
+	<master> is not specified, you get an interactive shell.
+
+  adt-xenlvm-on-testbed [<config settings>] [<command and args>]
+	Runs <command and args> on the running testbed.  A <master>
+	child of adt-xenlvm-with-testbed must be running, or the
+	behaviour is not defined.  However, adt-xenlvm-on-testbed does
+	not need to be a descendent of adt-xenlvm-with-testbed.
+	The arguments <command and args> are passed to ssh verbatim
+	and are therefore subject to ssh's unpleasant mangling.
+
+  adt-xenlvm-cleanup [<config settings>]
+	Cleans up any running testbed state.  This is not normally
+	needed, as adt-xenlvm-with-testbed and adt-xenlvm-setup run it
+	at appropriate moments.  However, if one of these should fail
+	and it is desirable to reclaim any resources used by the
+	testbed, cleanup will do this job.
+
+Note that there is NO LOCKING.  If you run more than one of either
+adt-xenlvm-with-testbed or adt-xenlvm-setup (or one of each)
+simultaneously, the behaviour is not defined, except that the host
+will definitely not be trashed, and just two or more copies of
+adt-xenlvm-with-testbed at once has no bad effects that
+adt-xenlvm-cleanup won't fix.
+
+
+========== Configuration ==========
+
+The configuration is read as follows:
+ 1. set all variables whose defaults are fixed strings to
+     those built-in default values
+ 2. process the command line arguments
+ 3. read the user configuration file (sourced by bash)
+     this file must not use fds 10 onwards, which may have been used
+     for other purposes by other adtxenlvm machinery
+ 4. process the command line arguments again, so they
+     can easily be made to override the user configuration file
+ 5. calculate the values for variables which haven't been set
+     and whose default values depend on circumstances (including
+     on other variables)
+
+---------- Items which definitely need attention ----------
+
+adt_guests_domain	.<domain-of-host_hostname>
+adt_guest_hostname	<distro>.[<nominum>.]<domain>
+adt_guest_ipaddr	from looking hostname up in the DNS
+	Hostname and IP address for the testbed.
+	If the configuration specifies one of the address and hostname
+	but not the other, the missing information will be found with
+	a DNS lookup.  If neither is specified, adt_guests_domain is
+	used; if it starts with `.' then <distro>.<nominum> is
+	prepended; otherwise just <distro>. is prepended.  NOTE: some
+	effort by the local network administrator to allocate an IP
+	address (and ideally create DNS entries) is essential.  It is
+	not possible to use DHCP for IP address allocation for the
+	testbed.
+
+---------- Firewall policy items ----------
+
+adt_fw_localmirrors	<none>
+	List of IP addresses of local mirrors, to which the
+	testbed should allowed to make HTTP requests.
+
+adt_fw_testbedclients	<host_ipaddr>
+	List of IP addresses of hosts which will be allowed to make
+	connections into the testbed system.
+
+adt_fw_prohibnets	192.168.0.0/24 172.16.0.0/12 10.0.0.0/8
+	List of network ranges with which the testbed will be
+	prohibited from communicating, notwithstanding
+	allowglobalports.
+
+adt_fw_allowglobalports	80
+	List of ports to which the testbed will be allowed to make
+	outgoing connections.
+
+adt_fw_hook		<config> with _config replaced with _fwhook
+			 or none of <config> doesn't end in _config
+	bash fragment to source during firewall setup
+
+---------- Items that are likely to need attention ----------
+
+adt_kernel		the booted kernel file /boot/xen*`uname -r`
+	Kernel to boot in the testbed image
+
+adt_ramdisk		<kernel>.initrd.img
+	Initial ramdisk to provide to the testbid image.
+	"none" means do not provide an initial ramdisk.
+
+adt_modules		/lib/modules/`uname -r`
+	Directory with modules to be copied into the testbed.
+
+adt_lvm_vg		the system's LVM volume group if there is only one
+	LVM volume group to create base filesystem image in.
+
+adt_pbuilder_args	<none>
+	Extra arguments to pass to pbuilder.
+
+adt_lvm_erasebase	yes
+	Whether the base filesystem image needs to be filled with
+	zeroes.  If you are going to be using the image only locally
+	and so don't care whether the base image contains bits of
+	previous data from the disk, you may set this to `no'.
+
+adt_debootstrap_includemore	<empty>
+adt_debootstrap_include		libc6-xen,openssh-server,ed
+	Comma-separated lists of packages for --include option to
+	debootstrap.  It is best to set includemore.
+
+adt_debootstrap_components	*
+	Components of the distribution to consider.  (Eg, `main'.)
+
+adt_debootstrap_mirrors		<empty string>
+adt_debootstrap_script		<empty string>
+	Third and fourth arguments to debootstrap.
+
+adt_setup_hook			<config> with _config replaced with
+				 _setuphook, as for adt_fw_hook
+	Program to run at last moment before we freeze the image.
+	Will be invoked with one argument: the directory containing
+	the root of the testbed.  In the future more arguments may be
+	defined, so the hook script should not fail if more are
+	supplied.  The supplied hook value will be split at
+	whitespace before execution as if
+		$adt_setup_hook /path/to/root
+	was run from within a shellscript.
+
+---------- Tuning parameters ----------
+
+adt_fs_type		ext3
+adt_fs_mkfs_args	<none>
+	Filesystem type and any additional arguments to mkfs.  If
+	_args contains whitespace, it results in multiple arguments;
+	it is not possible to pass whitespace-containing arguments to
+	mkfs.
+
+adt_testbed_ram		256 [Mby]
+	Physical RAM allocated for each testbed instance while
+	creating and running.
+
+adt_freeze_ram		32 [Mby]
+	Physical RAM size for frozen image; we reduce the testbed
+	to this before freezing it and grow it again when we resume
+	it.
+
+adt_fs_size		1G
+	Size of base filesystem image.  Should be big enough to
+	contain all of the software under test and all of its working
+	space, as no running testbed can ever use more than this
+	(despite copy-on-write).
+
+adt_fs_snapsize		500M
+	Space to allocate for copy-on-write snapshot data.  This is
+	the maximum amount of data that a running testbed can use.
+	This value should be less than the adt_fs_size.
+
+adt_fs_cowchunk		8 [Mby]
+	Copy-on-write chunk size.
+
+adt_vm_reduce_retries	10 [seconds]
+	Time to wait for VM to reduce its memory following
+	xm mem-set.
+
+---------- Configuration for advanced uses ----------
+
+adt_config		/etc/autopkgtest/xenlvm_<nominum>_conf
+
+adt_ssh_keytype		dsa
+adt_ssh_privkey		/root/.ssh/id_<ssh_keytype>_<nominum>
+adt_ssh_pubkey		<ssh_privkey>.pub
+adt_ssh_keyident_args	-i <ssh_privkey>
+adt_ssh_keygen_args	-t <ssh_keytype>
+	SSH keypair to use for authentication to the testbed.
+	If the pubkey file and privkey file do not exist and
+	correspond to each other, a new key will be generated.
+	The best combinations of these variables to set are:
+	  keytype [& keygen_args] - just change the key type
+	  privkey [& keygen_args] - generate/use a different keypair
+	  pubkey, keyident_args - use an existing key via agent etc.,
+		privkey is ignored if pubkey and keyident_args
+		are set and pubkey file exists
+
+adt_nominum		adt
+	Namespace prefix for Xen domains, LVM volumes, devmapper
+	devices, entries in /dev, files in /var, and so on.  You may
+	run several instances of the adt virtualisation system with
+	different nominums and they won't interact.  It is best for
+	this to be a legal DNS label (using alphanumerics and hyphens
+	only); normally it when it is used to construct an identifier
+	it will be separated by other parts by underscores `_', so
+	they should be avoided.
+
+adt_guest_macaddr	00:16:3e:7c:aa:7f
+adt_net_vifscript	/etc/xen/scripts/vif-route-adt
+
+---------- Items which should not usually need to be changed ----------
+
+adt_host_hostname	`hostname -f`
+adt_host_ipaddr		from looking hostname up in the DNS
+	Hostname and IP address for the host, ie the Xen dom0 system.
+	If the configuration specifies one of the address and hostname
+	but not the other, the missing information will be found with
+	a DNS lookup.  Note that if the host system uses a dynamically
+	allocated DHCP address, things will go wrong when the address
+	changes.
+
+adt_playbase		/var/lib/autopkgtest/xenlvm
+	Base of filesystem playground areas.
+
+adt_play		<playbase>/<nominum>_<distro>
+	Playground area for this particular testbed construction and
+	data.
+
+adt_xmconfig		<play>/xmconfig
+	Xen virtual machine creation configuration for xm create.
+	This file will be (over)written during testbed setup.
+
+adt_lvm_baselv		<nominum>_<distro>_base
+adt_lvm_cowdatalv	<nominum>_<distro>_cowdata
+	LVM volume for base filesystem image, and copy-on-write
+	buffer.  Will be created during testbed setup, destroying any
+	previous volume if necessary.  This is the logical volume name
+	not including /dev/<lvm_vg>.
+
+adt_devmapper_cowdev	<nominum>_<distro>_snap
+	devmapper device for copy-on-write image used by testbed when
+	running.  This is the device name in the devmapper namespace,
+	ie not including /dev/mapper.
+
+adt_fslink_dir		adt-xenlvm
+adt_fslink_name		<nominum>_<distro>_fs
+	Directory in /dev, and filename in that directory, where the
+	scripts put the symlink used to trick Xen into using a
+	different block device on resume than was used for creation.
+
+adt_xmname		<nominum>_<distro>
+	Xen virtual machine name, as passed to xm create.

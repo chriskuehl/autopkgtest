@@ -20,25 +20,24 @@
 # See the file CREDITS for a full list of credits information (often
 # installed as /usr/share/doc/autopkgtest/CREDITS).
 
-prefix =	/usr/local
-share =		$(prefix)/share
-bindir =	$(prefix)/bin
-mandir =	$(share)/man
-man1dir =	$(mandir)/man1
-docdir =	$(share)/doc/autopkgtest
-
-INSTALL =		install
-INSTALL_DIRS =		$(INSTALL) -d
-INSTALL_PROGRAM =	$(INSTALL) -m 0755
-INSTALL_DOC =		$(INSTALL)
+include settings.make
 
 programs =	virt-chroot/adt-virt-chroot \
 		runner/adt-run
 
-install:
+all:
+	cd xen && $(MAKE)
+
+install-here:
 	$(INSTALL_DIRS) -d $(bindir) $(docdir) $(man1dir)
 	set -e; for f in $(programs); do \
 		$(INSTALL_PROGRAM) $$f $(bindir); \
 		test ! -f $$f.1 || $(INSTALL_DOC) $$f.1 $(man1dir); \
 		done
 	$(INSTALL_DOC) CREDITS debian/changelog $(docdir)
+
+install: install-here
+	cd xen && $(MAKE) install
+
+clean:
+	cd xen && $(MAKE) clean

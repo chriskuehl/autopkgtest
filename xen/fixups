@@ -1,0 +1,62 @@
+#!/bin/bash
+set -e
+. ${ADT_XENLVM_SHARE:=/usr/share/autopkgtest/xenlvm}/readconfig
+
+dest=$adt_play/base
+
+echo '---fixups:'
+
+cp ${ADT_XENLVM_SHARE}/fixups-inside $dest/root/
+
+mkdir -p $dest/lib/modules
+cp -a "${adt_modules}" $dest/lib/modules/.
+
+echo xennet >>$dest/etc/modules
+
+if ! test -f "${adt_ssh_pubkey}"; then
+	if [ "x${adt_ssh_pubkey}" != "x${adt_ssh_privkey}.priv" ]; then
+		fail "cannot generate keypair automatically because adt_ssh_privkey \`$adt_ssh_privkey' and adt_ssh_pubkey \`$adt_ssh_pubkey' do not match up in the way required by ssh-keygen (<pubkey> must be <privkey>.pub>"
+	fi
+	if test -f "${adt_ssh_privkey}"; then
+		fail "will not overwrite existing private key \`$adt_ssh_privkey' - but where is public key \`$adt_ssh_pubkey' ?"
+	fi
+
+	mkdir -p /root/.ssh
+	ssh-keygen -N '' ${adt_ssh_keygen_args} -f "${adt_ssh_privkey}"
+fi
+
+mkdir -m 02700 -p $dest/root/.ssh
+cp -- "${adt_ssh_pubkey}" $dest/root/.ssh/authorized_keys
+
+cat <<END >$dest/etc/init.d/xenethtoolk
+#!/bin/sh
+# work around checksum offload bug in Xen network bridge driver
+case "$1" in
+start)
+	ethtool -K eth0 tx off
+	ethtool -K eth0 rx off
+	;;
+esac
+END
+chmod +x $dest/etc/init.d/xenethtoolk
+ln -s ../init.d/xenethtoolk $dest/etc/rc2.d/S21xenethtoolk
+
+chroot $dest root/fixups-inside \
+	"$adt_host_hostname" "$adt_guest_hostname" \
+	"$adt_host_ipaddr" "$adt_guest_ipaddr" \
+	"$adt_fs_type"
+
+kh=/etc/ssh/ssh_known_hosts
+test ! -f $kh || cp $kh $kh.new
+exec 3>$kh.new
+pfx="$adt_guest_hostname,$adt_guest_ipaddr"
+test ! -f $kh || perl -pe '$_="" if m/^(\S+)\s/ && $1 eq "'$pfx'";' $kh >&3
+for f in $dest/etc/ssh/ssh_host_*_key.pub; do
+    perl -pe '$_= "'$pfx' ".$_;' $f >&3
+done
+exec 3>&-
+mv $kh.new $kh
+
+echo '
+=== adt xen fixups done.
+'
