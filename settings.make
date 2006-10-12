@@ -6,6 +6,7 @@ man1dir =	$(mandir)/man1
 pkgname =	autopkgtest
 docdir =	$(share)/doc/$(pkgname)
 sharedir = 	$(share)/$(pkgname)
+pythondir = 	$(share)/$(pkgname)/python
 sharedir_lnfrom = $(share)/$(pkgname)
 etcdir =	/etc
 etcconfdir =	$(etcdir)/autopkgtest

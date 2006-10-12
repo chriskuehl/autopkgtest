@@ -25,15 +25,18 @@ include settings.make
 programs =	virt-chroot/adt-virt-chroot \
 		runner/adt-run
 
+pythonfiles =	virt-chroot/VirtSubproc.py
+
 all:
 	cd xen && $(MAKE)
 
 install-here:
-	$(INSTALL_DIRS) -d $(bindir) $(docdir) $(man1dir)
+	$(INSTALL_DIRS) -d $(bindir) $(docdir) $(man1dir) $(pythondir)
 	set -e; for f in $(programs); do \
 		$(INSTALL_PROGRAM) $$f $(bindir); \
 		test ! -f $$f.1 || $(INSTALL_DOC) $$f.1 $(man1dir); \
 		done
+	$(INSTALL_DATA) $(pythonfiles) $(pythondir)
 	$(INSTALL_DOC) CREDITS debian/changelog $(docdir)
 
 install: install-here
