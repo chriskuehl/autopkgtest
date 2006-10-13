@@ -22,10 +22,11 @@
 
 include settings.make
 
-programs =	virt-chroot/adt-virt-chroot \
+programs =	virt-subproc/adt-virt-chroot \
+		virt-subproc/adt-virt-xenlvm \
 		runner/adt-run
 
-pythonfiles =	virt-chroot/VirtSubproc.py
+pythonfiles =	virt-subproc/VirtSubproc.py
 
 all:
 	cd xen && $(MAKE)
