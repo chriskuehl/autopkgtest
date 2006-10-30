@@ -46,6 +46,13 @@ In some more detail, there are four main programs provided:
 	and it is desirable to reclaim any resources used by the
 	testbed, cleanup will do this job.
 
+In each case [<config settings>] is zero or more arguments of the form
+  --<config-var>=<value>
+where <config-var> is one of the configuration items listed below.
+(On the command line, the configuration item name may be spelled with
+either hyphens or underscores.)  Also, `--' may be used to indicate the
+end of the config vars.
+
 Note that there is NO LOCKING.  If you run more than one of either
 adt-xenlvm-with-testbed or adt-xenlvm-setup (or one of each)
 simultaneously, the behaviour is not defined, except that the host
