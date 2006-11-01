@@ -230,6 +230,10 @@ adt_nominum		adt
 adt_guest_macaddr	00:16:3e:7c:aa:7f
 adt_net_vifscript	/etc/xen/scripts/vif-route-adt
 
+adt_normaluser		adtxenu
+	Create a normal user account of this name, with disabled
+	password.
+
 ---------- Items which should not usually need to be changed ----------
 
 adt_host_hostname	`hostname -f`

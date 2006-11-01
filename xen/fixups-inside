@@ -61,4 +61,9 @@ perl -wne '
 ' $essc >$essc.new
 mv $essc.new $essc
 
+if [ x"$adt_normaluser" != x ]; then
+	adduser --gecos 'adtxenlvm testing normal user account' \
+		--disabled-password ${adt_normaluser}
+fi
+
 echo '---)'
