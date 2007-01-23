@@ -11,64 +11,110 @@ The server has the following states:
   * Open: the testbed is running and can be communicated with (and, if
     applicable, is not being used by any other concurrent test run)
 
-(Note that these are the states of the server, in the tester core to server
-protocol. The actual testbed will probably have more states, including for
-example Closed, Open (and therefore busy), Modified, Broken, etc. Ideally the
-virtualisation regime will prevent multiple concurrent uses of the same
-testbed; the tester core is allowed to assume that either its caller or the
-virtualisation regime will ensure that it has exclusive use of the testbed.)
+Note that these are the states of the server, in the tester core to
+server protocol.  The actual testbed will probably have more states,
+including for example Closed, Open (and therefore busy), Modified,
+Broken, etc.  Ideally the virtualisation regime will prevent multiple
+concurrent uses of the same testbed; the tester core is allowed to
+assume that either its caller or the virtualisation regime will ensure
+that it has exclusive use of the testbed.
 
-The server program is invoked with the argument --debian-package-testing and
-then proceeds to speak a protocol on its stdin/stdout. The protocol is
-line-based. In the future other ways of invoking the server may be defined; the
-current server should of course reject such invocations.
+The server program is invoked with the argument
+--debian-package-testing and then proceeds to speak a protocol on its
+stdin/stdout.  The protocol is line-based.  In the future other ways
+of invoking the server may be defined; the current server should of
+course reject such invocations.
 
-  * Initial response from regime server: ok
 
-  * Command capabilities; response eg ok efficient-diff revert ... where the
-    words after ok are features that not all regimes support. Valid in all
-    states. Currently defined features:
+Protocol
+--------
 
-      + revert: the testbed will actually revert when it is closed. If this
-        feature is not mentioned then changes to the testbed are persistent (so
-        destructive tests should not be performed).
+* Initial response from regime server:
+	ok
+  This response is also the response from any of the commands listed
+  below, unless otherwise specified.
 
-      + changed-files: the regime will provide a changed-files file (see
-        below).
 
-  * Command open; response ok testbed-scratchspace. Checks that the testbed is
-    present and reserves it (waiting for other uses of the testbed to finish
-    first, if necessary). State: Closed to Open. testbed-scratchspace is a
-    pathname on the testbed which can be used freely by the test scripts.
+* Command
+	capabilities
+  response, for example
+	ok efficient-diff revert ...
+  where the words after ok are features that not all regimes
+  support.  Valid in all states.
 
-  * Command stop local-pathname; response ok. Indicates that the testbed should
-    be stopped; replaces local-pathname (on the host) with a directory
-    containing a representation of the changes to the testbed's filesystem.
-    Then reverts the testbed. State: Open to Closed.
+  Currently defined features:
 
-  * Command close; response ok. Stops and undoes filesystem changes. State:
-    Open to Closed.
+    + revert: the testbed will actually revert when it is closed.
+      If this feature is not mentioned then changes to the testbed
+      are persistent (so destructive tests should not be performed).
 
-  * Command execute program,arg,arg... stdin stdout stderr cwd; response
-    ok exitstatus. Executes the command (args separated by commas, everything
-    url-encoded). stdin, stdout, stderr are files on the testbed (must be
-    files, not pipes).
+    + changed-files: the regime will provide a changed-files file
+      (see below).
 
-  * Command copydown host-tree testbed-path or copyup testbed-tree host-path.
-    Response ok. Like cp -dR --preserve=mode,timestamps only across the testbed
-    boundary.
 
-  * Command quit; response ok and regime server exits with status 0, after
-    closing the testbed if applicable.
+* Command
+	open
+  response
+	ok <testbed-scratchspace>
 
-On any error including signals to the regime server or EOF on stdin the testbed
-is unreserved and restored to its original state (ie, closed), and the regime
-server will print a message to stderr (unless it is dying with a signal).
+  Checks that the testbed is present and reserves it (waiting for
+  other uses of the testbed to finish first, if necessary).  State:
+  Closed to Open.  <testbed-scratchspace> is a pathname on the
+  testbed which can be used freely by the test scripts.
 
-The representation of changes to the local filesystem is a directory containing
-zero or more of:
 
-  * changed-files: list of filenames, each one nul-terminated
+* Command
+	stop <local-pathname>
 
-  * other formats with other data or combinations of data (for future use)
+  Stops the testbed.  Replaces local-pathname (on the host) with a
+  directory containing a representation of the changes to the
+  testbed's filesystem; these changes are undone (if `revert' was
+  advertised).  Then reverts the testbed.  State: Open to Closed.
+
+
+* Command
+	close
+
+  Stops the testbed and undoes filesystem changes (if `revert' is
+  advertised). State: Open to Closed.
+
+
+* Command
+	execute <program>,<arg>,<arg>... <stdin> <stdout> <stderr> <cwd>
+  response
+	ok <exit-status>
+
+  Executes the command (args separated by commas, everything
+  url-encoded).  stdin, stdout, stderr are files on the testbed
+  (must be files, not pipes).
+
+
+* Commands
+	copydown <host-tree> <testbed-path>
+	copyup <testbed-tree> <host-path>
+
+  Like cp -dR --preserve=mode,timestamps exce[t across the testbed
+  boundary.
+
+
+* Command
+	quit
+  response
+	ok
+  and then the regime server exits with status 0, after
+  closing the testbed if applicable.
+
+
+
+
+On any error including signals to the regime server or EOF on stdin
+the testbed is unreserved and restored to its original state (ie,
+closed), and the regime server will print a message to stderr (unless
+it is dying with a signal).
+
+The representation of changes to the local filesystem is a directory
+containing zero or more of:
+	+ changed-files: list of filenames, each one nul-terminated
+	+ other formats with other data or combinations of data
+	  (for future use)
 
