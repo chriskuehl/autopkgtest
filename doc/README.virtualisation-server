@@ -42,14 +42,26 @@ Protocol
   where the words after ok are features that not all regimes
   support.  Valid in all states.
 
-  Currently defined features:
+  Currently defined capabilities:
 
-    + revert: the testbed will actually revert when it is closed.
-      If this feature is not mentioned then changes to the testbed
-      are persistent (so destructive tests should not be performed).
+    + revert
+	The testbed will actually revert when it is closed.  If this
+	feature is not mentioned then changes to the testbed are
+	persistent (so destructive tests should not be performed).
 
-    + changed-files: the regime will provide a changed-files file
-      (see below).
+    + root-on-testbed
+	Commands specified by `execute' will be run as root on the
+	testbed, and copyup/copydown will have full access to the
+	filesystem.  Unless this capability is advertised, root access
+	is not (or may not be) available.
+
+    + suggested-normal-user=<username>
+	The caller is advised that <username> would be a good user to
+	use for running tests (and doing other operations) when root
+	is not required.  The advertised account will exist on the
+	testbed already.  Several suggested-normal-user= capabilities
+	(with distinct <username>s) may be advertised in which case
+	more than one such user is available.
 
 
 * Command
@@ -64,12 +76,12 @@ Protocol
 
 
 * Command
-	stop <local-pathname>
+	reset
 
-  Stops the testbed.  Replaces local-pathname (on the host) with a
-  directory containing a representation of the changes to the
-  testbed's filesystem; these changes are undone (if `revert' was
-  advertised).  Then reverts the testbed.  State: Open to Closed.
+  Restores the testbed, undoing all of the changes made so far.
+  State: Open, remains Open.  Only available if the `revert'
+  capability is advertised.  If possible, the testbed's set of running
+  processes will also be restored to the initial state.
 
 
 * Command
