@@ -1,0 +1,10 @@
+#!/bin/bash
+set -e
+. ${ADT_XENLVM_SHARE:=/usr/share/autopkgtest/xenlvm}/readconfig
+test $nonoptargs = 0 || fail "non-option arguments not allowed"
+
+$ADT_XENLVM_SHARE/cleanup
+x lvchange -a n $lvm_baselv_namepath ||:
+x lvchange -a n $lvm_cowdata_namepath ||:
+x lvremove $lvm_baselv_namepath ||:
+x lvremove $lvm_cowdata_namepath ||:

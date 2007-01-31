@@ -22,7 +22,7 @@
 
 include ../settings.make
 
-programs =	cleanup setup on-testbed with-testbed
+programs =	cleanup setup on-testbed with-testbed purge
 shareprograms =	fixups fixups-inside
 sharefiles =	readconfig justconfig
 
