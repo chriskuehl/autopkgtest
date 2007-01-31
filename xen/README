@@ -130,6 +130,9 @@ adt_modules		/lib/modules/`uname -r`
 adt_lvm_vg		the system's LVM volume group if there is only one
 	LVM volume group to create base filesystem image in.
 
+adt_distro
+	Distribution name (eg, `edgy', `feisty', `sarge', `etch').
+
 adt_pbuilder_args	<none>
 	Extra arguments to pass to pbuilder.
 
