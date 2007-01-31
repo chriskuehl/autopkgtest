@@ -46,6 +46,10 @@ In some more detail, there are four main programs provided:
 	and it is desirable to reclaim any resources used by the
 	testbed, cleanup will do this job.
 
+  adt-xenlvm-purge [<config settings>]
+	Deletes all of the data for the testbed.  Ie, undoes
+	the effects of adt-xenlvm-setup.
+
 In each case [<config settings>] is zero or more arguments of the form
   --<config-var>=<value>
 where <config-var> is one of the configuration items listed below.

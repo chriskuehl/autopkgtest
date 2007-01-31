@@ -8,3 +8,5 @@ x lvchange -a n $lvm_baselv_namepath ||:
 x lvchange -a n $lvm_cowdata_namepath ||:
 x lvremove $lvm_baselv_namepath ||:
 x lvremove $lvm_cowdata_namepath ||:
+
+rm -rf -- "${adt_play}"
