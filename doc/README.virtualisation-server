@@ -92,7 +92,8 @@ Protocol
 
 
 * Command
-	execute <program>,<arg>,<arg>... <stdin> <stdout> <stderr> <cwd>
+	execute <program>,<arg>,<arg>... <stdin> <stdout> <stderr> <cwd> \
+		[<keyword-args> ...]
   response
 	ok <exit-status>
 
@@ -100,6 +101,16 @@ Protocol
   url-encoded).  stdin, stdout, stderr are files on the testbed
   (must be files, not pipes).
 
+  Currently defined keyword arguments:
+
+	debug=<tfd>-<hfd>
+
+		Arranges to pass fd <tfd> the testbed command, and
+		send all output to it to the fd <hfd> as passed
+		by the virt server's caller.
+
+		If this feature is available, execute-debug will
+		be advertised.  Only one such plumbing is available.
 
 * Commands
 	copydown <host-tree> <testbed-path>
