@@ -44,7 +44,7 @@ adt_fw_allowglobalports='80'
 
 adt_guest_macaddr=00:16:3e:7c:aa:7f
 adt_net_vifscript=/etc/xen/scripts/vif-route-adt
-adt_normaluser=adtxenlvm
+adt_normaluser=adtxenu
 
 #---------- arguments and config file ----------
 
