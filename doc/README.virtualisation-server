@@ -112,6 +112,9 @@ Protocol
 		If this feature is available, execute-debug will
 		be advertised.  Only one such plumbing is available.
 
+		<tfd> may be 1 or 2, in which case no output will
+		be written to the <stdout> or <stderr> files.
+
 * Commands
 	copydown <host-tree> <testbed-path>
 	copyup <testbed-tree> <host-path>
