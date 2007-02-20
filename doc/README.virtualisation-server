@@ -76,7 +76,7 @@ Protocol
 
 
 * Command
-	reset
+	revert
 
   Restores the testbed, undoing all of the changes made so far.
   State: Open, remains Open.  Only available if the `revert'
