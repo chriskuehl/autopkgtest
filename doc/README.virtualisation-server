@@ -103,17 +103,21 @@ Protocol
 
   Currently defined keyword arguments:
 
+	env=<var>=<value>
+
+		Sets the environment variable <var> to <value>.
+
 	debug=<tfd>-<hfd>
 
 		Arranges to pass fd <tfd> the testbed command, and
 		send all output to it to the fd <hfd> as passed
 		by the virt server's caller.
 
-		If this feature is available, execute-debug will
-		be advertised.  Only one such plumbing is available.
-
 		<tfd> may be 1 or 2, in which case no output will
 		be written to the <stdout> or <stderr> files.
+
+		If this feature is available, execute-debug will
+		be advertised.  Only one such plumbing is available.
 
 * Commands
 	copydown <host-tree> <testbed-path>
