@@ -53,14 +53,14 @@ The fields which may appear in the RFC822-style stanza are:
     this stanza.  Depending on the test environment capabilities, user
     requests, and so on, restrictions can cause tests to be skipped or
     can cause the test to be run in a different manner.  Tests which
-    declare unknown restrictions will be skipped.
+    declare unknown restrictions will be skipped.  See below for the
+    defined restrictions.
 
   Features: <feature-name> [<another-feature-name> ...]
 
     Declares some additional capabilities or good properties of the
     tests defined in this stanza.  Any unknown features declared will
-    be completely ignored.  Currently there are no defined features
-    but this field is recognised and ignored for future expansion.
+    be completely ignored.  See below for the defined features.
 
   Depends: <dpkg dependcy field syntax>
 
@@ -118,3 +118,9 @@ The defined Restrictions are:
 
     The test script must be run as root.
 
+
+The currently defined Features are:
+
+  no-build-needed
+
+    The tests can run in an unbuilt tree.
