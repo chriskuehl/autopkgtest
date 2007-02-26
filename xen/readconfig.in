@@ -23,8 +23,8 @@ esac
 adt_nominum=adt
 adt_testbed_ram=256
 adt_freeze_ram=32
-adt_fs_size=1G
-adt_fs_snapsize=100M
+adt_fs_size=3072M
+adt_fs_snapsize=2560M
 adt_fs_cowchunk=8
 adt_playbase=/var/lib/autopkgtest/xenlvm
 adt_fs_type=ext3
@@ -44,6 +44,7 @@ adt_fw_allowglobalports='80'
 
 adt_guest_macaddr=00:16:3e:7c:aa:7f
 adt_net_vifscript=/etc/xen/scripts/vif-route-adt
+adt_normaluser=adtxenu
 
 #---------- arguments and config file ----------
 

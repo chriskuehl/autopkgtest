@@ -46,6 +46,17 @@ In some more detail, there are four main programs provided:
 	and it is desirable to reclaim any resources used by the
 	testbed, cleanup will do this job.
 
+  adt-xenlvm-purge [<config settings>]
+	Deletes all of the data for the testbed.  Ie, undoes
+	the effects of adt-xenlvm-setup.
+
+In each case [<config settings>] is zero or more arguments of the form
+  --<config-var>=<value>
+where <config-var> is one of the configuration items listed below.
+(On the command line, the configuration item name may be spelled with
+either hyphens or underscores.)  Also, `--' may be used to indicate the
+end of the config vars.
+
 Note that there is NO LOCKING.  If you run more than one of either
 adt-xenlvm-with-testbed or adt-xenlvm-setup (or one of each)
 simultaneously, the behaviour is not defined, except that the host
@@ -122,6 +133,9 @@ adt_modules		/lib/modules/`uname -r`
 
 adt_lvm_vg		the system's LVM volume group if there is only one
 	LVM volume group to create base filesystem image in.
+
+adt_distro
+	Distribution name (eg, `edgy', `feisty', `sarge', `etch').
 
 adt_pbuilder_args	<none>
 	Extra arguments to pass to pbuilder.
@@ -222,6 +236,10 @@ adt_nominum		adt
 
 adt_guest_macaddr	00:16:3e:7c:aa:7f
 adt_net_vifscript	/etc/xen/scripts/vif-route-adt
+
+adt_normaluser		adtxenu
+	Create a normal user account of this name, with disabled
+	password.
 
 ---------- Items which should not usually need to be changed ----------
 

@@ -1,4 +1,4 @@
-.TH adt\-run 1 2006 autopkgtest "Linux Programmer's Manual"
+.TH adt\-run 1 2007 autopkgtest "Linux Programmer's Manual"
 .SH NAME
 adt\-run \- test an installed binary package using the package's tests
 .SH SYNOPSYS
@@ -25,52 +25,169 @@ adt\-run should be invoked (unless options to the contrary are
 supplied) in the top level directory of the built source tree, on the
 host.  The package should be installed on the testbed.
 
-.SH OPTIONS
+.SH PROCESSING INSTRUCTIONS
 .TP
-.BR \-\-build\-tree [ \-tb ] " " \fIdirectory\fR
-Specifies that the built source tree can be found in
-.IR directory .
-(Default: adt\-run's current directory, on the host.)
+.BR --built-tree " " \fIdirectory\fR
+Specifies that tests from the built source tree
+.IR directory
+should be run.  Note that the packages that would normally be
+installed as a result of \fB*\fR in the tests' \fBDepends\fR field
+(which includes the case where the \fBDepends\fR field is not
+specified) are \fInot\fR installed.  The caller must explicitly
+instruct \fBadt-run\fR to install any relevant packages.
 .TP
-.BR \-\-control [ \-tb ] " " \fIcontrol\fR
-Specifies that
-.I control
-should be used as the test control file instead of
-.B debian/tests/control
-in the build tree.  Note that it is not an error for this file not to
-exist; that just means that there are no tests.
+.BR --source " " \fIdsc\fR
+Builds \fIdsc\fR.  The resulting binaries will (by default) be used to
+satisfy dependencies.  The tests from that built tree will also be run
+(by default).  The ordering is significant: each \fB--source\fR option
+should precede options whose dependencies are to be satisfied by the
+binaries it produces.
 .TP
-.BR \-\-output\-dir [ \-tb ] " " \fIoutput\-dir\fR
+.BR --unbuilt-tree " " \fIdirectory\fR
+Specifies that tests from the unbuilt source tree
+.IR directory
+should be run.  This is very similar to specifing \fB--source\fR
+except that a directory tree (which should be pristine) is supplied,
+instead of a source package.
+.TP
+.BR --binary " " \fIdeb\fR
+Specifies that \fIdeb\fR should be used.  By default it will be used
+to satisfy dependencies, both during building and testing, but not
+necessarily installed.  The ordering is significant, as for
+\fB--source\fR.
+.TP
+.I filename
+Bare filename arguments are processed as if
+.BR --built-tree ", " --source ", " --unbuilt-tree " or " --binary
+was specified; the nature of the argument is guessed from the form of
+the filename.  In the case of \fB--built-tree\fR, either the
+option must be specified, or the filename must end in a slash; two
+slashes at the end are taken to mean \fB--unbuilt-tree\fR.
+.SH PROCESSING OPTIONS
+These affect modify processing instructions.  Unless stated
+otherwise, they affect all subsequent options.
+.TP
+.BR --paths-testbed | --paths-host
+Specifies that subsequent pathnames in command-line arguments refer to
+files on the testbed, or on the host, respectively.  The default is
+\fB--paths-host\fR.
+.TP
+.BR --sources-tests | --sources-no-tests
+Specifies that the tests in subsequent \fB--source\fR and
+\fB--unbuilt-tree\fR arguments should (or should not) be run.
+.TP
+.BR --built-binaries-filter= \fIpattern\fB,\fIpattern\fB,\fR...
+Specifies that only binaries whose package names match one of the
+specified patterns should be used; others will be ignored.  This
+option applies to subsequent \fB--source\fR and \fB--unbuilt-tree\fR arguments.
+.TP
+.BR --no-built-binaries
+Specifies that all built binaries should be ignored completely;
+equivalent to
+.BR --built-binaries-filter=_
+(since no package name ever contains \fB_\fR).
+.TP
+.B --binaries=ignore | --binaries=auto | --binaries=install
+Specifies that binary package (in subsequently specified
+\fB--binary\fR arguments, or resulting from subsequently specified
+\fB--source\fR or \fB--unbuilt-tree\fR arguments and not filtered out) should be ignored, used
+only to satisfy dependencies, or installed unconditionally,
+respectively.  Equivalent to specifying both
+.BR --binaries-forbuilds " and " --binaries-fortests .
+.TP
+.BI --binaries-forbuilds= ...
+Like \fB--binaries=\fR but only changes the handling during package
+building: packages will be ignored, used for dependencies, or
+unconditionally installed, when a source package is built.
+.TP
+.BI --binaries-fortests= ...
+Like \fB--binaries=\fR but only changes the handling during testing:
+packages will be ignored, used for dependencies (including as the
+package under test), or unconditionally installed, when tests are run
+(as a result of \fB--source\fR, \fB--built-tree\fR or \fB--unbuilt-tree\fR).
+.SH OTHER OPTIONS
+.TP
+.BI --output-dir " " \fIoutput-dir\fR
 Specifies that stderr and stdout from the tests should be placed in
-.IR output\-dir .
-The files are named
-.BI stderr\- test
+.IR output-dir .
+These files are named
+.BI argid- test -stderr
 and
-.BI stdout\- test
+.BI argid- test -stdout
 for each test
-.IR test .
+.IR test ,
+and
+.BR log
+for the log transcript.  If no \fIoutput-dir\fR is specified, or the
+path is specified to be on the testbed (ie, if \fB--output-dir\fR
+follows \fB--paths-testbed\fR), then the \fBlog\fR file is instead
+written to the temporary directory \fItmpdir\fR if one was specified,
+or otherwise no separate copy is made.  Note that the log transcript
+output will also be sent to \fBadt-run\fR's stderr unless
+\fB--quiet\fR is specified.
 .TP
-.BR \-d " | " \-\-debug
-Enables debugging output.  Probably not hugely interesting.
+.BI --user= user
+Run builds and tests as \fIuser\fR on the testbed.  This needs root on
+the testbed; if root on the testbed is not available then builds and
+tests run as whatever user is provided.
 .TP
-\fB\-\-\-\fR \fIvirt\-server virt\-server\-arg\fR...
+.BI --gain-root= gain-root
+Prefixes
+.B debian/rules binary
+with
+.RB gain-root .  The default is not to use anything, except that if
+\fB--user\fR is supplied or root on the testbed is not available the
+default is \fBfakeroot\fR.
+.TP
+.BI --tmp-dir= tmpdir
+Specifies that \fItmpdir\fR should be used instead of a fresh
+temporary directory on the host.  \fItmpdir\fR will be created if
+necessary, and emptied of all of its contents before \fBadt-run\fR
+starts, and it will not be cleaned out afterwards.  \fItmpdir\fR is
+not affected by \fB--paths-testbed\fR.
+.B NOTE
+again that all of the contents of \fItmpdir\fR will be \fBdeleted\fR.
+.TP
+.BI --log-file= logfile
+Specifies that the trace log should be written to \fIlogfile\fR
+instead of to \fBlog\fR in \fIoutput-dir\fR or \fItmpdir\fR.
+\fIlog-file\fR is not affected by \fB--paths-testbed\fR.
+.TP
+.BR --debug | -d
+Include additional debugging information in the trace log.  Each
+additional \fB-d\fR increases the debugging level; the current maximum
+is \fB-ddd\fR.  If you like to see what's going on, \fR-d\fB or
+\fR-dd\fB is recommended.
+.TP
+.BI --gnupg-home= dir
+Uses \fIdir\fR as the \fBGNUPGHOME\fR for local apt archive signing.
+The specified directory should not contain keyrings containing other
+unrelated keys, since \fBadt-run\fR does not specify to \fBgpg\fR
+which keys to use.  The default is
+.BR $HOME/.autopkgtest .
+\fB--paths-testbed\fR has no effect on this option.
+.TP
+.B --gnupg-home=fresh
+Use a fresh temporary directory and generate fresh keys each run.
+This can be very slow and depends on the availability of sufficient
+quantities of high-quality entropy.
+.TP
+.BR -q " | " --quiet
+Do not send a copy of \fBadt-run\fR's trace logstream to stderr.  This
+option does not affect the copy sent to \fIlogfile\fR,
+\fIoutput-dir\fR or \fItmpdir\fR.  Note that without the trace
+logstream it can be very hard to diagnose problems.
+.TP
+\fB---\fR \fIvirt-server virt-server-arg\fR...
 Specifies the virtualisation regime server, as a command and arguments
 to invoke.  All the remaining arguments and options after
-.B \-\-\-
+.B ---
 are passed to the virtualisation server program.
-
-.SS NOTES
-Some options which come in variants with and without
-.BR \-tb .
-These specify paths on the testbed and the host, respectively.  The
-data will be copied by
-.B adt\-run
-to where it is needed.
 
 .SH OUTPUT FORMAT
 During a normal test run, one line is printed for each test.  This
-consists of the name of the test, some horizontal whitespace, and
-either
+consists of a short string identifying the test, some horizontal
+whitespace, and either
 .B PASS
 or
 .BR FAIL " reason"
@@ -79,19 +196,42 @@ or
 where the pass/fail indication is separated by any reason by some
 horizontal whitespace.
 
+The string to identify the test consists of a short alphanumeric
+string invented by \fBadt-run\fR to distinguish different command-line
+arguments, the \fIargid\fR, followed by a hyphen and the test name.
+
 Sometimes a
 .B SKIP
 will be reported when the name of the test is not known or not
 applicable: for example, when there are no tests in the package, or a
 there is a test stanza which contains features not understood by this
 version of
-.BR adt\-run .
+.BR adt-run .
 In this case
 .B *
 will appear where the name of the test should be.
 
+If \fBadt-run\fR detects that erroneous package(s) are involved, it
+will print the two lines
+.BR "blame: " \fIblamed-thing\fR ...
+and
+.BR "badpkg: " \fImessage\fR.
+Here each whitespace-separated \fIblamed-thing\fR is one of
+.BI arg: argument
+(representing a pathname found in a command line argument),
+.BI dsc: package
+(a source package name),
+.BI deb: package
+(a binary package name)
+or possibly other strings to be determined.  This indicates which
+arguments and/or packages might have contributed to the problem; the
+ones which were processed most recently and which are therefore most
+likely to be the cause of a problem are listed last.
+
 .SH EXIT STATUS
 0	all tests passed
+.br
+1	unexpected failure (the python interpreter invents this exit status)
 .br
 2	at least one test skipped
 .br
@@ -108,14 +248,16 @@ will appear where the name of the test should be.
 20	other unexpected failures including bad usage
 
 .SH SEE ALSO
-\fBadt\-virt\-chroot\fR(1)
+\fBadt-virt-chroot\fR(1), \fBadt-virt-xenlvm\fR(1)
 
 .SH BUGS
-This tool still lacks many important features.
+This tool still lacks some important features and is not very
+well-tested.
 
 .SH AUTHORS AND COPYRIGHT
 This manpage is part of autopkgtest, a tool for testing Debian binary
-packages.  autopkgtest is Copyright (C) 2006 Canonical Ltd and others.
+packages.  autopkgtest is Copyright (C) 2006-1007 Canonical Ltd and
+others.
 
 See \fB/usr/share/doc/autopkgtest/CREDITS\fR for the list of
 contributors and full copying conditions.

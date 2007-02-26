@@ -3,11 +3,7 @@ set -e
 . ${ADT_XENLVM_SHARE:=/usr/share/autopkgtest/xenlvm}/readconfig
 test $nonoptargs = 0 || fail "non-option arguments not allowed"
 
-$ADT_XENLVM_SHARE/cleanup
-x lvchange -a n $lvm_baselv_namepath ||:
-x lvchange -a n $lvm_cowdata_namepath ||:
-x lvremove $lvm_baselv_namepath ||:
-x lvremove $lvm_cowdata_namepath ||:
+$ADT_XENLVM_SHARE/purge
 
 x lvcreate -L $adt_fs_size -n $adt_lvm_baselv $adt_lvm_vg
 x lvcreate -L $adt_fs_snapsize -n $adt_lvm_cowdatalv $adt_lvm_vg

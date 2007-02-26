@@ -1,9 +1,7 @@
-#!/usr/bin/python2.4
-#
-# adt-virt-chroot is part of autopkgtest
+# VirtSubproc is part of autopkgtest
 # autopkgtest is a tool for testing Debian binary packages
 #
-# autopkgtest is Copyright (C) 2006 Canonical Ltd.
+# autopkgtest is Copyright (C) 2006-2007 Canonical Ltd.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -22,6 +20,8 @@
 # See the file CREDITS for a full list of credits information (often
 # installed as /usr/share/doc/autopkgtest/CREDITS).
 
+import __main__
+
 import sys
 import os
 import string
@@ -29,66 +29,50 @@ import urllib
 import signal
 import subprocess
 import traceback
-from optparse import OptionParser
-
-devnull_read = file('/dev/null','r')
+import re as regexp
 
 debuglevel = None
+progname = "<VirtSubproc>"
+devnull_read = file('/dev/null','r')
+caller = __main__
 
 class Quit:
 	def __init__(q,ec,m): q.ec = ec; q.m = m
 
-def bomb(m):
-	raise Quit(12, "adt-virt-chroot: failure: %s" % m)
-
 def debug(m):
 	if not debuglevel: return
-	print >> sys.stderr, "adt-virt-chroot: debug:", m
+	print >> sys.stderr, progname+": debug:", m
 
-def parse_args():
-	global down, debuglevel
-
-	usage = "%prog [options] =<dchroot>|/path/to/chroot"
-	parser = OptionParser(usage=usage)
-	pa = parser.add_option
-	pe = parser.error
-
-	pa('-r', '--gain-root', type='string', dest='gain_root');
-	pa('-d', '--debug', action='store_true', dest='debug');
-
-	(opts,args) = parser.parse_args()
-	if len(args) != 1: pe("need exactly one arg, chroot specification")
-
-	debuglevel = opts.debug
-
-	chroot_arg = args[0]
-	if not chroot_arg: pe("chroot specification may not be empty")
-	if chroot_arg == '=': down = ['dchroot','-q']
-	elif chroot_arg == '=': down = ['dchroot','-q']
-	elif chroot_arg[0] == '=': down = ['dchroot','-q','-c',chroot_arg[1:]]
-	elif chroot_arg[0] == '/': down = ['chroot',chroot_arg,'--']
-	else: pe("chroot spec must be =[DCHROOT] or /PATH/TO/CHROOT")
-
-	if opts.gain_root != None: down = opts.gain_root.split() + down
-
-	debug("down = %s" % string.join(down))	
+def bomb(m):
+	raise Quit(12, progname+": failure: %s" % m)
 
 def ok(): print 'ok'
 
-def cmdnumargs(c, ce, nargs=0):
-	if len(c) == nargs + 1: return
-	bomb("wrong number of arguments to command `%s'" % ce[0])
+def cmdnumargs(c, ce, nargs=0, noptargs=0):
+	if len(c) < 1+nargs:
+		bomb("too few arguments to command `%s'" % ce[0])
+	if noptargs is not None and len(c) > 1+nargs+noptargs:
+		bomb("too many arguments to command `%s'" % ce[0])
 
 def cmd_capabilities(c, ce):
 	cmdnumargs(c, ce)
+	return caller.hook_capabilities() + ['execute-debug']
 
 def cmd_quit(c, ce):
 	cmdnumargs(c, ce)
 	raise Quit(0, '')
 
+def cmd_close(c, ce):
+	cmdnumargs(c, ce)
+	if not downtmp: bomb("`close' when not open")
+	cleanup()
+
+def preexecfn():
+	caller.hook_forked_inchild()
+
 def execute_raw(what, instr, *popenargs, **popenargsk):
 	debug(" ++ %s" % string.join(popenargs[0]))
-	sp = subprocess.Popen(*popenargs, **popenargsk)
+	sp = subprocess.Popen(preexec_fn=preexecfn, *popenargs, **popenargsk)
 	if instr is None: popenargsk['stdin'] = devnull_read
 	(out, err) = sp.communicate(instr)
 	if err: bomb("%s unexpectedly produced stderr output `%s'" %
@@ -105,7 +89,9 @@ def execute(cmd_string, cmd_list=[], downp=False, outp=False):
 	if outp: stdout = subprocess.PIPE
 	else: stdout = None
 
-	cmd = perhaps_down + cmdl + cmd_list
+	cmd = cmdl + cmd_list
+	if len(perhaps_down): cmd = perhaps_down + [' '.join(cmd)]
+
 	(status, out) = execute_raw(cmdl[0], None, cmd, stdout=stdout)
 
 	if status: bomb("%s%s failed (exit status %d)" %
@@ -118,29 +104,21 @@ def cmd_open(c, ce):
 	global downtmp
 	cmdnumargs(c, ce)
 	if downtmp: bomb("`open' when already open")
-	execute('true', downp=True)
-	downtmp = execute('mktemp -t -d', downp=True, outp=True)
+	downtmp = caller.hook_open()
 	return [downtmp]
 
-def cmd_close(c, ce):
-	global downtmp
+def cmd_revert(c, ce):
 	cmdnumargs(c, ce)
-	if not downtmp: bomb("`close' when not open")
-	cleanup()
-
-def cmd_stop(c, ce):
-	global downtmp
-	cmdnumargs(c, ce, 1)
-	if not downtmp: bomb("`stop' when not open")
-	execute('rm -rf --', c[1:2])
-	os.mkdir(c[1])
-	cleanup()
+	if not downtmp: bomb("`revert' when not open")
+	if not 'revert' in caller.hook_capabilities():
+		bomb("`revert' when `revert' not advertised")
+	caller.hook_revert()
 
 def down_python_script(gobody, functions=''):
-	# Many things are made much harder by dchroot's inability to
-	# cope without mangling the arguments.  So we run a
-	# sub-python on the testbed and feed it a script on stdin.
-	# The sub-python decodes the arguments.
+	# Many things are made much harder by the inability of
+	# dchroot, ssh, et al, to cope without mangling the arguments.
+	# So we run a sub-python on the testbed and feed it a script
+	# on stdin.  The sub-python decodes the arguments.
 
 	script = (	"import urllib\n"
 			"import os\n"
@@ -149,7 +127,7 @@ def down_python_script(gobody, functions=''):
 			"	if write: rw = os.O_WRONLY|os.O_CREAT\n"
 			"	else: rw = os.O_RDONLY\n"
 			"	nfd = os.open(fname, rw, mode)\n"
-			"	os.dup2(nfd,fd)\n"
+			"	if fd >= 0: os.dup2(nfd,fd)\n"
 			+ functions +
 			"def go():\n" )
 	script += (	"	os.environ['TMPDIR']= urllib.unquote('%s')\n" %
@@ -167,11 +145,39 @@ def down_python_script(gobody, functions=''):
 	return cmdl
 
 def cmd_execute(c, ce):
-	cmdnumargs(c, ce, 5)
+	cmdnumargs(c, ce, 5, None)
+	debug_re = regexp.compile('debug=(\d+)\-(\d+)$')
+	debug_g = None
+	envs = []
+	for kw in ce[6:]:
+		if kw.startswith('debug='):
+			if debug_g: bomb("multiple debug= in execute")
+			m = debug_re.match(kw)
+			if not m: bomb("invalid execute debug arg `%s'" % kw)
+			debug_g = m.groups()
+		elif kw.startswith('env='):
+			es = kw[4:]; eq = es.find('=')
+			if eq <= 0: bomb("invalid env arg `%s'" % kw)
+			envs.append((es[:eq], es[eq+1:]))
+		else: bomb("invalid execute kw arg `%s'" % kw)
+		
 	gobody = "	import sys\n"
+	stdout = None
+	tfd = None
+	if debug_g:
+		(tfd,hfd) = m.groups()
+		tfd = int(tfd)
+		gobody += "	os.dup2(1,%d)\n" % tfd
+		stdout = int(hfd)
 	for ioe in range(3):
+		ioe_tfd = ioe
+		if ioe == tfd: ioe_tfd = -1
 		gobody += "	setfd(%d,'%s',%d)\n" % (
-			ioe, ce[ioe+2], ioe>0 )
+			ioe_tfd, ce[ioe+2], ioe>0 )
+	for e in envs:
+		gobody += ("	os.environ[urllib.unquote('%s')]"
+			   " = urllib.unquote('%s')\n"
+				% tuple(map(urllib.quote, e)))
 	gobody += "	os.chdir(urllib.unquote('" + ce[5] +"'))\n"
 	gobody += "	cmd = '%s'\n" % ce[1]
 	gobody += ("	cmd = cmd.split(',')\n"
@@ -189,7 +195,7 @@ def cmd_execute(c, ce):
 		"		os._exit(127)\n")
 	cmdl = down_python_script(gobody)
 
-	(status, out) = execute_raw('sub-python', None, cmdl,
+	(status, out) = execute_raw('sub-python', None, cmdl, stdout=stdout,
 				stdin=devnull_read, stderr=subprocess.PIPE)
 	if out: bomb("sub-python unexpected produced stdout"
 			" visible to us `%s'" % out)
@@ -214,7 +220,6 @@ def copyupdown(c, ce, upp):
 	localfd = None
 	deststdout = devnull_read
 	srcstdin = devnull_read
-	preexecfns = [None, None]
 	if not dirsp:
 		modestr = ''
 		if upp:
@@ -259,11 +264,12 @@ def copyupdown(c, ce, upp):
 	subprocs = [None,None]
 	debug(" +< %s" % string.join(cmdls[0]))
 	subprocs[0] = subprocess.Popen(cmdls[0], stdin=srcstdin,
-			stdout=subprocess.PIPE, preexec_fn=preexecfns[0])
+			stdout=subprocess.PIPE, preexec_fn=preexecfn)
 	debug(" +> %s" % string.join(cmdls[1]))
 	subprocs[1] = subprocess.Popen(cmdls[1], stdin=subprocs[0].stdout,
-			stdout=deststdout, preexec_fn=preexecfns[1])
+			stdout=deststdout, preexec_fn=preexecfn)
 	for sdn in [1,0]:
+		debug(" +"+"<>"[sdn]+"?");
 		status = subprocs[sdn].wait()
 		if status: bomb("%s %s failed, status %d" %
 			(wh, ['source','destination'][sdn], status))
@@ -284,13 +290,13 @@ def command():
 	r = f(c, ce)
 	if not r: r = []
 	r.insert(0, 'ok')
-	ru = map(urllib.quote, r)
-	print string.join(ru)
+	print string.join(r)
 
 def cleanup():
 	global downtmp, cleaning
+	debug("cleanup...");
 	cleaning = True
-	if downtmp: execute('rm -rf --', [downtmp], downp=True)
+	if downtmp: caller.hook_cleanup()
 	cleaning = False
 	downtmp = False
 
@@ -325,18 +331,21 @@ def prepare():
 		os.kill(os.getpid(), sig)
 	sethandlers(handler)
 
-parse_args()
-ok()
-prepare()
+def mainloop():
+	try:
+		while True: command()
+	except Quit, q:
+		error_cleanup()
+		if q.m: print >> sys.stderr, q.m
+		sys.exit(q.ec)
+	except:
+		error_cleanup()
+		print >> sys.stderr, "Unexpected error:"
+		traceback.print_exc()
+		sys.exit(16)
 
-try:
-	while True: command()
-except Quit, q:
-	error_cleanup()
-	if q.m: print >> sys.stderr, q.m
-	sys.exit(q.ec)
-except:
-	error_cleanup()
-	print >> sys.stderr, "Unexpected error:"
-	traceback.print_exc()
-	sys.exit(16)
+def main():
+	debug("down = %s" % string.join(down))
+	ok()
+	prepare()
+	mainloop()

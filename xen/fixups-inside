@@ -6,6 +6,7 @@ adt_guest_hostname=$2
 adt_host_ipaddr=$3
 adt_guest_ipaddr=$4
 adt_fs_type=$5
+adt_normaluser=$6
 
 echo '(---'
 
@@ -60,5 +61,13 @@ perl -wne '
     }
 ' $essc >$essc.new
 mv $essc.new $essc
+
+if [ x"$adt_normaluser" != x ]; then
+	adduser --gecos 'adtxenlvm testing normal user account' \
+		--disabled-password ${adt_normaluser}
+fi
+
+apt-get update
+apt-get -y install gdebi-core || apt-get -y install gdebi
 
 echo '---)'

@@ -44,7 +44,7 @@ ln -s ../init.d/xenethtoolk $dest/etc/rc2.d/S21xenethtoolk
 chroot $dest root/fixups-inside \
 	"$adt_host_hostname" "$adt_guest_hostname" \
 	"$adt_host_ipaddr" "$adt_guest_ipaddr" \
-	"$adt_fs_type"
+	"$adt_fs_type" "$adt_normaluser"
 
 kh=/etc/ssh/ssh_known_hosts
 test ! -f $kh || cp $kh $kh.new
