@@ -25,7 +25,11 @@ include settings.make
 programs =	virt-subproc/adt-virt-chroot \
 		virt-subproc/adt-virt-xenlvm \
 		virt-subproc/adt-virt-null \
-		runner/adt-run
+		runner/adt-run \
+		runner/adt-testreport-onepackage
+
+examples =	runner/onepackage-config \
+		runner/ubuntu-config
 
 pythonfiles =	virt-subproc/VirtSubproc.py
 
@@ -33,14 +37,16 @@ all:
 	cd xen && $(MAKE)
 
 install-here:
-	$(INSTALL_DIRS) -d $(bindir) $(docdir) $(man1dir) $(pythondir)
+	$(INSTALL_DIRS) -d $(bindir) $(docdir) $(man1dir) \
+		$(pythondir) $(examplesdir)
 	set -e; for f in $(programs); do \
 		$(INSTALL_PROGRAM) $$f $(bindir); \
 		test ! -f $$f.1 || $(INSTALL_DOC) $$f.1 $(man1dir); \
 		done
 	$(INSTALL_DATA) $(pythonfiles) $(pythondir)
 	$(INSTALL_DOC) CREDITS debian/changelog $(docdir)
-	$(INSTALL_DOC) doc/README*[^~] $(docdir)
+	$(INSTALL_DOC) doc/README*[!~] $(docdir)
+	$(INSTALL_DOC) $(examples) $(examplesdir)
 
 install: install-here
 	cd xen && $(MAKE) install
