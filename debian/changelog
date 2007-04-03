@@ -1,3 +1,36 @@
+autopkgtest (0.8.0) feisty; urgency=low
+
+  * adt-run: new --instantiate option to allow package installation to be
+    forced for testing.  (This is not an ideal approach - it's not very
+    flexible - but works well enough for the current requirements.)
+  * adt-testreport-onepackage: new ability to test binary as well as
+    source packages, using new --instantiate option.
+  * new `timeout=' option on `execute' virt server command.
+  * set some default timeouts (these should be settable with options,
+    really).
+  * Default kernel image guesser is more sophisticated - now we look
+    for something that looks like a Xen kernel rather than guessing
+    from the filename since the filenames seem unstable.
+  * Default setting for adt_fw_allowglobalports is none.
+  * Set DEBIAN_FRONTEND=noninteractive.
+  * Run udevsettle after xm destroy but before dmsetup remove.
+  * Run sendmail -odi not -odq in adt-testreport-onepackage.
+  * Longer timeouts by default.
+  * Print `adt-run: trace' for trace output.
+  * Show all apt stdout (including dpkg stdout) in contemporaneous trace.
+  
+ -- Ian Jackson <iwj@ubuntu.com>  Tue,  3 Apr 2007 20:08:13 +0100
+
+autopkgtest (0.7.2) feisty; urgency=low
+
+  * adt-testreport-onepackage: new management script, with some
+    example config files onepackage-config and ubuntu-config.
+  * Fixed quite a few bugs in adt-run.
+  * Made adt_distro xenlvm config var settable.
+  * Fixed various packaging problems.
+
+ -- Ian Jackson <iwj@ubuntu.com>  Thu,  8 Mar 2007 14:54:33 +0000
+
 autopkgtest (0.7.1) feisty; urgency=low
 
   * Actually ship README.* files.

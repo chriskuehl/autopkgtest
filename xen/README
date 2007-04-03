@@ -111,7 +111,7 @@ adt_fw_prohibnets	192.168.0.0/24 172.16.0.0/12 10.0.0.0/8
 	prohibited from communicating, notwithstanding
 	allowglobalports.
 
-adt_fw_allowglobalports	80
+adt_fw_allowglobalports	<none>
 	List of ports to which the testbed will be allowed to make
 	outgoing connections.
 
@@ -121,10 +121,10 @@ adt_fw_hook		<config> with _config replaced with _fwhook
 
 ---------- Items that are likely to need attention ----------
 
-adt_kernel		the booted kernel file /boot/xen*`uname -r`
+adt_kernel		Xen kernel matching /boot/xen*`uname -r`
 	Kernel to boot in the testbed image
 
-adt_ramdisk		<kernel>.initrd.img
+adt_ramdisk		initrd.img-* where <kernel> is vmlinuz-*
 	Initial ramdisk to provide to the testbid image.
 	"none" means do not provide an initial ramdisk.
 
@@ -134,7 +134,7 @@ adt_modules		/lib/modules/`uname -r`
 adt_lvm_vg		the system's LVM volume group if there is only one
 	LVM volume group to create base filesystem image in.
 
-adt_distro
+adt_distro		host system's distribution
 	Distribution name (eg, `edgy', `feisty', `sarge', `etch').
 
 adt_pbuilder_args	<none>

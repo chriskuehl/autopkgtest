@@ -13,6 +13,14 @@ fail () {
 
 x () { echo "x $*"; "$@"; }
 
+do_udevsettle () {
+	if type udevsettle >/dev/null 2>&1; then
+		udevsettle
+	elif test -x /sbin/udevsettle; then
+		udevsettle
+	fi
+}		
+		
 case "$BASH_VERSION" in
 '')	fail 'scripts using adtxenlvm readconfig must be bash scripts' ;;
 *)	;;
@@ -103,26 +111,53 @@ case "$adt_lvm_vg" in
 	;;
 esac
 
-case "$adt_kernel" in
-'')
+if [ "$adt_readconfig_needkernel" ]; then
+ case "$adt_kernel" in
+ '')
 	printf "searching for kernel ... "
-	for f in /boot/xen*"`uname -r`"; do
+	for f in /boot/*"`uname -r`"*; do
 		test -e "$f" || continue
+		printf "(%s:" "$f"
+		output="$(file -- "$f")"
+		case "$output" in
+		*"gzip compressed data"*) ;;
+		*) printf "!gzip) "; continue ;;
+		esac
+		trap 'rm -f -- "$tf"; exit 127' 0
+		tf=`mktemp -t`
+		zcat -- "$f" >"$tf"
+		output="$(file -- "$tf")"
+		case "$output" in
+		*"ELF "*" executable,"*) ;;
+		*) printf "!ELF) "; continue;;
+		esac
+		output="$(objdump -j __xen_guest -s -- "$tf")"
+		rm -f "$tf"; trap '' 0
+		case "$output" in
+		*" __xen_guest:"*) ;;
+		*) printf "!Xen) "; continue
+		esac
+		printf "y) "
 		test "x$adt_kernel" = x || \
 			fail 'several kernels, config must specify which'
 		adt_kernel="$f"
 	done
+	[ "x$adt_kernel" != x ] || \
+		fail 'could not find currently booted Xen kernel'
 	echo "using currently booted kernel: $adt_kernel"
 	;;
-esac
+ esac
 
-case "$adt_ramdisk" in
-none)	echo "ramdisk \`none' specified, using static kernel"
+ case "$adt_ramdisk" in
+ none)	echo "ramdisk \`none' specified, using static kernel"
 	adt_ramdisk='' ;;
-'')	adt_ramdisk="$adt_kernel.initrd.img"
-	echo "using default ramdisk <kernel>.initrd.img: $adt_ramdisk" ;;
-*)	;;
-esac
+ '')	adt_ramdisk="${adt_kernel/\/vmlinuz-//initrd.img-}"
+	test -e "$adt_ramdisk" || \
+ fail "calculated default ramdisk initrd.img \`$adt_ramdisk' does not exist"
+	echo "using calculated default ramdisk initrd.img: $adt_ramdisk" ;;
+ *)	;;
+ esac
+fi
 
 case "$adt_modules" in
 '')	adt_modules="/lib/modules/`uname -r`" ;;

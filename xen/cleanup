@@ -8,7 +8,7 @@ mkdir -p $adt_play $snap
 try () { printf "%s\n" "- $*"; "$@" >/dev/null 2>&1 ||:; }
 
 n=0
-if xm destroy $adt_xmname 2>/dev/null; then sleep 5; fi
+if xm destroy $adt_xmname 2>/dev/null; then do_udevsettle; fi
 try umount $lvm_baselv_namepath
 try dmsetup remove $adt_devmapper_cowdev
 rm -f $lvm_fslink_ptr

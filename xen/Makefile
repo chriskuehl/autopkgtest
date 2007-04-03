@@ -45,7 +45,8 @@ install:	all
 		$(INSTALL_DATA) $$f $(sharedir); \
 		done
 	$(INSTALL_DATA) initscript $(etcinitddir)/adtxenlvm$(cfg_suffix)
-	$(INSTALL_DATA) vif-route-adt $(xenscripts)/vif-route-adt$(cfg_suffix)
+	$(INSTALL_PROGRAM) vif-route-adt \
+		$(xenscripts)/vif-route-adt$(cfg_suffix)
 	$(INSTALL_DOC) README example-config $(docdir)
 
 readconfig:	sed-readconfig readconfig.in

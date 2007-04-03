@@ -1,0 +1,366 @@
+#!/bin/bash
+
+set -e
+
+mirror=http://mirror.relativity.greenend.org.uk/mirror/ubuntu.good
+distro=feisty
+suite=main
+salt=''
+tmp=tmp
+var=var
+administrator_email=ian@davenant.greenend.org.uk
+maintainer_email_override="$administrator_email"
+salutation="Ian"
+from="$salutation Jackson <ian@davenant.greenend.org.uk>"
+rsync=rsync
+disable=true
+interactive=true
+target=source
+arch=`dpkg --print-architecture`
+
+for config in "$@"; do
+	case "$config" in
+	*=*)	eval "$config"	;;
+	*)	. "$config"	;;
+	esac
+done
+
+if $disable; then
+	echo >&2 'disabled because config inadequate (no disable=false)'
+	exit 1
+fi
+
+: ${destdirtail:=$distro-$target}
+: ${destdirfin:="$destdircommon$destdirtail"}
+
+case $target in
+source)
+	sources=Sources
+	descx=''
+	;;
+binary-*)
+	sources=Packages
+	descx="${target#binary-}"
+	;;
+*)
+	echo >&2 'target must be source or binary-*'
+	exit 1
+esac
+
+exec 3>&1
+printf >&3 "starting "
+
+rm -rf "$tmp"
+mkdir "$tmp"
+
+>"$tmp"/_log
+
+if $interactive; then
+	echo '(log diverted to stdout)' >>"$tmp"/_log
+else
+	exec >>"$tmp"/_log
+fi
+exec 4>&1
+
+progress () {
+	echo "++++++ $1 ++++++"
+}
+
+gurl () {
+	progress "fetching $1"
+	curl -fsS "$1" >"$2"
+}
+
+gurl "$mirror/dists/$distro/$suite/$target/$sources.gz" "$tmp"/_$sources.gz
+zcat "$tmp"/_$sources.gz >"$tmp"/_$sources-in
+
+lastinfo="$var"/lastinfo-$target
+
+now=`date +%s`
+>>"$lastinfo"
+
+progress selecting
+
+if [ "x$pkg" = x ]; then
+ pkg="`perl -e '
+	use IO::Handle;
+
+	$pre= "[-+.0-9a-z]+";
+	$vre= "[-+.0-9a-zA-Z:~]+";
+
+	sub f1() { $fn=shift @ARGV; open F, $fn or die "$fn $!"; }
+	sub f2() { F->error and die "$fn $!"; close F or die "$fn $!"; }
+
+	f1();
+	while (<F>) {
+		die unless m/^($pre) ($vre) (\d+)( .*)?$/;
+		$lastver{$1}= $2;
+		$lasttime{$1}= $3;
+		$extras{$1}= $4." ";
+	}
+	f2();
+	f1();
+	$best_score= -1;
+	sub scorepackage () {
+		return if $skip;
+		return if $score < $best_score
+		     or ($score==$best_score and \
+			 $package gt $best_package);
+		$best_score= $score;
+		$best_package= $package;
+	}
+	sub endpackage () {
+		return unless (defined $package
+				or defined $version
+				or defined $skip);
+		die unless defined $package;
+		die unless defined $version;
+		scorepackage();
+		undef $package;
+		undef $version;
+		undef $skip;
+	}
+	while (<F>) {
+		if (m/^Package: ($pre)$/) {
+			die if defined $package;
+			$package= $1;
+		} elsif (m/^Version: ($vre)$/) {
+			die if defined $version;
+			$version= $1;
+			$score= '$now' - $lasttime{$package};
+			$score= 1e7 if $score>1e7;
+			$score *= 5 if $lastver{$package} ne $version;
+			$score *= 10 unless $extras{$package} =~ m/ nt /;
+		} elsif (m/^Architecture:.*/ &&
+			 !m/\s'$arch'\s/) {
+			$skip= 1;
+		} elsif (m/^$/) {
+			endpackage();
+		}
+	}
+	f2();
+	endpackage();
+	die unless length $best_package;
+	open L, ">&4" or die $!;
+	printf L "selected %s (age %s, score %d)\n",
+		$best_package,
+		exists($lastime{$best_package})
+		? '$now' - $lasttime{$best_package}
+		: "<never-yet>",
+		$best_score;
+	print "$best_package\n" or die $!;
+ ' "$lastinfo" "$tmp"/_$sources-in`"
+else
+	printf >&4 "package forced: %s\n" "$pkg"
+fi
+
+sed -n "/^Package: $pkg\$/,/^\$/p" \
+ <"$tmp"/_$sources-in >"$tmp"/_this-stanza
+
+echo
+cat "$tmp"/_this-stanza
+
+getfield () {
+	eval 'p'$1'="`
+		sed -n '\''s/^'$1': //p'\'' \
+		 <"$tmp"/_this-stanza
+	`"'
+}
+
+printf >&3 "selected \"%s\" " $pkg
+
+tp="$tmp/$pkg"
+mkdir "$tp" "$tp/src" "$tp/tmp" "$tp/out"
+
+getfield Version
+
+if test $target = source; then
+	getfield Directory
+	leafnames="`
+		sed -n '/^Files:/,/^([^ ].*)?$/{ /^ /{
+			s/^ [0-9a-z][0-9a-z]*  *[0-9][0-9]* //; p
+			}}' \
+		 <"$tmp"/_this-stanza
+	`"
+	for leafname in $leafnames; do
+		df="$tp/src/$leafname"
+		case "$leafname" in
+		*/*|.*)	echo >&2 "bad leafname: $leafname"; exit 1;;
+		*.dsc) fot="$df";;
+		esac
+		gurl "$mirror/$pDirectory/$leafname" "$df"
+	done
+	testmode=--source
+	testmode2=''
+	desc="$pkg"
+	: ${upload_if_ok:=true}
+else
+	getfield Filename
+	fot="$tp/src/$pkg.deb"
+	gurl "$mirror/$pFilename" "$fot"
+	testmode='--binaries=install --binary'
+	testmode2=--instantiate
+	desc="$pkg $descx"
+	: ${upload_if_ok:=false}
+fi
+
+if [ "x$maintainer_email_override" = x ]; then
+	getfield Maintainer
+	maintainer_email=pMaintainer
+else
+	maintainer_email=maintainer_email_override
+fi
+
+printf >&3 "adt-run "
+
+progress "starting test"
+
+xrc () {
+	printf "+ %s\n" "$*"
+	set +e
+	"$@"
+	rc=$?
+	set -e
+}
+
+echo 'fatal: adt-run did not start properly' >"$tmp"/_summary
+
+xrc adt-run --tmp-dir "$tp"/tmp				\
+	--output-dir "$tp"/out				\
+	--log-file "$tp"/log 				\
+	--summary "$tmp"/_summary 			\
+	$adtrun_extra_opts				\
+	$testmode "$fot" $testmode2			\
+ ---							\
+ adt-virt-xenlvm					\
+	$adtvirt_extra_opts				\
+ --							\
+	--distro="$distro"				\
+ 2>&1 3>&- 4>&-
+
+printf >&3 "%s " $rc
+
+ourx=0
+upload=true
+extras=''
+
+case "$rc" in
+0)	summary='all OK';			email=''
+					upload=$upload_if_ok		;;
+2)	summary='OK (some skipped)';		email=''
+					upload=$upload_if_ok		;;
+8)	summary='package declares no tests';	email=''
+					upload=false; extras='nt'	;;
+4|6)	summary='test(s) failed!';	email="$maintainer_email"	;;
+12)	summary='erroneous package!';	email="$maintainer_email"	;;
+16)	summary='testbed failed!';	email="administrator_email"	;;
+*)	summary='unexpected failure!';	email="administrator_email"; ourx=20;;
+esac
+
+progress "RESULTS $summary"
+
+if $upload; then
+	progress "bundling"
+	ln "$tmp"/_summary "$tp"/summary
+
+	for odir in tmp out; do
+		if test -d "$tp"/$odir; then
+			GZIP=-2 tar -f "$tp"/$odir.tar.gz -C "$tp" -zc $odir
+			rm -r "$tp"/$odir
+		fi
+	done
+
+	progress "uploading"
+	printf >&3 "uploading"
+	$rsync -rltH --safe-links --delete "$tp" "$destrsynchead/$destdirfin/"
+	printf >&3 " "
+fi
+
+if [ "x$email" != x ]; then
+	progress "contacting $email"
+	eval "email_addr=\$$email"
+	printf >&3 "email \"%s\" " "$email_addr"
+	cat >"$tmp"/_email <<END
+From: $from
+To: $email_addr
+Subject: autopkgtest $distro $desc: $summary
+
+ Test executed for:  $distro  $target  $pkg
+ Outcome: $summary
+END
+	sed -e 's/^/  /' "$tmp"/_summary >>"$tmp"/_email
+	cat >>"$tmp"/_email <<END
+
+This message is automatically generated by the autopkgtest package
+testing system.  You are receiving it because:
+END
+	case "$email" in
+		pMaintainer)
+			cat >>"$tmp"/_email <<END
+ You are listed in the Maintainer field of the $pkg package in $distro
+  and the test results appear to indicate a problem with the package.
+END
+			;;
+		maintainer_email_override)
+			cat >>"$tmp"/_email <<END
+ The test results appear to indicate a problem with the package
+  and reports for package maintainers for $distro are being directed to
+  $maintainer_email_override
+END
+			;;
+		administrator_email)
+			cat >>"$tmp"/_email <<END
+ You are the administrator for the autopkgtest installation.
+END
+			;;
+		*)
+			echo >&2 "huh email $email is what why?"
+			exit 1
+			;;
+	esac
+	cat >>"$tmp/_email" <<END
+
+The test log, which is intended to be sufficient to diagnose most
+failures, can be found below.  However, in case this is not
+sufficient, another copy can be found along with output files, saved
+temporary files, and so on, at:
+ $desthttphead/$destdirfin/
+
+If you have any questions about this service please contact me at:
+ $from
+
+Regards,
+$salutation
+
+-8<-
+END
+fi
+
+printf >>"$var"/log "%s=%s rc=%s emailed='%s'\n" \
+	"$target" "$pkg" $rc "$email_addr"
+
+if [ "x$ourx" = x0 ]; then
+	sed -e "/^$pkg /d" <"$lastinfo" >"$lastinfo".new
+	printf "%s %s %s %s\n" "$pkg" "$pVersion" "$now" "$extras" \
+		>>"$lastinfo".new
+	mv "$lastinfo".new "$lastinfo"
+	progress "tested."
+else
+	progress "fault ($ourx)."
+fi
+
+if [ "x$email" = x ]; then
+	if $interactive; then
+		cat "$tmp"/_log >&2
+	fi
+else
+	cat >>"$tmp"/_email 2>&1 "$tmp"/_log ||:
+	if $interactive; then
+		cat "$tmp"/_email >&2
+	else
+		sendmail -odi -oem -t -oi <"$tmp"/_email
+	fi
+fi
+
+printf >&3 "done %s.\n" $ourx
+exit $ourx

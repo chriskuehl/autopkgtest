@@ -119,6 +119,19 @@ Protocol
 		If this feature is available, execute-debug will
 		be advertised.  Only one such plumbing is available.
 
+	timeout=<seconds>
+
+		Ensures that the whole execute command does not take
+		more than <seconds>.  If it does, the response is
+			timeout
+		instead of `ok <exit-status>'.
+
+		An effort will be made to kill the processes on the
+		testbed but this is not guaranteed to be possible or
+		successful.  After an `execute' has timed out, the
+		testbed should probably be reverted with `revert' if
+		that facility is available.
+
 * Commands
 	copydown <host-tree> <testbed-path>
 	copyup <testbed-tree> <host-path>
