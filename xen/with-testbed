@@ -30,6 +30,7 @@ rc=$?
 set -e
 
 xm destroy $adt_xmname
+do_udevsettle
 dmsetup remove $adt_devmapper_cowdev
 
 trap '' 0
