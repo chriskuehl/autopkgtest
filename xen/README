@@ -121,10 +121,10 @@ adt_fw_hook		<config> with _config replaced with _fwhook
 
 ---------- Items that are likely to need attention ----------
 
-adt_kernel		the booted kernel file /boot/xen*`uname -r`
+adt_kernel		Xen kernel matching /boot/xen*`uname -r`
 	Kernel to boot in the testbed image
 
-adt_ramdisk		<kernel>.initrd.img
+adt_ramdisk		initrd.img-* where <kernel> is vmlinuz-*
 	Initial ramdisk to provide to the testbid image.
 	"none" means do not provide an initial ramdisk.
 
