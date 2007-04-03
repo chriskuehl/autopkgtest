@@ -111,7 +111,7 @@ adt_fw_prohibnets	192.168.0.0/24 172.16.0.0/12 10.0.0.0/8
 	prohibited from communicating, notwithstanding
 	allowglobalports.
 
-adt_fw_allowglobalports	80
+adt_fw_allowglobalports	<none>
 	List of ports to which the testbed will be allowed to make
 	outgoing connections.
 

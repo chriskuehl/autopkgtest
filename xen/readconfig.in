@@ -40,7 +40,7 @@ adt_debootstrap_script=''
 
 adt_fw_localmirrors=''
 adt_fw_prohibnets='192.168.0.0/24 172.16.0.0/12 10.0.0.0/8'
-adt_fw_allowglobalports='80'
+adt_fw_allowglobalports=''
 
 adt_guest_macaddr=00:16:3e:7c:aa:7f
 adt_net_vifscript=/etc/xen/scripts/vif-route-adt
