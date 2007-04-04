@@ -13,14 +13,6 @@ fail () {
 
 x () { echo "x $*"; "$@"; }
 
-do_udevsettle () {
-	if type udevsettle >/dev/null 2>&1; then
-		udevsettle
-	elif test -x /sbin/udevsettle; then
-		udevsettle
-	fi
-}		
-		
 case "$BASH_VERSION" in
 '')	fail 'scripts using adtxenlvm readconfig must be bash scripts' ;;
 *)	;;
