@@ -1,4 +1,10 @@
-autopkgtest (0.8.1feisty1~iwj2) feisty-updates; urgency=low
+autopkgtest (0.8.2feisty1~iwj) feisty-updates; urgency=low
+
+  * Fix readconfig.in to set adt_$var rather than just $var.
+
+ --
+
+autopkgtest (0.8.2) gutsy unstable; urgency=low
 
   * Fix fd handling to work around Python's habit of closing files
     you specify in subprocess.Popen.

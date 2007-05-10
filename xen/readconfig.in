@@ -67,7 +67,7 @@ cmdline_args () {
 			*) fail "unknown configuration variable \`$var'" ;;
 			esac
 
-			eval "$var=\"\$value\""
+			eval "adt_$var=\"\$value\""
 			shift ;;
 
 		--)	shift; break ;;
