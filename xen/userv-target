@@ -1,0 +1,8 @@
+#!/bin/bash
+set -e
+d="$USERV_U_distro"
+fail () { printf >&2 "%s: %s\n" "$0" "$*"; exit 127; }
+
+test "x$d" = "x${d#/*}" || fail 'distro may not contain slashes'
+test -d /var/lib/autopkgtest/xenlvm/adt_"$d" || fail 'unknown distro'
+exec adt-xenlvm-with-testbed --adt-distro="$d" sh -c 'echo y && exec cat'
