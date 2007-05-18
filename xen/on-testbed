@@ -3,4 +3,13 @@ set -e
 . ${ADT_XENLVM_SHARE:=/usr/share/autopkgtest/xenlvm}/justconfig
 while test $# -gt $nonoptargs; do shift; done
 
-ssh $adt_ssh_keyident_args $adt_guest_ipaddr "$@"
+case "$1" in
+x--print-command)	ppfx=echo; shift	;;
+x--print0-command)	ppfx=ppfx0; shift	;;
+x--)			shift			;;
+x-*)			fail "invalid instead-of-command options \`$1'" ;;
+esac
+
+ppfx0 () { for x in "$@"; do printf '%s\0' "$x"; done; }
+
+$ppfx ssh $adt_ssh_keyident_args $adt_guest_ipaddr "$@"

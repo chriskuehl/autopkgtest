@@ -23,7 +23,7 @@
 include ../settings.make
 
 programs =	cleanup setup on-testbed with-testbed purge
-shareprograms =	fixups fixups-inside
+shareprograms =	fixups fixups-inside userv-target
 sharefiles =	readconfig justconfig
 
 exec_prefix =	adt-xenlvm-
@@ -44,6 +44,8 @@ install:	all
 	set -e; for f in $(sharefiles); do \
 		$(INSTALL_DATA) $$f $(sharedir); \
 		done
+	$(INSTALL_DATA) userv-fragment \
+		$(uservsvcdir)/adt-xenlvm-testbed:dist
 	$(INSTALL_DATA) initscript $(etcinitddir)/adtxenlvm$(cfg_suffix)
 	$(INSTALL_PROGRAM) vif-route-adt \
 		$(xenscripts)/vif-route-adt$(cfg_suffix)

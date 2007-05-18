@@ -4,5 +4,6 @@ if ( glob calling-group AdtXenUs root
 	reset
 	no-set-environment
 	no-disconnect-hup
+	no-suppress-args
 	execute /usr/share/autopkgtest/xenlvm/userv-target
 fi
