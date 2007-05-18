@@ -32,7 +32,7 @@ all:		readconfig
 
 install:	all
 	$(INSTALL_DIRS) $(bindir) $(docdir) $(man1dir) $(etcconfdir) \
-		$(sharedir) $(etcinitddir) $(xenscripts)
+		$(sharedir) $(etcinitddir) $(xenscripts) $(uservsvcdir)
 	set -e; for f in $(programs) $(shareprograms); do \
 		$(INSTALL_PROGRAM) $$f $(sharedir); \
 		done
