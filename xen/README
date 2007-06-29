@@ -140,7 +140,7 @@ adt_distro		host system's distribution
 adt_pbuilder_args	<none>
 	Extra arguments to pass to pbuilder.
 
-adt_lvm_erasebase	yes
+adt_lvm_erasebase	true
 	Whether the base filesystem image needs to be filled with
 	zeroes.  If you are going to be using the image only locally
 	and so don't care whether the base image contains bits of
