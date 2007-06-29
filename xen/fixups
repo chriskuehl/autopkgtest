@@ -57,6 +57,14 @@ done
 exec 3>&-
 mv $kh.new $kh
 
+if test -f $dest/etc/udev/rules.d/*-persistent-net-generator.rules; then
+	rules_file="`grep '^RULES_FILE=' $dest/lib/udev/write_net_rules`"
+	rules_file=${rules_file#RULES_FILE=}
+	rules_file=${rules_file#[\'\"]}
+	rules_file=${rules_file%[\'\"]}
+	echo 'SUBSYSTEM=="net", DRIVERS=="?*", ATTRS{address}=="'$adt_guest_macaddr'", NAME="eth0"' >"$dest/$rules_file"
+fi
+
 echo '
 === adt xen fixups done.
 '
