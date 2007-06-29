@@ -82,6 +82,7 @@ case "$VERBOSE" in
 no)	exec >/dev/null ;;
 esac
 
+adt_readconfig_initscript=y
 printf "adtxenlvm: reading configuration for firewall setup:\n"
 . ${ADT_XENLVM_SHARE:=/usr/share/autopkgtest/xenlvm}/readconfig
 
