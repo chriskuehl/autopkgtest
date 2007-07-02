@@ -2,19 +2,21 @@
 set -e
 fail () { printf >&2 "%s: %s\n" "$0" "$*"; exit 127; }
 
-. /etc/lsb-release
+if test -f /etc/lsb-release; then . /etc/lsb-release; fi
 
-d="${USERV_U_distro-$DISTRIB_CODENAME}"
-n="${USERV_U_nominum-adt}"
+d="${USERV_U_distro:-$DISTRIB_CODENAME}"
+n="${USERV_U_nominum:-adt}"
 
-case "$dn" in
+nd="${n}_${d}"
+
+case "$nd" in
 */*|.*|*.*|*_*_*)	fail 'dangerous format in distro or nominum'	;;
 adt*)	;;
 *)	fail 'userv adtxenlvm only supports nominums starting with adt' ;;
 esac
 
-dndir=/var/lib/autopkgtest/xenlvm/"$dn"
-test -d "$dndir" || fail 'unknown distro or nominum'
+nddir=/var/lib/autopkgtest/xenlvm/"$nd"
+test -d "$nddir" || fail 'unknown distro or nominum'
 
 run () {
 	base="$1"; shift
@@ -22,7 +24,7 @@ run () {
 }
 
 case "$1" in
-with)	adt-xenlvm-with-testbed sh -c 'echo y && exec cat' ;;
+with)	run adt-xenlvm-with-testbed sh -c 'echo y && exec cat' ;;
 pon0)	run adt-xenlvm-on-testbed -- --print0-command ;;
 *)	fail 'unknown mode'
 esac
