@@ -116,8 +116,13 @@ adt_fw_allowglobalports	<none>
 	outgoing connections.
 
 adt_fw_hook		<config> with _config replaced with _fwhook
-			 or none of <config> doesn't end in _config
+			 or none if <config> doesn't end in _config
 	bash fragment to source during firewall setup
+
+adt_sshauthkeys_hook	<config> with _config replaced with _sshauthkeys
+			 or none if <config> doesn't end in _config
+	list of authorized keys to append to testbed's
+	/root/.ssh/authorized_keys.
 
 ---------- Items that are likely to need attention ----------
 

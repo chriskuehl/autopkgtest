@@ -14,7 +14,7 @@ cp -a "${adt_modules}" $dest/lib/modules/.
 echo xennet >>$dest/etc/modules
 
 if ! test -f "${adt_ssh_pubkey}"; then
-	if [ "x${adt_ssh_pubkey}" != "x${adt_ssh_privkey}.priv" ]; then
+	if [ "x${adt_ssh_pubkey}" != "x${adt_ssh_privkey}.pub" ]; then
 		fail "cannot generate keypair automatically because adt_ssh_privkey \`$adt_ssh_privkey' and adt_ssh_pubkey \`$adt_ssh_pubkey' do not match up in the way required by ssh-keygen (<pubkey> must be <privkey>.pub>"
 	fi
 	if test -f "${adt_ssh_privkey}"; then
@@ -27,6 +27,9 @@ fi
 
 mkdir -m 02700 -p $dest/root/.ssh
 cp -- "${adt_ssh_pubkey}" $dest/root/.ssh/authorized_keys
+if [ "x$adt_sshauthkeys_hook" != x ]; then
+	cat -- "$adt_sshauthkeys_hook" >>$dest/root/.ssh/authorized_keys
+fi
 
 cat <<END >$dest/etc/init.d/xenethtoolk
 #!/bin/sh

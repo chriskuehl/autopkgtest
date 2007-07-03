@@ -259,6 +259,7 @@ search_hook () {
 
 search_hook fw firewall fwhook
 search_hook setup setup setuphook
+search_hook sshauthkeys "ssh auth keys" sshauthkeys
 
 boolean_config () {
   eval '
