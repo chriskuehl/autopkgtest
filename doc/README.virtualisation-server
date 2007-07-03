@@ -63,6 +63,11 @@ Protocol
 	(with distinct <username>s) may be advertised in which case
 	more than one such user is available.
 
+   + print-execute-command
+	The 'print-execute-command' command is available, so that the
+	caller can execute multiple concurrent commands on the testbed
+        with asynchronous input and output, if desired.
+
 
 * Command
 	open
@@ -89,6 +94,66 @@ Protocol
 
   Stops the testbed and undoes filesystem changes (if `revert' is
   advertised). State: Open to Closed.
+
+
+* Command
+	print-execute-command
+  response
+	ok <program>,<arg>,<arg>... auxverb|shstring [<keyword-info> ...]
+  Prints a command that can be executed by the caller to run a command
+  on the testbed.  Only available if the `print-execute-command'
+  capability is advertised.
+
+  The command has the following properties (which are, for example,
+  satisfiable when the virt server uses `env' `ssh' or `dchroot'):
+   - The caller is expected to url-decode <program> and each <arg>,
+     append the command to be run on the testbed, and call exec on the
+     results.
+   - If auxverb is advertised, the supplied additional arguments to
+     command will be interpreted as the command and arguments to be
+     run on the testbed (as env and nice interpret their arguments)
+   - If shstring is advertised, there should be one additional
+     argument which will be fed to sh -c on the testbed (this is the
+     way ssh interprets its arguments).
+   - The testbed program's stdin, stdout and stderr will be plumbed
+     through to the stdin, stdout and stderr passed to <program>; this
+     may involve fd passing, or indirection via pipes or sockets.  The
+     testbed program may not assume that the descriptors it receives
+     are seekable even if the originals are.
+   - It is not defined whether other file descriptors, environment
+     variables, and process properties in general, are inherited by
+     the testbed command.
+   - <program> may exit as soon as the testbed command does, or it may
+     wait until every copy of the stdout and stderr descriptors passed
+     to the testbed command have been closed on the testbed.
+   - <program>'s exit status will be that of the testbed command if
+     the latter exits with a value from 0..125.  If the testbed
+     command dies due to a signal, then either (i) <program> will exit
+     with the signal number with 128 added, or (ii) <program> will die
+     with the same signal (although it may fail to dump core even if
+     the testbed program did), or (iii) <program> will fail.  If
+     <program> fails it will exit 126, 127, 254, or 255; of course
+     <program> may die to a some signals other than because the
+     testbed program died with the same signal.
+   - The caller may run several of these at once, subject to
+     limitation of resources (eg, file descriptors, processes)
+   - The behaviour if a command is running when the testbed is closed
+     or reverted is not defined.  However, if the testbed advertises
+     `revert' then after the testbed is closed or reverted any such
+     <program> invocation will not have any further effect on the
+     testbed.
+   - Sending <program> signals in an attempt to terminate it may not
+     terminate all of the relevant processes and may not have any
+     effect on the testbed.
+   - The behaviour if no testbed command is specified (ie, if
+     just the specified <program> and <arg>s is passed to exec) is
+     not defined.
+   - Currently no <keyword-info>s are defined; they work the same
+     way as capabilities in that unrecognised ones should be ignored
+     by the caller.
+  The response (ie, the <command>) is only valid between `open' and
+  the next subsequent `close', `revert' or `quit'.  Using it at other
+  times has undefined behaviour.
 
 
 * Command

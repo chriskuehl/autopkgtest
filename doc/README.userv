@@ -1,0 +1,45 @@
+Virtualisation service for use via userv
+----------------------------------------
+
+adt-virt-xenlvm supports use of Xen virtual machines and LVM COW via
+the userv `security boundary tool'.  By default the files
+corresponding to this setup are installed but not enabled.
+
+What is provided to non-root accounts is the ability to start the
+testbed and run commands on it (functionality equivalent to
+adt-xenlvm-with-testbed and adt-xenlvm-on-testbed) but not the ability
+to create new testbeds.
+
+To make this feature available:
+ * Install userv.
+ * Create a group named AdtXenUs containing the users which should
+   be able to manipulate and use the testbed.
+ * Collect the public ssh key(s) of the user(s) and put them in
+   /etc/autopkgtest/xenlvm_adt_sshauthkeys (this will allow them
+   to ssh to root@testbed).
+ * Run adt-xenlvm-setup.  NB that the contents of the _sshauthkeys
+   file (above) are copied into the testbed by adt-xenlvm-setup;
+   any changes mean that setup needs to be run again.
+
+Typically adt-xenlvm-setup ought to be run periodically anyway to
+make sure that the snapshot doesn't get too out of date.
+
+
+Client interface
+----------------
+
+The service is as invoked as
+  userv [-Ddistro=<distro> -Dnominum=<nominum>] \
+        [-Dssh_privkey=...|-Dssh_keyident_args=...] \
+	root adt-xenlvm-testbed <act>
+where <act> is either
+  with
+	Starts adt-xenlvm-with-testbed, prints `y', waits for
+	eof on stdin, and then exits adt-xenlvm-with-testbed.
+  pon0
+	Prints the command that ought to be run to execute
+	commands on the testbed.  The output is a command and
+	arguments, each followed by a null byte.  These should
+	be put into an array of strings and passed to exec,
+	with the actual command to be run added as a final
+	argument (in sh syntax).

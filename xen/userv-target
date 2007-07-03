@@ -1,0 +1,46 @@
+#!/bin/bash
+set -e
+fail () { printf >&2 "%s: %s\n" "$0" "$*"; exit 127; }
+
+if test -f /etc/lsb-release; then . /etc/lsb-release; fi
+
+d="${USERV_U_distro:-$DISTRIB_CODENAME}"
+n="${USERV_U_nominum:-adt}"
+
+for v in ssh_privkey ssh_keyident_args; do
+	eval "
+		if [ \"x\$USERV_U_$v\" != x ]; then
+			export adt_$v=\"\$USERV_U_$v\"
+		fi
+	"
+done
+
+if [ "x$adt_ssh_privkey$adt_ssh_keyident_args" = x ]; then
+	export adt_ssh_keyident_args=' '
+	# There's no point directing userv callers to use the one in
+	# /root/.ssh/id_dsa_adt* since that one is only readable by
+	# root.  So if they don't specify one we just let them have
+	# whatever the default is.
+fi
+
+nd="${n}_${d}"
+
+case "$nd" in
+*/*|.*|*.*|*_*_*)	fail 'dangerous format in distro or nominum'	;;
+adt*)	;;
+*)	fail 'userv adtxenlvm only supports nominums starting with adt' ;;
+esac
+
+nddir=/var/lib/autopkgtest/xenlvm/"$nd"
+test -d "$nddir" || fail 'unknown distro or nominum'
+
+run () {
+	base="$1"; shift
+	exec "$base" --adt-distro="$d" --adt-nominum="$n" "$@"
+}
+
+case "$1" in
+with)	run adt-xenlvm-with-testbed sh -c 'echo y && exec cat' ;;
+pon0)	run adt-xenlvm-on-testbed -- --print0-command ;;
+*)	fail 'unknown mode'
+esac
