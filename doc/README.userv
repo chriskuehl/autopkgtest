@@ -14,9 +14,12 @@ To make this feature available:
  * Install userv.
  * Create a group named AdtXenUs containing the users which should
    be able to manipulate and use the testbed.
- * Run adt-xenlvm-setup.  NB that the group can be empty at this
-   point but should exist before setting up the testbed, or the
-   testbed setup will not be correct.
+ * Collect the public ssh key(s) of the user(s) and put them in
+   /etc/autopkgtest/xenlvm_adt_sshauthkeys (this will allow them
+   to ssh to root@testbed).
+ * Run adt-xenlvm-setup.  NB that the contents of the _sshauthkeys
+   file (above) are copied into the testbed by adt-xenlvm-setup;
+   any changes mean that setup needs to be run again.
 
 Typically adt-xenlvm-setup ought to be run periodically anyway to
 make sure that the snapshot doesn't get too out of date.
@@ -26,7 +29,9 @@ Client interface
 ----------------
 
 The service is as invoked as
-  userv [-Ddistro=<distro> -Dnominum=<nominum>] root adt-xenlvm-testbed <act>
+  userv [-Ddistro=<distro> -Dnominum=<nominum>] \
+        [-Dssh_privkey=...|-Dssh_keyident_args=...] \
+	root adt-xenlvm-testbed <act>
 where <act> is either
   with
 	Starts adt-xenlvm-with-testbed, prints `y', waits for

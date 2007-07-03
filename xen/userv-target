@@ -7,6 +7,22 @@ if test -f /etc/lsb-release; then . /etc/lsb-release; fi
 d="${USERV_U_distro:-$DISTRIB_CODENAME}"
 n="${USERV_U_nominum:-adt}"
 
+for v in ssh_privkey ssh_keyident_args; do
+	eval "
+		if [ \"x\$USERV_U_$v\" != x ]; then
+			export adt_$v=\"\$USERV_U_$v\"
+		fi
+	"
+done
+
+if [ "x$adt_ssh_privkey$adt_ssh_keyident_args" = x ]; then
+	export adt_ssh_keyident_args=' '
+	# There's no point directing userv callers to use the one in
+	# /root/.ssh/id_dsa_adt* since that one is only readable by
+	# root.  So if they don't specify one we just let them have
+	# whatever the default is.
+fi
+
 nd="${n}_${d}"
 
 case "$nd" in
