@@ -65,7 +65,8 @@ def cmdnumargs(c, ce, nargs=0, noptargs=0):
 
 def cmd_capabilities(c, ce):
 	cmdnumargs(c, ce)
-	return caller.hook_capabilities() + ['execute-debug']
+	return caller.hook_capabilities() + ['execute-debug',
+		'print-execute-command']
 
 def cmd_quit(c, ce):
 	cmdnumargs(c, ce)
@@ -75,6 +76,16 @@ def cmd_close(c, ce):
 	cmdnumargs(c, ce)
 	if not downtmp: bomb("`close' when not open")
 	cleanup()
+
+def cmd_print_execute_command(c, ce):
+	cmdnumargs(c, ce)
+	if not downtmp: bomb("`print-execute-command' when not open")
+	if hasattr(caller,'hook_callerexeccmd'):
+		(cl,kvl) = caller.hook_callerexeccmd()
+	else:
+		cl = down
+		kvl = ['shstring']
+	return [','.join(map(urllib.quote, cl))] + kvl
 
 def preexecfn():
 	caller.hook_forked_inchild()
@@ -136,7 +147,7 @@ def down_python_script(gobody, functions=''):
 			"import os\n"
 			"def setfd(fd,fnamee,write,mode=0666):\n"
 			"	fname = urllib.unquote(fnamee)\n"
-			"	if write: rw = os.O_WRONLY|os.O_CREAT\n"
+			"	if write: rw = os.O_WRONLY|os.O_CREAT|os.O_TRUNC\n"
 			"	else: rw = os.O_RDONLY\n"
 			"	nfd = os.open(fname, rw, mode)\n"
 			"	if fd >= 0: os.dup2(nfd,fd)\n"
@@ -151,9 +162,8 @@ def down_python_script(gobody, functions=''):
 	debug("+P ...\n"+script)
 
 	scripte = urllib.quote(script)
-	cmdl = down + ['python','-c',
-		"'import urllib; s = urllib.unquote(%s); exec s'" %
-			('"%s"' % scripte)]
+	cmdl = down + ["exec python -c 'import urllib; s = urllib.unquote(%s);"
+		       " exec s'" % ('"%s"' % scripte)]
 	return cmdl
 
 def cmd_execute(c, ce):
@@ -205,18 +215,23 @@ def cmd_execute(c, ce):
 		"			mode = status.st_mode | 0111\n"
 		"			os.chmod(c0, mode)\n"
 		"	try: os.execvp(c0, cmd)\n"
-		"	except OSError, e:\n"
+		"	except (IOError,OSError), e:\n"
 		"		print >>sys.stderr, \"%s: %s\" % (\n"
 		"			(c0, os.strerror(e.errno)))\n"
 		"		os._exit(127)\n")
 	cmdl = down_python_script(gobody)
 
+	stdout_copy = None
 	try:
-		(status, out) = execute_raw('sub-python', None, timeout,
-				cmdl, stdout=stdout, stdin=devnull_read,
-				stderr=subprocess.PIPE)
-	except Timeout:
-		raise FailedCmd(['timeout'])
+		if type(stdout) == type(2): stdout_copy = os.dup(stdout)
+		try:
+			(status, out) = execute_raw('sub-python', None,
+				timeout, cmdl, stdout=stdout_copy,
+				stdin=devnull_read, stderr=subprocess.PIPE)
+		except Timeout:
+			raise FailedCmd(['timeout'])
+	finally:
+		if stdout_copy is not None: os.close(stdout_copy)
 
 	if out: bomb("sub-python unexpected produced stdout"
 			" visible to us `%s'" % out)
@@ -257,11 +272,11 @@ def copyupdown(c, ce, upp):
 		gobody = "	dir = urllib.unquote('%s')\n" % sde[iremote]
 		if upp:
 			try: os.mkdir(sd[ilocal])
-			except OSError, oe:
+			except (IOError,OSError), oe:
 				if oe.errno != errno.EEXIST: raise
 		else:
 			gobody += ("	try: os.mkdir(dir)\n"
-				"	except OSError, oe:\n"
+				"	except (IOError,OSError), oe:\n"
 				"		if oe.errno != errno.EEXIST: raise\n")
 		gobody +=( "	os.chdir(dir)\n"
 			"	tarcmd = 'tar -f -'.split()\n")
@@ -289,11 +304,12 @@ def copyupdown(c, ce, upp):
 	debug(" +> %s" % string.join(cmdls[1]))
 	subprocs[1] = subprocess.Popen(cmdls[1], stdin=subprocs[0].stdout,
 			stdout=deststdout, preexec_fn=preexecfn)
+	subprocs[0].stdout.close()
 	timeout_start(copy_timeout)
 	for sdn in [1,0]:
 		debug(" +"+"<>"[sdn]+"?");
 		status = subprocs[sdn].wait()
-		if status:
+		if not (status==0 or (sdn==0 and status==-13)):
 			timeout_stop()
 			bomb("%s %s failed, status %d" %
 				(wh, ['source','destination'][sdn], status))
@@ -310,7 +326,8 @@ def command():
 	c = map(urllib.unquote, ce)
 	if not c: bomb('empty commands are not permitted')
 	debug('executing '+string.join(ce))
-	try: f = globals()['cmd_'+c[0]]
+	c_lookup = c[0].replace('-','_')
+	try: f = globals()['cmd_'+c_lookup]
 	except KeyError: bomb("unknown command `%s'" % ce[0])
 	try:
 		r = f(c, ce)
@@ -320,9 +337,16 @@ def command():
 		r = fc.e
 	print string.join(r)
 
+signal_list = [	signal.SIGHUP, signal.SIGTERM,
+		signal.SIGINT, signal.SIGPIPE ]
+
+def sethandlers(f):
+	for signum in signal_list: signal.signal(signum, f)
+
 def cleanup():
 	global downtmp, cleaning
 	debug("cleanup...");
+	sethandlers(signal.SIG_DFL)
 	cleaning = True
 	if downtmp: caller.hook_cleanup()
 	cleaning = False
@@ -349,12 +373,7 @@ def error_cleanup():
 def prepare():
 	global downtmp, cleaning
 	downtmp = None
-	signal_list = [	signal.SIGHUP, signal.SIGTERM,
-			signal.SIGINT, signal.SIGPIPE ]
-	def sethandlers(f):
-		for signum in signal_list: signal.signal(signum, f)
 	def handler(sig, *any):
-		sethandlers(signal.SIG_DFL)
 		cleanup()
 		os.kill(os.getpid(), sig)
 	sethandlers(handler)

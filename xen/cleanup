@@ -5,10 +5,17 @@ test $nonoptargs = 0 || fail "non-option arguments not allowed"
 
 mkdir -p $adt_play $snap
 
-try () { printf "%s\n" "- $*"; "$@" >/dev/null 2>&1 ||:; }
+try_es () { printf "%s\n" "- $*"; "$@" >/dev/null 2>&1; }
+try () { try_es "$@" ||:; }
 
 n=0
-if xm destroy $adt_xmname 2>/dev/null; then do_udevsettle; fi
+try xm destroy $adt_xmname 2>/dev/null
 try umount $lvm_baselv_namepath
-try dmsetup remove $adt_devmapper_cowdev
+sleeptime=0
+while try_es dmsetup info $adt_devmapper_cowdev; do
+	try dmsetup remove $adt_devmapper_cowdev
+	[ $sleeptime -le 5 ] || fail "timed out trying dmsetup info/remove"
+	sleep $sleeptime
+	sleeptime=$(( $sleeptime + 1 ))
+done
 rm -f $lvm_fslink_ptr

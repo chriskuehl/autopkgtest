@@ -13,14 +13,6 @@ fail () {
 
 x () { echo "x $*"; "$@"; }
 
-do_udevsettle () {
-	if type udevsettle >/dev/null 2>&1; then
-		udevsettle
-	elif test -x /sbin/udevsettle; then
-		udevsettle
-	fi
-}		
-		
 case "$BASH_VERSION" in
 '')	fail 'scripts using adtxenlvm readconfig must be bash scripts' ;;
 *)	;;
@@ -28,31 +20,31 @@ esac
 
 #---------- default values for simple settings ----------
 
-adt_nominum=adt
-adt_testbed_ram=256
-adt_freeze_ram=32
-adt_fs_size=3072M
-adt_fs_snapsize=2560M
-adt_fs_cowchunk=8
-adt_playbase=/var/lib/autopkgtest/xenlvm
-adt_fs_type=ext3
-adt_fs_mkfs_args=''
-adt_vm_reduce_retries=10
-adt_ssh_keytype=dsa
+: ${adt_nominum:=adt}
+: ${adt_testbed_ram:=256}
+: ${adt_freeze_ram:=32}
+: ${adt_fs_size:=3072M}
+: ${adt_fs_snapsize:=2560M}
+: ${adt_fs_cowchunk:=8}
+: ${adt_playbase:=/var/lib/autopkgtest/xenlvm}
+: ${adt_fs_type:=ext3}
+: ${adt_fs_mkfs_args:=}
+: ${adt_vm_reduce_retries:=10}
+: ${adt_ssh_keytype:=dsa}
 
-adt_debootstrap_components='*'
-adt_debootstrap_include=libc6-xen,openssh-server,ed
-adt_debootstrap_includemore=
-adt_debootstrap_mirrors=''
-adt_debootstrap_script=''
+: ${adt_debootstrap_components:='*'}
+: ${adt_debootstrap_include:=libc6-xen,openssh-server,ed}
+: ${adt_debootstrap_includemore:=}
+: ${adt_debootstrap_mirrors:=}
+: ${adt_debootstrap_script:=}
 
-adt_fw_localmirrors=''
-adt_fw_prohibnets='192.168.0.0/24 172.16.0.0/12 10.0.0.0/8'
-adt_fw_allowglobalports='80'
+: ${adt_fw_localmirrors:=}
+: ${adt_fw_prohibnets:=192.168.0.0/24 172.16.0.0/12 10.0.0.0/8}
+: ${adt_fw_allowglobalports:=80}
 
-adt_guest_macaddr=00:16:3e:7c:aa:7f
-adt_net_vifscript=/etc/xen/scripts/vif-route-adt
-adt_normaluser=adtxenu
+: ${adt_guest_macaddr:=00:16:3e:7c:aa:7f}
+: ${adt_net_vifscript:=/etc/xen/scripts/vif-route-adt}
+: ${adt_normaluser:=adtxenu}
 
 #---------- arguments and config file ----------
 
@@ -75,7 +67,7 @@ cmdline_args () {
 			*) fail "unknown configuration variable \`$var'" ;;
 			esac
 
-			eval "$var=\"\$value\""
+			eval "adt_$var=\"\$value\"; export adt_$var"
 			shift ;;
 
 		--)	shift; break ;;
@@ -93,14 +85,15 @@ cmdline_args "$@"
 
 #---------- calculated defaults for complex settings ----------
 
-case "$adt_lvm_vg" in
-'')
+if [ ! "${adt_readconfig_initscript}" ]; then
+ case "$adt_lvm_vg" in
+ '')
 	printf "searching for default volume group ... "
-	vgdisplay_out=`vgdisplay -c 10>&-`
+	vgdisplay_out=`vgdisplay -c 8>&-`
 	case "$vgdisplay_out" in
 	"")	fail 'no volume groups found';;
 	*"
-"*)		fail 'several volume groups, config must specify which';;
+ "*)		fail 'several volume groups, config must specify which';;
 	esac
 	adt_lvm_vg=${vgdisplay_out%%:*}
 	case "$adt_lvm_vg" in
@@ -109,7 +102,8 @@ case "$adt_lvm_vg" in
 	adt_lvm_vg=${adt_lvm_vg##* }
 	echo "using system's only volume group: $adt_lvm_vg"
 	;;
-esac
+ esac
+fi
 
 if [ "$adt_readconfig_needkernel" ]; then
  case "$adt_kernel" in
@@ -164,8 +158,9 @@ case "$adt_modules" in
 *)	;;
 esac
 
-case "$adt_distro" in
-'')
+if [ ! "${adt_readconfig_initscript}" ]; then
+ case "$adt_distro" in
+ '')
 	printf "considering which distro to use ... "
 	test -e /etc/lsb-release || \
 		fail 'no /etc/lsb-version, config must specify adt_distro'
@@ -173,7 +168,8 @@ case "$adt_distro" in
 	adt_distro=$DISTRIB_CODENAME
 	echo "using same distro as host: $adt_distro"
 	;;
-esac
+ esac
+fi
 
 hostname_from_ipaddr () {
  eval '
@@ -186,8 +182,11 @@ hostname_from_ipaddr () {
  '
 }
 
-hostname_from_ipaddr guest
 hostname_from_ipaddr host
+
+if [ ! "${adt_readconfig_initscript}" ]; then
+ hostname_from_ipaddr guest
+fi
 
 if [ x"$adt_host_hostname" = x ]; then
 	printf "finding host hostname, supposely our own FQDN: "
@@ -195,7 +194,8 @@ if [ x"$adt_host_hostname" = x ]; then
 	printf "%s\n" "$adt_host_hostname"
 fi
 
-if [ x"$adt_guest_hostname" = x ]; then
+if [ ! "${adt_readconfig_initscript}" ]; then
+ if [ x"$adt_guest_hostname" = x ]; then
 	case "$adt_guests_domain" in
 	'')	printf "guessing guest hostname from host hostname: "
  adt_guest_hostname=$adt_distro.$adt_nominum.${adt_host_hostname#*.} ;;
@@ -205,6 +205,7 @@ if [ x"$adt_guest_hostname" = x ]; then
  adt_guest_hostname=$adt_distro.$adt_guests_domain ;;
 	esac
 	printf "%s\n" "$adt_guest_hostname"
+ fi
 fi
 
 ipaddr_from_hostname () {
@@ -218,8 +219,10 @@ ipaddr_from_hostname () {
  '
 }
 
-ipaddr_from_hostname guest
 ipaddr_from_hostname host
+if [ ! "${adt_readconfig_initscript}" ]; then
+ ipaddr_from_hostname guest
+fi
 
 search_hook () {
  eval '
@@ -256,6 +259,7 @@ search_hook () {
 
 search_hook fw firewall fwhook
 search_hook setup setup setuphook
+search_hook sshauthkeys "ssh auth keys" sshauthkeys
 
 boolean_config () {
   eval '

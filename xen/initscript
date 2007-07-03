@@ -77,15 +77,16 @@ esac
 
 set --
 
-exec 10>&1
+exec 8>&1
 case "$VERBOSE" in
 no)	exec >/dev/null ;;
 esac
 
+adt_readconfig_initscript=y
 printf "adtxenlvm: reading configuration for firewall setup:\n"
 . ${ADT_XENLVM_SHARE:=/usr/share/autopkgtest/xenlvm}/readconfig
 
-exec >&10 10>&-
+exec >&8 8>&-
 
 log_daemon_msg "adtxenlvm: installing firewall rules"
 

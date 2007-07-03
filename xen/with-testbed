@@ -30,8 +30,13 @@ rc=$?
 set -e
 
 xm destroy $adt_xmname
-do_udevsettle
-dmsetup remove $adt_devmapper_cowdev
+sleep=0
+while true; do
+	if dmsetup remove $adt_devmapper_cowdev; then break; fi
+	if [ $sleep -gt 3 ]; then fail "dmsetup remove kept failing"; fi
+	sleep $sleep
+	sleep=$(( $sleep + 1 ))
+done
 
 trap '' 0
 exit $rc

@@ -10,7 +10,10 @@ x lvcreate -L $adt_fs_size -n $adt_lvm_baselv $adt_lvm_vg
 x lvcreate -L $adt_fs_snapsize -n $adt_lvm_cowdatalv $adt_lvm_vg
 
 if $adt_lvm_erasebase; then
-  x dd if=/dev/zero of=$lvm_baselv_namepath
+  basesize=`lvdisplay -c $lvm_baselv_namepath 8>&-`
+  basesize="${basesize#*:*:*:*:*:*:}"
+  basesize="${basesize%%:*}"
+  x dd if=/dev/zero of=$lvm_baselv_namepath bs=512 count="$basesize"
 fi
 x mkfs -t $adt_fs_type $adt_mkfs_args $lvm_baselv_namepath
 
@@ -67,7 +70,7 @@ retries=10
 if grep 0 /proc/sys/net/ipv4/ip_forward >/dev/null; then
 	cat <<END
 
-********** WARNING - IP FORWARDING IS TURNED OFF **********
+********** WARNING - IP FORWARDING IS TURNED OFF ON THE HOST **********
 Your testbed will probably have trouble with downloads, DNS, etc.
 You must turn this on manually, since it is a major config change.
 

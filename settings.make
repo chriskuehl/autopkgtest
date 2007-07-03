@@ -12,6 +12,8 @@ sharedir_lnfrom = $(share)/$(pkgname)
 etcdir =	/etc
 etcconfdir =	$(etcdir)/autopkgtest
 etcinitddir =	$(etcdir)/init.d
+etcuservdir =	$(etcdir)/userv
+uservsvcdir =	$(etcuservdir)/services.d
 xenscripts =	$(etcdir)/xen/scripts
 cfg_suffix =	.dist
 
