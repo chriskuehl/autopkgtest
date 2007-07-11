@@ -42,5 +42,6 @@ run () {
 case "$1" in
 with)	run adt-xenlvm-with-testbed sh -c 'echo y && exec cat' ;;
 pon0)	run adt-xenlvm-on-testbed -- --print0-command ;;
+console) xm console "$nd" ;;
 *)	fail 'unknown mode'
 esac
