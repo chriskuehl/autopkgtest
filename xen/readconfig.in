@@ -33,7 +33,7 @@ esac
 : ${adt_ssh_keytype:=dsa}
 
 : ${adt_debootstrap_components:='*'}
-: ${adt_debootstrap_include:=libc6-xen,openssh-server,ed}
+: ${adt_debootstrap_include:=openssh-server,ed}
 : ${adt_debootstrap_includemore:=}
 : ${adt_debootstrap_mirrors:=}
 : ${adt_debootstrap_script:=}

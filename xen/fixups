@@ -8,8 +8,10 @@ echo '---fixups:'
 
 cp ${ADT_XENLVM_SHARE}/fixups-inside $dest/root/
 
-mkdir -p $dest/lib/modules
-cp -a "${adt_modules}" $dest/lib/modules/.
+if test -d "${adt_modules}"; then
+	mkdir -p $dest/lib/modules
+	cp -a "${adt_modules}" $dest/lib/modules/.
+fi
 
 echo xennet >>$dest/etc/modules
 

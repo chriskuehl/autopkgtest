@@ -135,6 +135,7 @@ adt_ramdisk		initrd.img-* where <kernel> is vmlinuz-*
 
 adt_modules		/lib/modules/`uname -r`
 	Directory with modules to be copied into the testbed.
+	If this directory does not exist, no modules will be copied.
 
 adt_lvm_vg		the system's LVM volume group if there is only one
 	LVM volume group to create base filesystem image in.
