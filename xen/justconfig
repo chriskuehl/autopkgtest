@@ -1,3 +1,4 @@
 exec 8>&1 >/dev/null
+adt_whenlock_replumb81=y
 . ${ADT_XENLVM_SHARE:=/usr/share/autopkgtest/xenlvm}/readconfig
 exec >&8 8>&-

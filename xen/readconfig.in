@@ -12,6 +12,7 @@ fail () {
 }
 
 x () { echo "x $*"; "$@"; }
+xl () { echo "xl $*"; 3>&- "$@"; }
 
 case "$BASH_VERSION" in
 '')	fail 'scripts using adtxenlvm readconfig must be bash scripts' ;;
@@ -83,13 +84,42 @@ cmdline_args "$@"
 test ! -e "${adt_config}" || . "${adt_config}"
 cmdline_args "$@"
 
+#---------- settings needed for locking ----------
+
+# In-host-file-system playground
+: ${adt_play:=${adt_playbase}/${adt_nominum}_${adt_distro}}
+: ${adt_xmconfig:=${adt_play}/xmconfig}
+: ${adt_lock:=${adt_play}.lock}
+
+if [ ! "${adt_readconfig_initscript}" ]; then
+ case "$adt_distro" in
+ '')
+	printf "considering which distro to use ... "
+	test -e /etc/lsb-release || \
+		fail 'no /etc/lsb-version, config must specify adt_distro'
+	. /etc/lsb-release
+	adt_distro=$DISTRIB_CODENAME
+	echo "using same distro as host: $adt_distro"
+	;;
+ esac
+fi
+
+if [ "${adt_readconfig_needlock}" ] &&
+   [ "x${adt_lock}" != xnone ] && \
+   [ "x${ADT_LOCKED}" != "x$adt_lock" ]; then
+ if [ "${adt_whenlock_replumb81}" ]; then
+   exec >&8 8>&-
+ fi
+ ADT_LOCKED="$adt_lock" exec with-lock-ex -w "$adt_lock" "$0" "$@"
+fi
+
 #---------- calculated defaults for complex settings ----------
 
 if [ ! "${adt_readconfig_initscript}" ]; then
  case "$adt_lvm_vg" in
  '')
 	printf "searching for default volume group ... "
-	vgdisplay_out=`vgdisplay -c 8>&-`
+	vgdisplay_out=`vgdisplay -c 3>&- 8>&-`
 	case "$vgdisplay_out" in
 	"")	fail 'no volume groups found';;
 	*"
@@ -157,19 +187,6 @@ case "$adt_modules" in
 '')	adt_modules="/lib/modules/`uname -r`" ;;
 *)	;;
 esac
-
-if [ ! "${adt_readconfig_initscript}" ]; then
- case "$adt_distro" in
- '')
-	printf "considering which distro to use ... "
-	test -e /etc/lsb-release || \
-		fail 'no /etc/lsb-version, config must specify adt_distro'
-	. /etc/lsb-release
-	adt_distro=$DISTRIB_CODENAME
-	echo "using same distro as host: $adt_distro"
-	;;
- esac
-fi
 
 hostname_from_ipaddr () {
  eval '
@@ -280,11 +297,6 @@ boolean_config () {
 
 # Xen
 : ${adt_xmname:=${adt_nominum}_${adt_distro}}
-
-# In-host-file-system playground
-: ${adt_play:=${adt_playbase}/${adt_nominum}_${adt_distro}}
-: ${adt_xmconfig:=${adt_play}/xmconfig}
-: ${adt_lock:=${adt_play}/lock}
 
 # LVM
 boolean_config lvm_erasebase true

@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e
+adt_readconfig_needlock=y
 . ${ADT_XENLVM_SHARE:=/usr/share/autopkgtest/xenlvm}/readconfig
 test $nonoptargs = 0 || fail "non-option arguments not allowed"
 
