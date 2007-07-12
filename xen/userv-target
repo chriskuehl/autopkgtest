@@ -43,7 +43,7 @@ case "$1" in
 pon0)	run adt-xenlvm-on-testbed -- --print0-command ;;
 console) xm console "$nd" ;;
 with)
-	ADT_LOCKED="$nddir/lock" with-lock-ex -w "$nddir/lock" sh -ec '
+	ADT_LOCKED="$nddir.lock" with-lock-ex -w "$nddir.lock" sh -ec '
 		while adt-xenlvm-with-testbed \
 			--adt-distro="$1" --adt-nominum="$2" \
 		      sh -c "echo y && read again" && \
