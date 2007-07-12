@@ -33,6 +33,7 @@ esac
 : ${adt_vm_reduce_retries:=10}
 : ${adt_ssh_keytype:=dsa}
 
+: ${adt_debootstrap_opts:=}
 : ${adt_debootstrap_components:='*'}
 : ${adt_debootstrap_include:=openssh-server,ed}
 : ${adt_debootstrap_includemore:=}
