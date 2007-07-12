@@ -57,12 +57,6 @@ where <config-var> is one of the configuration items listed below.
 either hyphens or underscores.)  Also, `--' may be used to indicate the
 end of the config vars.
 
-Note that there is NO LOCKING.  If you run more than one of either
-adt-xenlvm-with-testbed or adt-xenlvm-setup (or one of each)
-simultaneously, the behaviour is not defined, except that the host
-will definitely not be trashed, and just two or more copies of
-adt-xenlvm-with-testbed at once has no bad effects that
-adt-xenlvm-cleanup won't fix.
 
 
 ========== Configuration ==========
@@ -264,6 +258,15 @@ adt_playbase		/var/lib/autopkgtest/xenlvm
 adt_play		<playbase>/<nominum>_<distro>
 	Playground area for this particular testbed construction and
 	data.
+
+adt_lock		<playbase>.lock
+	Lockfile.  Used to prevent multiple simultaneous runs of
+	setup, purge, clean, with-testbed, etc.  The lock is held
+	according to the rules for with-lock-ex from chiark-utils-bin.
+	Set adt_lock to "none" to disable locking.  Note that the
+	lockfile ought not to be in <playbase> because the setup
+	process erases the whole of <playbase> but ought to hold the
+	lock continuously.
 
 adt_xmconfig		<play>/xmconfig
 	Xen virtual machine creation configuration for xm create.
