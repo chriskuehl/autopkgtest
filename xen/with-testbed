@@ -7,7 +7,7 @@ while test $# -gt $nonoptargs; do shift; done
 
 ${ADT_XENLVM_SHARE}/cleanup >/dev/null
 
-modprobe dm-snapshot 2>&1 ||:
+modprobe dm-snapshot >/dev/null 2>&1 ||:
 
 bdsize=$(blockdev --getsize $lvm_baselv_namepath)
 dmsetup create $adt_devmapper_cowdev <<END
