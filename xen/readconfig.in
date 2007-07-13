@@ -12,7 +12,7 @@ fail () {
 }
 
 x () { echo "x $*"; "$@"; }
-xl () { echo "xl $*"; 3>&- "$@"; }
+xl () { echo "x $*"; 3>&- 4>&- "$@"; }
 
 case "$BASH_VERSION" in
 '')	fail 'scripts using adtxenlvm readconfig must be bash scripts' ;;
@@ -87,11 +87,6 @@ cmdline_args "$@"
 
 #---------- settings needed for locking ----------
 
-# In-host-file-system playground
-: ${adt_play:=${adt_playbase}/${adt_nominum}_${adt_distro}}
-: ${adt_xmconfig:=${adt_play}/xmconfig}
-: ${adt_lock:=${adt_play}.lock}
-
 if [ ! "${adt_readconfig_initscript}" ]; then
  case "$adt_distro" in
  '')
@@ -104,6 +99,11 @@ if [ ! "${adt_readconfig_initscript}" ]; then
 	;;
  esac
 fi
+
+# In-host-file-system playground
+: ${adt_play:=${adt_playbase}/${adt_nominum}_${adt_distro}}
+: ${adt_xmconfig:=${adt_play}/xmconfig}
+: ${adt_lock:=${adt_play}.lock}
 
 if [ "${adt_readconfig_needlock}" ] &&
    [ "x${adt_lock}" != xnone ] && \
