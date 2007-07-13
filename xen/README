@@ -187,13 +187,13 @@ adt_freeze_ram		32 [Mby]
 	to this before freezing it and grow it again when we resume
 	it.
 
-adt_fs_size		1G
+adt_fs_size		6144M
 	Size of base filesystem image.  Should be big enough to
 	contain all of the software under test and all of its working
 	space, as no running testbed can ever use more than this
 	(despite copy-on-write).
 
-adt_fs_snapsize		500M
+adt_fs_snapsize		5120M
 	Space to allocate for copy-on-write snapshot data.  This is
 	the maximum amount of data that a running testbed can use.
 	This value should be less than the adt_fs_size.
