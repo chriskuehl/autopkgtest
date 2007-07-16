@@ -5,7 +5,7 @@ adt_readconfig_needlock=y
 . ${ADT_XENLVM_SHARE:=/usr/share/autopkgtest/xenlvm}/readconfig
 test $nonoptargs = 0 || fail "non-option arguments not allowed"
 
-$ADT_XENLVM_SHARE/purge
+$ADT_XENLVM_SHARE/purge "$@"
 
 xl lvcreate -L $adt_fs_size -n $adt_lvm_baselv $adt_lvm_vg
 xl lvcreate -L $adt_fs_snapsize -n $adt_lvm_cowdatalv $adt_lvm_vg
@@ -80,7 +80,7 @@ fi
 
 while true; do
 	if ping -c 1 $adt_guest_ipaddr && \
-	   /usr/share/autopkgtest/xenlvm/on-testbed '
+	   /usr/share/autopkgtest/xenlvm/on-testbed "$@" '
 		set -e; umask 002; cd /var/lib;
 		mkdir -p autopkgtest; cd autopkgtest;
 		touch xenlvm-created

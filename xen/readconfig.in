@@ -12,7 +12,7 @@ fail () {
 }
 
 x () { echo "x $*"; "$@"; }
-xl () { echo "xl $*"; 3>&- "$@"; }
+xl () { echo "x $*"; 3>&- 4>&- "$@"; }
 
 case "$BASH_VERSION" in
 '')	fail 'scripts using adtxenlvm readconfig must be bash scripts' ;;
@@ -24,8 +24,8 @@ esac
 : ${adt_nominum:=adt}
 : ${adt_testbed_ram:=256}
 : ${adt_freeze_ram:=32}
-: ${adt_fs_size:=3072M}
-: ${adt_fs_snapsize:=2560M}
+: ${adt_fs_size:=6144M}
+: ${adt_fs_snapsize:=5120M}
 : ${adt_fs_cowchunk:=8}
 : ${adt_playbase:=/var/lib/autopkgtest/xenlvm}
 : ${adt_fs_type:=ext3}
@@ -33,6 +33,7 @@ esac
 : ${adt_vm_reduce_retries:=10}
 : ${adt_ssh_keytype:=dsa}
 
+: ${adt_debootstrap_opts:=}
 : ${adt_debootstrap_components:='*'}
 : ${adt_debootstrap_include:=openssh-server,ed}
 : ${adt_debootstrap_includemore:=}
@@ -86,11 +87,6 @@ cmdline_args "$@"
 
 #---------- settings needed for locking ----------
 
-# In-host-file-system playground
-: ${adt_play:=${adt_playbase}/${adt_nominum}_${adt_distro}}
-: ${adt_xmconfig:=${adt_play}/xmconfig}
-: ${adt_lock:=${adt_play}.lock}
-
 if [ ! "${adt_readconfig_initscript}" ]; then
  case "$adt_distro" in
  '')
@@ -103,6 +99,11 @@ if [ ! "${adt_readconfig_initscript}" ]; then
 	;;
  esac
 fi
+
+# In-host-file-system playground
+: ${adt_play:=${adt_playbase}/${adt_nominum}_${adt_distro}}
+: ${adt_xmconfig:=${adt_play}/xmconfig}
+: ${adt_lock:=${adt_play}.lock}
 
 if [ "${adt_readconfig_needlock}" ] &&
    [ "x${adt_lock}" != xnone ] && \

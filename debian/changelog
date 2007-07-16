@@ -1,3 +1,34 @@
+autopkgtest (1.0.3) unstable; urgency=low
+
+  * Set LANG to C by default for commands (eg builds and tests) run on
+    testbed, and make this configurable.
+  * Make builds work again: Fix `cd *' in work.write (broken by
+    inclusion of `tmpdir' in that directory).
+  * adt-testreport-onepackage has better reporting for DC-running.
+
+ -- Ian Jackson <iwj@ubuntu.com>  Mon, 16 Jul 2007 16:39:24 +0100
+
+autopkgtest (1.0.2) unstable; urgency=low
+
+  * xenlvm command-line settings properly override config file
+    settings everywhere.
+  * Default value for adt_distro computed in time to be used for
+    default value for adt_play.
+  * Close fd 4 for lvm tools too (suppresses daft `File descriptor
+    left open' message).
+  * Change default lvm lv sizes and make documentation correspond
+    to reality.
+
+ -- Ian Jackson <ian@davenant.greenend.org.uk>  Fri, 13 Jul 2007 15:31:58 +0100
+
+autopkgtest (1.0.1) unstable; urgency=low
+
+  * adt_debootstrap_opts mentioned in README and passable on
+    command lines, instead of unused adt_pbuilder_args.
+  * Dependency on pbuilder fixed; we use debootstrap, not pbuilder.
+
+ -- Ian Jackson <iwj@ubuntu.com>  Thu, 12 Jul 2007 16:54:47 +0100
+
 autopkgtest (1.0.0) gutsy; urgency=low
 
   * Locking: <play>.lock (unlinkable fcntl style) plus <play>/good
