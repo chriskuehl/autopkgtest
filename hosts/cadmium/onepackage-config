@@ -1,0 +1,15 @@
+cd /home/iwj/adt-play
+mirror=http://archive.ubuntu.com/ubuntu
+distro=gutsy
+suite=main
+administrator_email=iwj@ubuntu.com
+maintainer_email_override="$administrator_email"
+salutation="Ian"
+from="$salutation Jackson <iwj@ubuntu.com>"
+disable=false
+desthttphead=http://autopkgtest.ubuntu.com/
+destrsynchead=/home/iwj/public_html
+destdirtail=autopkgtest-output/$distro
+adtvirt_extra_opts=--userv
+upload_if_ok=true
+upload_if_notests=true
