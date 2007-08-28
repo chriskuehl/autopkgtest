@@ -2,12 +2,18 @@
 set -e
 
 trap 'exit 127' 0
+adt_readconfig_needlock=y
 . ${ADT_XENLVM_SHARE:=/usr/share/autopkgtest/xenlvm}/justconfig
 while test $# -gt $nonoptargs; do shift; done
 
+if ! test -f "$adt_play/good"; then
+	echo >&2 'testbed not in good state'
+	exit 127
+fi
+
 ${ADT_XENLVM_SHARE}/cleanup >/dev/null
 
-modprobe dm-snapshot 2>&1 ||:
+modprobe dm-snapshot >/dev/null 2>&1 ||:
 
 bdsize=$(blockdev --getsize $lvm_baselv_namepath)
 dmsetup create $adt_devmapper_cowdev <<END
@@ -20,6 +26,8 @@ ln -s $lvm_snapdev $lvm_fslink_ptr
 xm restore $adt_play/xen-save
 xm mem-set $adt_xmname $adt_testbed_ram
 udevsettle
+
+unset ADT_LOCKED
 
 set +e
 case $# in

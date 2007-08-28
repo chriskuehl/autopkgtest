@@ -159,6 +159,27 @@ Specifies that a summary of the outcome should be written to
 in any case.
 \fIsummary\fR is not affected by \fB--paths-testbed\fR.
 .TP
+.BR --timeout- \fIwhich\fR = \fIseconds\fR
+Use a different timeout for operations on or with the testbed.  There
+are four timeouts affected by four values of \fIwhich\fR:
+.BR short :
+supposedly
+short operations like setting up the testbed's apt and checking the
+state (default: 100s);
+.BR install :
+installation of packages including dependencies
+(default: 3ks);
+.BR test :
+test runs (default: 10ks); and
+.BR build :
+builds (default:
+100ks).  The value must be specified as an integer number of seconds.
+.TP
+.BR --timeout-factor =\fIdouble\fR
+Multiply all of the default timeouts by the specified factor (see
+\fB--timeout-\fR\fIwhich\fR above).  Only the defaults are affected;
+explicit timeout settings are used exactly as specified.
+.TP
 .BR --debug | -d
 Include additional debugging information in the trace log.  Each
 additional \fB-d\fR increases the debugging level; the current maximum
@@ -189,6 +210,16 @@ Specifies the virtualisation regime server, as a command and arguments
 to invoke.  All the remaining arguments and options after
 .B ---
 are passed to the virtualisation server program.
+.TP
+.BI --set-lang= langval
+When running commands on the testbed, sets the \fBLANG\fR environment
+variable to \fIlangval\fR.  The default in \fBadt-run\fR is to set it
+to \fBC\fR.
+.TP
+.BI --leave-lang
+Suppresses the setting by \fBadt-run\fR of \fBLANG\fR on the testbed.
+This results in tests and builds using the testbed's own normal
+\fBLANG\fR value setting.
 
 .SH OUTPUT FORMAT
 During a normal test run, one line is printed for each test.  This

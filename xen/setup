@@ -1,16 +1,17 @@
 #!/bin/bash
 set -e
 adt_readconfig_needkernel=y
+adt_readconfig_needlock=y
 . ${ADT_XENLVM_SHARE:=/usr/share/autopkgtest/xenlvm}/readconfig
 test $nonoptargs = 0 || fail "non-option arguments not allowed"
 
-$ADT_XENLVM_SHARE/purge
+$ADT_XENLVM_SHARE/purge "$@"
 
-x lvcreate -L $adt_fs_size -n $adt_lvm_baselv $adt_lvm_vg
-x lvcreate -L $adt_fs_snapsize -n $adt_lvm_cowdatalv $adt_lvm_vg
+xl lvcreate -L $adt_fs_size -n $adt_lvm_baselv $adt_lvm_vg
+xl lvcreate -L $adt_fs_snapsize -n $adt_lvm_cowdatalv $adt_lvm_vg
 
 if $adt_lvm_erasebase; then
-  basesize=`lvdisplay -c $lvm_baselv_namepath 8>&-`
+  basesize=`lvdisplay -c $lvm_baselv_namepath 8>&- 3>&-`
   basesize="${basesize#*:*:*:*:*:*:}"
   basesize="${basesize%%:*}"
   x dd if=/dev/zero of=$lvm_baselv_namepath bs=512 count="$basesize"
@@ -79,7 +80,7 @@ fi
 
 while true; do
 	if ping -c 1 $adt_guest_ipaddr && \
-	   /usr/share/autopkgtest/xenlvm/on-testbed '
+	   /usr/share/autopkgtest/xenlvm/on-testbed "$@" '
 		set -e; umask 002; cd /var/lib;
 		mkdir -p autopkgtest; cd autopkgtest;
 		touch xenlvm-created
@@ -103,3 +104,4 @@ done
 
 x xm save $adt_xmname $adt_play/xen-save
 rm ${lvm_fslink_ptr}
+touch "$adt_play/good"

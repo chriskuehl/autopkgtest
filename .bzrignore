@@ -5,3 +5,6 @@ debian/tmp
 debian/files
 xen/sed-readconfig
 xen/readconfig
+hosts/chinstrap/webpage
+hosts/chinstrap/suppressions
+hosts/chinstrap/suppressions.new
