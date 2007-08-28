@@ -3,6 +3,7 @@ debian/autopkgtest-xenlvm
 debian/*.debhelper
 debian/tmp
 debian/files
+debian/copyright
 xen/sed-readconfig
 xen/readconfig
 hosts/chinstrap/webpage
