@@ -1,0 +1,3 @@
+MAILTO=iwj@ubuntu.com
+# m h dom mon dow       command
+26 * * * * 		autopkgtest/hosts/chinstrap/update-suppressions
