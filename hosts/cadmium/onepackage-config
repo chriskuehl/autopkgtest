@@ -1,0 +1,31 @@
+cd /home/iwj/adt-play
+mirror=http://archive.ubuntu.com/ubuntu
+distro=gutsy
+suite=main
+administrator_email=iwj@ubuntu.com
+#maintainer_email_override="$administrator_email"
+salutation="Ian"
+from="$salutation Jackson <ian+ubuntu-autopkgtest@chiark.greenend.org.uk>"
+disable=false
+desthttphead=http://autopkgtest.ubuntu.com
+destrsynchead=/home/iwj/public_html
+destdirtail=autopkgtest-output
+adtvirt_extra_opts=--userv
+upload_if_ok=true
+upload_if_notests=true
+suppressrepeatedemails=false
+suppresspackages=suppressions
+
+email_extra_info='
+The test environment is an amd64 Xen guest with limited amounts of
+memory.  The relevant dependencies are installed for each test but
+very few other packages.  Most autopkgtest reports are FTBFS problems.
+'
+
+maintainer_email_override="new@bugs.launchpad.net"
+email_package_header='
+ affects /ubuntu/%s
+ importance high
+
+'
+email_signing_key=0xD6279768

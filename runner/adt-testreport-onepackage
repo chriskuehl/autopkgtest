@@ -9,6 +9,7 @@ rsync=rsync
 disable=true
 interactive=true
 target=source
+suppressrepeatedemails=false
 arch=`dpkg --print-architecture`
 
 for config in "$@"; do
@@ -99,6 +100,7 @@ if [ "x$pkg" = x ]; then
 		return if $score < $best_score
 		     or ($score==$best_score and \
 			 $package gt $best_package);
+#printf STDERR " <----- best score=%s best_score=%s\n", $score, $best_score;
 		$best_score= $score;
 		$best_package= $package;
 	}
@@ -124,8 +126,10 @@ if [ "x$pkg" = x ]; then
 			$score= 1e7 if $score>1e7;
 			$score *= 5 if $lastver{$package} ne $version;
 			$score *= 10 unless $extras{$package} =~ m/ nt /;
+#print STDERR "$package score $score\n";
 		} elsif (m/^Architecture:.*/ &&
-			 !m/\s'$arch'\s/) {
+			 !m/\s(?:'$arch'|all|any)\s/) {
+#printf STDERR " <----- skip %s %s\n", $&, "'$arch'";
 			$skip= 1;
 		} elsif (m/^$/) {
 			endpackage();
@@ -253,10 +257,33 @@ esac
 
 progress "RESULTS $summary"
 
+if  [ "x$suppresspackages" != x ] \
+ && grep -x "$pkg" "$suppresspackages" >/dev/null; then
+	printf >&3 "email-suppressed "
+	email=''
+fi
+
 if $upload; then
 	progress "bundling"
 	printf "\n%s\n" "$summary" >>"$tmp"/_summary
-	ln "$tmp"/_summary "$tp"/summary
+
+	edest=${email%_email}
+	esummary="$var"/emailed/last-$pkg,$edest
+	if [ "x$edest" = x ]; then
+		printf >&3 "email-none "
+		rm -f "$var"/emailed/last-$pkg,*
+		esummary=''
+	elif $suppressrepeatedemails \
+	  && [ -f "$esummary" ] \
+	  && diff -u "$esummary" "$tmp"/_summary >"$var"/emailed/diff-$pkg; then
+		printf >&3 "email-same $email "
+		email=''
+		esummary=''
+	else
+		cp "$tmp"/_summary "$esummary".new
+	fi
+
+	ln -f "$tmp"/_summary "$tp"/summary
 
 	for odir in tmp out; do
 		if test -d "$tp"/$odir; then
@@ -275,11 +302,16 @@ if [ "x$email" != x ]; then
 	progress "contacting $email"
 	eval "email_addr=\$$email"
 	printf >&3 "email \"%s\" " "$email_addr"
-	cat >"$tmp"/_email <<END
+	cat >"$tmp"/_email_header <<END
 From: $from
 To: $email_addr
 Subject: autopkgtest $distro $desc: $summary
 
+END
+
+	printf >"$tmp"/_email "$email_package_header" "$pkg"
+
+	cat >>"$tmp"/_email <<END
  Test executed for:  $distro  $target  $pkg
  Outcome: $summary
 END
@@ -293,14 +325,14 @@ END
 		pMaintainer)
 			cat >>"$tmp"/_email <<END
  You are listed in the Maintainer field of the $pkg package in $distro
-  and the test results appear to indicate a problem with the package.
+ and the test results appear to indicate a problem with the package.
 END
 			;;
 		maintainer_email_override)
 			cat >>"$tmp"/_email <<END
  The test results appear to indicate a problem with the package
-  and reports for package maintainers for $distro are being directed to
-  $maintainer_email_override
+ and reports for package maintainers for $distro are being directed to
+ $maintainer_email_override
 END
 			;;
 		administrator_email)
@@ -320,7 +352,7 @@ failures, can be found below.  However, in case this is not
 sufficient, another copy can be found along with output files, saved
 temporary files, and so on, at:
  $desthttphead/$destdirfin/
-
+$email_extra_info
 If you have any questions about this service please contact me at:
  $from
 
@@ -350,10 +382,25 @@ if [ "x$email" = x ]; then
 	fi
 else
 	cat >>"$tmp"/_email 2>&1 "$tmp"/_log ||:
+
+	if [ "x$email_signing_key" != x ]; then
+		printf >&3 "signing "
+		echo >>"$tmp/_email"
+		gpg -u"$email_signing_key" --clearsign \
+			<"$tmp/_email" >"$tmp/_email.asc"
+		mv -f "$tmp/_email.asc" "$tmp/_email"
+	fi
+	cat "$tmp/_email_header" "$tmp/_email" >"$tmp/_email.new"
+	mv -f "$tmp/_email.new" "$tmp/_email"
+
 	if $interactive; then
 		cat "$tmp"/_email >&2
 	else
 		sendmail -odi -oem -t -oi <"$tmp"/_email
+		if [ "x$esummary" != x ]; then
+			printf >&3 "email-recorded "
+			mv "$esummary".new "esummary"
+		fi
 	fi
 fi
 
