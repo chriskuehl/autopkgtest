@@ -5,7 +5,7 @@ cd ${0%/*}
 url='https://launchpad.net/ubuntu/+bugs?field.searchtext=&orderby=-importance&field.status%3Alist=New&field.status%3Alist=Incomplete&field.status%3Alist=Confirmed&field.status%3Alist=Triaged&field.status%3Alist=In+Progress&field.status%3Alist=Fix+Committed&assignee_option=any&field.assignee=&field.bug_reporter=ian%2Bubuntu-autopkgtest&field.bug_contact=&field.bug_commenter=&field.subscriber=&field.status_upstream-empty-marker=1&field.omit_dupes.used=&field.has_patch.used=&field.tag=&field.has_cve.used=&search=Search'
 
 echo 'fetching'
-curl -s -k -o webpage "$url"
+curl -s -S -k -o webpage "$url"
 
 echo 'grepping'
 perl -ne '
@@ -17,7 +17,10 @@ nl -ba suppressions.new
 
 if ! test -s suppressions.new;
 then
-	echo >&2 'NO SUPPRESSIONS - PROBABLY WENT WRONG'
+	echo >&2 'NO SUPPRESSIONS - PROBABLY WENT WRONG
+
+webpage:'
+	cat webpage
 fi
 
 echo 'uploading'
