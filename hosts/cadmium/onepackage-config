@@ -3,7 +3,6 @@ mirror=http://archive.ubuntu.com/ubuntu
 distro=gutsy
 suite=main
 administrator_email=iwj@ubuntu.com
-#maintainer_email_override="$administrator_email"
 salutation="Ian"
 from="$salutation Jackson <ian+ubuntu-autopkgtest@chiark.greenend.org.uk>"
 disable=false
@@ -15,17 +14,31 @@ upload_if_ok=true
 upload_if_notests=true
 suppressrepeatedemails=false
 suppresspackages=suppressions
+blacklistbinarypackages=blacklist
 
 email_extra_info='
 The test environment is an amd64 Xen guest with limited amounts of
 memory.  The relevant dependencies are installed for each test but
 very few other packages.  Most autopkgtest reports are FTBFS problems.
+
+Please forgive this bug report if the problem is due to archive skew;
+in that case you'\''ve just been unlucky with the timing.  Feel free to
+close the bug if the skew has been fixed, or will be fixed soon.
 '
 
 maintainer_email_override="new@bugs.launchpad.net"
-email_package_header='
- affects /ubuntu/%s
+#maintainer_email_override="$administrator_email"
+
+email_sourcepackage_header=\
+' affects /ubuntu/@p
  importance high
+ # version @v
+
+'
+email_binarypackage_header=\
+' affects /ubuntu/@s
+ importance high
+ # version @v
 
 '
 email_signing_key=0xD6279768

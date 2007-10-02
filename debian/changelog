@@ -1,3 +1,35 @@
+autopkgtest (1.0.9) unstable; urgency=low
+
+  * Separate email_sourcepackage_header and email_binarypackage_header
+    to allow us to properly file bugs in LP against binary packages built
+    from differently-named sources.
+  * adt-testreport-onepackage: Dump a logfile giving the scores and facts
+    used for package selection.
+  * adt-testreport-onepackage: Do not prefer packages whose source package
+    is listed in the suppressions file.
+  * hosts/cadmium/manual-test-one-binary: new testing script.
+  * hosts/cadmium/onepackage-config: explain about archive skew.
+  * adt-testreport-onepackage: nicer score logging re skip chars.
+  * adt-testreport-onepackage: skip emails if _source_ is suppresed.
+  * adt-testreport-onepackage etc.: new blacklist feature, and initially
+    blacklist ltsp-client{,-core}.
+  * adt-testreport-onepackage: limit log to 64K (32K head, 32K tail)
+    to avoid humungous bug reports which LP silently discards.
+
+ --
+
+autopkgtest (1.0.8) gutsy; urgency=low
+
+  * adt-run: pass -o Debug::pkgProblemResolver=true to apt & gdebi;
+    this improves dependency problem reporting.  (LP: #135581.)
+  * adt-testreport-onepackage: seddery the log to remove ctrl chars.
+    In particular, this gets rid of ^M's from apt which get corrupted
+    by email transport and thus break the email signatures.
+  * hosts/chinstrap/update-suppressions: pass -S to curl.
+  * hosts/{chinstrap,cadmium}/install-on-*: use --ubuntu branch.
+
+ -- Ian Jackson <iwj@ubuntu.com>  Wed, 19 Sep 2007 15:44:33 +0100
+
 autopkgtest (1.0.7) gutsy; urgency=low
 
   * Build properly with debian/copyright.
