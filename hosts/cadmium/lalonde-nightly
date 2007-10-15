@@ -15,6 +15,8 @@ go_anyway=false
 
 for x in "$@"; do eval "$x"; done
 
+: ${testbed_check_path:=/var/lib/autopkgtest/xenlvm/adt_gutsy/good}
+
 fail () { printf >&2 "%s\n" "$*"; exit 127; }
 progress () { printf "========== %s ==========\n" "$1"; }
 x () { printf "+ %s\n" "$*"; "$@"; }
@@ -42,7 +44,12 @@ test_count=0
 while $any_tests_ok && ($go_anyway || test -f go) && test $test_count -lt $max_test_count; do
 	now=`date`
 	printf "%s" "$now: "
-	
+
+	if ! test -f $testbed_check_path; then
+		printf " testbed broken, bailing\n"
+		break
+	fi
+
 	xopts="${xoptslist%%:*}"
 	xopts_opts="${xopts#*,}"
 	xoptslist="${xoptslist#*:}:$xopts"
