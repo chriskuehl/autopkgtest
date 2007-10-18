@@ -1,4 +1,3 @@
-cd /home/iwj/adt-play
 PATH=/home/iwj/autopkgtest/runner:/usr/local/sbin:/usr/sbin:$PATH
 export PATH
 
