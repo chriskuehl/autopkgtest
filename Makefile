@@ -27,7 +27,8 @@ programs =	virt-subproc/adt-virt-chroot \
 		virt-subproc/adt-virt-null \
 		runner/adt-run \
 		runner/adt-testreport-onepackage \
-		runner/adt-testreport-runloop
+		runner/adt-testreport-runloop \
+		runner/adt-testreport-cronjob
 
 examples =	runner/onepackage-config \
 		runner/ubuntu-config
