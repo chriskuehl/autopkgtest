@@ -2,72 +2,74 @@
 
 set -e
 
-PATH=/home/iwj/autopkgtest/runner:/usr/local/sbin:/usr/sbin:$PATH
-export PATH
-
-#any_tests_ok=false
-any_tests_ok=true
-source_tests_ok=true
-binary_tests_ok=true
-gutsy_tests_ok=true
 max_test_count=10
 go_anyway=false
 
-for x in "$@"; do eval "$x"; done
+for arg in "$@"; do
+	case "$arg" in
+	!*)	arg="${arg#!}" ;;
+	*)	onepackage_args[${#onepackage_args[*]}]="${arg#@}" ;;
+	esac
 
-: ${testbed_check_path:=/var/lib/autopkgtest/xenlvm/adt_gutsy/good}
+	case "$arg" in
+	@*)			;;
+	*=*)	eval "$arg"	;;
+	*)	. "$arg"	;;
+	esac
+done
+
+if [ "x$distro" = x ]; then
+	: ${testbed_check_path:=/var/lib/autopkgtest/xenlvm/adt_${distro}/good}
+else
+	: ${testbed_check_path:=/dev/null}
+fi
+
+if [ "x$test_classes" = x]; then
+	: ${architecture:=`dpkg --print-architecture`}
+	test_classes="source $distro, target=source : binary $distro, target=binary-$architecture"
+fi
 
 fail () { printf >&2 "%s\n" "$*"; exit 127; }
 progress () { printf "========== %s ==========\n" "$1"; }
 x () { printf "+ %s\n" "$*"; "$@"; }
 x2 () { printf >&2 "+ %s\n" "$*"; "$@"; }
 
-wait_for () {
-	remain=$1; interval=$2; on_not=$3; shift;shift;shift
-	progress "await ($interval/$remain) $*"
-	while true; do
-		date
-		if "$@"; then return; fi
-		remain=$(( $remain - $interval ))
-		if [ $remain -lt 0 ]; then fail "wait timed out for $*"; fi
-		eval "$on_not"
-		sleep $interval
-	done
-}
-
 progress testing
-
-xoptslist="source gutsy, target=source:binary gutsy, target=binary-amd64"
 
 test_count=0
 
-while $any_tests_ok && ($go_anyway || test -f go) && test $test_count -lt $max_test_count; do
+while ($go_anyway || test -f go) && test $test_count -lt $max_test_count; do
 	now=`date`
 	printf "%s" "$now: "
 
-	if ! test -f $testbed_check_path; then
+	if ! test -e $testbed_check_path; then
 		printf " testbed broken, bailing\n"
 		break
 	fi
 
-	xopts="${xoptslist%%:*}"
+	xopts="${test_classes%%:*}"
 	xopts_opts="${xopts#*,}"
-	xoptslist="${xoptslist#*:}:$xopts"
+	test_classes="${test_classes#*:}:$xopts"
 	printf "considering (%s) " "$xopts_opts"
 
 	anybroken=false
 	for x in ${xopts%%,*}; do
-		if eval \$${x}_tests_ok; then :; else
-			printf "   skipping because of %s\n" "$x"
+		if test -f "stop-$x"; then
+			printf "   skipping because of %s" "$x"
 			anybroken=true
 			break
 		fi
 	done
-	if $anybroken; then continue; fi
+	if $anybroken; then
+		printf "\n"
+		continue
+	fi
 
-	adt-testreport-onepackage /home/iwj/adt-play/onepackage-config \
-		adtrun_extra_opts=--built-binaries-filter=__ \
-		interactive=false $xopts_opts
+	adt-testreport-onepackage				\
+		adtrun_extra_opts=--built-binaries-filter=__	\
+		interactive=false				\
+		"${onepackage_args[@]}"				\
+		$xopts_opts
 
 	test_count=$(( $test_count + 1 ))
 done
