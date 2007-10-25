@@ -17,10 +17,10 @@ cd "$1"
 shift
 . "$1"
 
-: "${suppressions_file_to_fetch:=$suppresspackages}"
+: "${suppressions_file_to_fetch:=${suppresspackages:-suppressions}}"
 export suppressions_file_to_fetch
 
-: "${suppressions_lockfile:=$suppressions_file_to_fetch-lock}"
+: "${suppressions_file_to_lock:=$suppressions_file_to_fetch-lock}"
 
 echo 'locking'
 
@@ -28,6 +28,8 @@ with-lock-ex -f "$suppressions_file_to_lock" bash -c '
 	. "$1"
 
 	f="$suppressions_file_to_fetch"
+
+	export distro
 
 	echo fetching
 	${suppressions_fetch:-adt-suppressions-fetch-$suppressions_kind} \
@@ -38,7 +40,7 @@ with-lock-ex -f "$suppressions_file_to_lock" bash -c '
 
 	if ! test -s "$f".new;
 	then
-		echo >&2 'NO SUPPRESSIONS - PROBABLY WENT WRONG
+		echo >&2 "NO SUPPRESSIONS - PROBABLY WENT WRONG"
 		exit 1
 	fi
 

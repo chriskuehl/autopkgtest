@@ -5,22 +5,21 @@ use strict;
 use Data::Dumper;
 use SOAP::Lite;
 
-@ARGV==1 or die;
-my ($dist) = @ARGV;
+die if @ARGV;
 
 sub e ($) {
     my ($v) = @_;
-    $v= 'suppressions_'.$v;
+    $v= ''.$v;
     my $r= $ENV{$v};
     die "need $v in environment" unless defined $r;
     return $r;
 }
 
-my $debbugs_soap= e('debbugs_soap');
-my $debbugs_uri= e('debbugs_uri');
-
-my $usertag_owner= e('usertag_owner')
-my $usertag_name= e('usertag_name')
+my $dist= e('distro');
+my $debbugs_soap= e('suppressions_debbugs_soap');
+my $debbugs_uri= e('suppressions_debbugs_uri');
+my $usertag_owner= e('suppressions_usertag_owner');
+my $usertag_name= e('suppressions_usertag_name');
 
 my $soap= SOAP::Lite->uri($debbugs_soap)->proxy($debbugs_uri);
 
