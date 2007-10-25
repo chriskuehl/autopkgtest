@@ -8,4 +8,8 @@ xen/sed-readconfig
 xen/readconfig
 hosts/chinstrap/webpage
 hosts/chinstrap/suppressions
+hosts/chinstrap/suppressions-lock
 hosts/chinstrap/suppressions.new
+hosts/magrathea/openbugs
+hosts/magrathea/openbugs-lock
+hosts/magrathea/openbugs.new

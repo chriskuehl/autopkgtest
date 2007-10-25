@@ -31,6 +31,10 @@
 # It is not clear whether the lack of any error message or nonzero
 # exit status from curl is a bug in curl or LP.
 
+# Furthermore, much of this functionality is now in
+# adt-openbugs-update and the LP part should be in a script called
+# adt-openbugs-fetch-launchpad.
+
 
 cd ${0%/*}
 
