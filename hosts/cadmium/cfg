@@ -1,4 +1,6 @@
-cd /home/iwj/adt-play
+PATH=/home/iwj/autopkgtest/runner:/usr/local/sbin:/usr/sbin:$PATH
+export PATH
+
 mirror=http://archive.ubuntu.com/ubuntu
 distro=gutsy
 suite=main

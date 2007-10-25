@@ -1,4 +1,36 @@
 #!/bin/sh
+#
+# This is an absolutely hideous hack.
+#
+# We scrape a suitable launchpad advanced search to find bugs we've
+# previously submitted.
+#
+# We have to run this on chinstrap instead of
+# cadmium because cadmium (being treated as a buildd from a security
+# point of view) is not permitted to make external requests other than
+# to the archive.
+#
+#
+# For the reasons described below this should be replaced ASAP!
+#
+# BUGS
+# 
+# This will break if the list gets too long for LP to display.
+#
+# Also, there is a problem with Duplicate bugs.  See LP #147754.  A
+# tedious workaround is needed for this case.  When an autopkgtest
+# bug, which was marked a duplicate and not the master, is fixed, the
+# duplicate target will be marked fixed.  To work around the LP bug,
+# it is necessary to adjust the status of the autopkgtest-filed bug:
+#  1. unduplicate the bug; 2. set it to Fix Released;
+#  3. duplicate it again.
+#
+# Occasionally LP seems to burp and give us an empty page.
+# This means that a cronmail is generated which reports
+#   NO SUPPRESSIONS - PROBABLY WENT WRONG
+# It is not clear whether the lack of any error message or nonzero
+# exit status from curl is a bug in curl or LP.
+
 
 cd ${0%/*}
 

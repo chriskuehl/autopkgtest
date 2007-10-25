@@ -1,4 +1,4 @@
 # m h dom mon dow       command
-4-59/5 * * * *		adt-play/cronjob
-22 0 * * Mon		savelog -n7 adt-play/overall.log
+4-59/5 * * * *		autopkgtest/runner/adt-testreport-cronjob adt-play cfg
+22 0 * * Mon		savelog -n7 adt-play/var/log adt-play/var/overall.log
 58 7 * * *		adt-play/cleanup

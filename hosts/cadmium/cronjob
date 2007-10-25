@@ -1,6 +1,0 @@
-#!/bin/sh
-set -e
-cd adt-play
-exec >>overall.log 2>&1
-test -f go
-with-lock-ex -q nightly-lock ./lalonde-nightly max_test_count=100
