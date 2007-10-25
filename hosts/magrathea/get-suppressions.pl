@@ -8,11 +8,19 @@ use SOAP::Lite;
 @ARGV==1 or die;
 my ($dist) = @ARGV;
 
-my $debbugs_soap= 'Debbugs/SOAP';
-my $debbugs_uri= 'http://bugs.debian.org/cgi-bin/soap.cgi';
+sub e ($) {
+    my ($v) = @_;
+    $v= 'suppressions_'.$v;
+    my $r= $ENV{$v};
+    die "need $v in environment" unless defined $r;
+    return $r;
+}
 
-my $usertag_owner= 'autopkgtest@packages.debian.org';
-my $usertag_name= "autopkgtest";
+my $debbugs_soap= e('debbugs_soap');
+my $debbugs_uri= e('debbugs_uri');
+
+my $usertag_owner= e('usertag_owner')
+my $usertag_name= e('usertag_name')
 
 my $soap= SOAP::Lite->uri($debbugs_soap)->proxy($debbugs_uri);
 
