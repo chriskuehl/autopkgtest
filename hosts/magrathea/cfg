@@ -2,7 +2,7 @@ PATH=/home/ian/autopkgtest/runner:/usr/local/sbin:/usr/sbin:$PATH
 export PATH
 
 mirror=http://mirror.relativity.greenend.org.uk/mirror/debian-ftp/
-distro=testing
+distro=lenny
 suite=main
 administrator_email=ian@davenant.greenend.org.uk
 salutation="Ian"
