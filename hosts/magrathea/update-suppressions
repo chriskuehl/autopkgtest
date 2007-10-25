@@ -1,0 +1,31 @@
+#!/bin/sh
+
+set -e
+
+cd ${0%/*}
+
+echo 'fetching'
+curl -s -S -k -o webpage "$url"
+
+echo 'grepping'
+perl -ne '
+    print "$1\n" or die $! if
+     m,"https://bugs.launchpad.net/ubuntu/\+source/([-+.0-9a-z]+)/\+bug/\d+",
+' <webpage >suppressions.new
+
+nl -ba suppressions.new
+
+if ! test -s suppressions.new;
+then
+	echo >&2 'NO SUPPRESSIONS - PROBABLY WENT WRONG
+
+webpage:'
+	cat webpage
+fi
+
+echo 'uploading'
+
+mv suppressions.new suppressions
+RSYNC_RSH=ssh rsync suppressions cadmium.buildd:adt-play/.
+
+echo 'done.'
