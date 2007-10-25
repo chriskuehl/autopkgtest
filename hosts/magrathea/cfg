@@ -15,7 +15,7 @@ adtvirt_extra_opts=--userv
 upload_if_ok=false
 upload_if_notests=true
 suppressrepeatedemails=false
-suppresspackages=suppressions
+suppresspackages=openbugs
 blacklistbinarypackages=blacklist
 
 email_extra_info='

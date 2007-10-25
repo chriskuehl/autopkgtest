@@ -32,8 +32,8 @@
 # exit status from curl is a bug in curl or LP.
 
 # Furthermore, much of this functionality is now in
-# adt-suppressions-update and the LP part should be in a script called
-# adt-suppressions-fetch-launchpad.
+# adt-openbugs-update and the LP part should be in a script called
+# adt-openbugs-fetch-launchpad.
 
 
 cd ${0%/*}
