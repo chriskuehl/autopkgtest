@@ -53,6 +53,7 @@ then
 
 webpage:'
 	cat webpage
+	exit 1
 fi
 
 echo 'uploading'
