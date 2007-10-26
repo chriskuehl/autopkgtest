@@ -7,16 +7,38 @@ test $nonoptargs = 0 || fail "non-option arguments not allowed"
 
 $ADT_XENLVM_SHARE/purge "$@"
 
-xl lvcreate -L $adt_fs_size -n $adt_lvm_baselv $adt_lvm_vg
-xl lvcreate -L $adt_fs_snapsize -n $adt_lvm_cowdatalv $adt_lvm_vg
+#----- create fs base
 
-if $adt_lvm_erasebase; then
-  basesize=`lvdisplay -c $lvm_baselv_namepath 8>&- 3>&-`
-  basesize="${basesize#*:*:*:*:*:*:}"
-  basesize="${basesize%%:*}"
-  x dd if=/dev/zero of=$lvm_baselv_namepath bs=512 count="$basesize"
-fi
+lvm_create_base () {
+	xl lvcreate -L $3 -n $2 $1 $4
+	xl lvcreate -L $6 -n $5 $1 $7
+  if $8; then
+    basesize=`lvdisplay -c $9 8>&- 3>&-`
+    basesize="${basesize#*:*:*:*:*:*:}"
+    basesize="${basesize%%:*}"
+    x dd if=/dev/zero of=$9 bs=512 count="$basesize"
+  fi
+}	
+
+lvm_create_base $adt_lvm_vg						\
+	$adt_lvm_baselv		$adt_fs_size		$adt_lvm_pv_fsbase \
+	$adt_lvm_cowdatalv	$adt_fs_snapsize	$adt_lvm_pv_fssnap \
+	$adt_lvm_erasebase	$lvm_baselv_namepath	
+
 x mkfs -t $adt_fs_type $adt_mkfs_args $lvm_baselv_namepath
+
+#----- create swap base
+
+if $provide_swap; then
+  lvm_create_base $adt_lvm_swapvg					\
+	$adt_lvm_swapbaselv	$adt_swap_size		$adt_lvm_pv_swapbase \
+	$adt_lvm_swapcowdatalv	$adt_swap_snapsize	$adt_lvm_pv_swapsnap \
+	$adt_lvm_eraseswap	$lvm_baselv_swapnamepath
+  x mkswap $lvm_baselv_swapnamepath
+  swapdisk=", \"phy:$lvm_swaplink_ptrrhs,hda2,w\""
+fi
+
+#----- create base filesystem and info
 
 mkdir -p $adt_play/base
 x mount $lvm_baselv_namepath $adt_play/base
@@ -44,7 +66,7 @@ kernel = "$adt_kernel"
 memory = $adt_testbed_ram
 root = "/dev/hda1"
 extra = "ro console=tty0 $adt_xmhook_extra"
-disk = [ "phy:$lvm_fslink_ptrrhs,hda1,w" $adt_xmhook_disk ]
+disk = [ "phy:$lvm_fslink_ptrrhs,hda1,w"$swapdisk $adt_xmhook_disk ]
 vif = [ "bridge=none,mac=$adt_guest_macaddr,ip=${adt_guest_ipaddr},script=${adt_net_vifscript}" $adt_xmhook_vif ]
 on_crash = "preserve"
 on_reboot = "preserve"
@@ -64,8 +86,13 @@ fi
 
 x umount $lvm_baselv_namepath
 
-mkdir -p ${lvm_fslink_dirpath}
-ln -sf ../$lvm_baselv_namerhs ${lvm_fslink_ptr}
+for fs in fs swap; do
+ swap=${fs#fs}; eval "
+  mkdir -p \${lvm_${fs}link_dirpath}
+  ln -sf ../\$lvm_baselv_${swap}namerhs \${lvm_${fs}link_ptr}
+ "
+done
+
 x xm create $adt_xmconfig name=$adt_xmname
 retries=10
 
@@ -104,5 +131,5 @@ while sleep 1; do
 done
 
 x xm save $adt_xmname $adt_play/xen-save
-rm ${lvm_fslink_ptr}
+rm ${lvm_fslink_ptr} ${lvm_swaplink_ptr}
 touch "$adt_play/good"

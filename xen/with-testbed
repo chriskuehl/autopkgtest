@@ -15,13 +15,17 @@ ${ADT_XENLVM_SHARE}/cleanup >/dev/null
 
 modprobe dm-snapshot >/dev/null 2>&1 ||:
 
-bdsize=$(blockdev --getsize $lvm_baselv_namepath)
-dmsetup create $adt_devmapper_cowdev <<END
-0 $bdsize snapshot $lvm_baselv_namepath $lvm_cowdata_namepath n $adt_fs_cowchunk
+for fs in fs swap; do
+ swap=${fs#fs}; eval "
+  bdsize=\$(blockdev --getsize \$lvm_baselv_${swap}namepath)
+  dmsetup create \$adt_devmapper_${swap}cowdev <<END
+0 \$bdsize snapshot \$lvm_baselv_${swap}namepath \$lvm_cowdata_${swap}namepath n \$adt_${fs}_cowchunk
 END
 
-mkdir -p $lvm_fslink_dirpath
-ln -s $lvm_snapdev $lvm_fslink_ptr
+  mkdir -p \$lvm_${fs}link_dirpath
+  ln -s \$lvm_${swap}snapdev \$lvm_${fs}link_ptr
+ "
+done
 
 xm restore $adt_play/xen-save
 xm mem-set $adt_xmname $adt_testbed_ram

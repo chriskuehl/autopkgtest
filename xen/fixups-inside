@@ -7,6 +7,7 @@ adt_host_ipaddr=$3
 adt_guest_ipaddr=$4
 adt_fs_type=$5
 adt_normaluser=$6
+adt_provideswap=$7
 
 echo '(---'
 
@@ -26,6 +27,12 @@ cat >/etc/fstab <<END
 proc /proc proc defaults 0 0
 /dev/hda1 / $adt_fs_type defaults,errors=remount-ro 0 1
 END
+
+if $adt_provideswap; then
+	cat >>/etc/fstab <<END
+/dev/hda2 none swap sw 0 0
+END
+fi
 
 mkdir -p /etc/network
 cat >/etc/network/interfaces <<END

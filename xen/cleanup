@@ -4,7 +4,7 @@ adt_readconfig_needlock=y
 . ${ADT_XENLVM_SHARE:=/usr/share/autopkgtest/xenlvm}/readconfig
 test $nonoptargs = 0 || fail "non-option arguments not allowed"
 
-mkdir -p $adt_play $snap
+mkdir -p $adt_play
 
 try_es () { printf "%s\n" "- $*"; "$@" >/dev/null 2>&1; }
 try () { try_es "$@" ||:; }
@@ -12,11 +12,16 @@ try () { try_es "$@" ||:; }
 n=0
 try xm destroy $adt_xmname 2>/dev/null
 try umount $lvm_baselv_namepath
-sleeptime=0
-while try_es dmsetup info $adt_devmapper_cowdev; do
-	try dmsetup remove $adt_devmapper_cowdev
-	[ $sleeptime -le 5 ] || fail "timed out trying dmsetup info/remove"
-	sleep $sleeptime
-	sleeptime=$(( $sleeptime + 1 ))
+for fs in fs swap; do
+ swap=${fs#fs}; eval "
+  sleeptime=0
+  while try_es dmsetup info \$adt_devmapper_${swap}cowdev; do
+	try dmsetup remove \$adt_devmapper_${swap}cowdev
+	[ \$sleeptime -le 5 ] || \
+		fail "timed out trying dmsetup info/remove ${swap}"
+	sleep \$sleeptime
+	sleeptime=\$(( \$sleeptime + 1 ))
+  done
+ "
 done
-rm -f $lvm_fslink_ptr
+rm -f $lvm_fslink_ptr $lvm_swaplink_ptr

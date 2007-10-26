@@ -7,9 +7,13 @@ test $nonoptargs = 0 || fail "non-option arguments not allowed"
 rm -f $adt_play/good
 
 $ADT_XENLVM_SHARE/cleanup "$@"
-xl lvchange -a n $lvm_baselv_namepath ||:
-xl lvchange -a n $lvm_cowdata_namepath ||:
-xl lvremove $lvm_baselv_namepath ||:
-xl lvremove $lvm_cowdata_namepath ||:
+for fs in fs swap; do
+ swap=${fs#fs}; eval "
+  xl lvchange -a n \$lvm_baselv_${swap}namepath ||:
+  xl lvchange -a n \$lvm_cowdata_${swap}namepath ||:
+  xl lvremove \$lvm_baselv_${swap}namepath ||:
+  xl lvremove \$lvm_cowdata_${swap}namepath ||:
+ "
+done
 
 rm -rf -- "${adt_play}"

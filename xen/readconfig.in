@@ -27,6 +27,7 @@ esac
 : ${adt_fs_size:=6144M}
 : ${adt_fs_snapsize:=5120M}
 : ${adt_fs_cowchunk:=8}
+: ${adt_swap_size:=5120M}
 : ${adt_playbase:=/var/lib/autopkgtest/xenlvm}
 : ${adt_fs_type:=ext3}
 : ${adt_fs_mkfs_args:=}
@@ -301,6 +302,7 @@ boolean_config () {
 
 # LVM
 boolean_config lvm_erasebase true
+
 : ${adt_lvm_baselv:=${adt_nominum}_${adt_distro}_base}
 : ${adt_lvm_cowdatalv:=${adt_nominum}_${adt_distro}_cowdata}
 : ${adt_devmapper_cowdev:=${adt_nominum}_${adt_distro}_snap}
@@ -308,19 +310,42 @@ boolean_config lvm_erasebase true
 : ${adt_fslink_dir:=adt-xenlvm}
 : ${adt_fslink_name:=${adt_nominum}_${adt_distro}_fs}
 
+# LVM - swap
+: ${adt_lvm_eraseswap:=$adt_lvm_erasebase}
+
+: ${adt_lvm_swapbaselv:=${adt_nominum}_${adt_distro}_swapbase}
+: ${adt_lvm_swapcowdatalv:=${adt_nominum}_${adt_distro}_swapcowdata}
+: ${adt_devmapper_swapcowdev:=${adt_nominum}_${adt_distro}_swapsnap}
+
+: ${adt_swaplink_dir:=adt-xenlvm}
+: ${adt_swaplink_name:=${adt_nominum}_${adt_distro}_swap}
+
+: ${adt_lvm_swapvg:=$adt_lvm_vg}
+
+: ${adt_swap_snapsize:=$adt_swap_size}
+: ${adt_swap_cowchunk:=$adt_fs_cowchunk}
+
+case "$adt_swap_size" in
+*[!0A-Za-z]*)	provide_swap=true	;;
+*)		provide_swap=false	;;
+esac
+
 # Firewall
 : ${adt_fw_testbedclients:=${adt_host_ipaddr}}
 
-lvm_baselv_namerhs=${adt_lvm_vg}/${adt_lvm_baselv}
-lvm_baselv_namepath=/dev/${lvm_baselv_namerhs}
+for fs in fs swap; do swap=${fs#fs}; eval "
+  lvm_baselv_${swap}namerhs=\${adt_lvm_${swap}vg}/\${adt_lvm_${swap}baselv}
+  lvm_baselv_${swap}namepath=/dev/\${lvm_baselv_${swap}namerhs}
 
-lvm_cowdata_namerhs=${adt_lvm_vg}/${adt_lvm_cowdatalv}
-lvm_cowdata_namepath=/dev/${lvm_cowdata_namerhs}
+  lvm_cowdata_${swap}namerhs=\${adt_lvm_${swap}vg}/\${adt_lvm_${swap}cowdatalv}
+  lvm_cowdata_${swap}namepath=/dev/\${lvm_cowdata_${swap}namerhs}
 
-lvm_snapdev=/dev/mapper/${adt_devmapper_cowdev}
+  lvm_${swap}snapdev=/dev/mapper/\${adt_devmapper_${swap}cowdev}
 
-lvm_fslink_ptrrhs=${adt_fslink_dir}/${adt_fslink_name}
-lvm_fslink_dirpath=/dev/${adt_fslink_dir}
-lvm_fslink_ptr=/dev/${adt_fslink_dir}/${adt_fslink_name}
+  lvm_${fs}link_ptrrhs=\${adt_${fs}link_dir}/\${adt_${fs}link_name}
+  lvm_${fs}link_dirpath=/dev/\${adt_${fs}link_dir}
+  lvm_${fs}link_ptr=/dev/\${adt_${fs}link_dir}/\${adt_${fs}link_name}
+  "
+done
 
 echo "adtxenlvm: configuration for read for nominum=${adt_nominum}"
