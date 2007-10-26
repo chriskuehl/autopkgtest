@@ -27,8 +27,6 @@ very few other packages.  Most autopkgtest reports are FTBFS problems.
 #maintainer_email_override="new@bugs.launchpad.net"
 maintainer_email_override="$administrator_email"
 
-adt_xmhook_disk="phy:/home/iwj/adt-play/swap,hda2,w"
-
 email_sourcepackage_header=\
 "Source: @p
 Version: @v
