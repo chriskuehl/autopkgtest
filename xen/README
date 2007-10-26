@@ -292,3 +292,17 @@ adt_fslink_name		<nominum>_<distro>_fs
 
 adt_xmname		<nominum>_<distro>
 	Xen virtual machine name, as passed to xm create.
+
+adt_xmhook_disk		<empty>
+adt_xmhook_vif		<empty>
+adt_xmhook_extra	<empty>
+adt_xmhook_config	<empty>
+	The values of these variables are inserted into the Xen domU
+	configuration file.  _disk and _vif should contain zero or
+	more comma-prefixed double-quoted stanzas - they are
+	substituted inside the [ ] after the primary filesystem and
+	network devices set up by the adt-xenlvm tools.  _extra
+	contains additional space-separated kernel command-line
+	options and is substituted inside the double-quotes.  _config
+	should contain whole configuration lines.  See
+	xmdomain.cfg(5).
