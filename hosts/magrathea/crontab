@@ -1,8 +1,4 @@
-# m h dom mon dow       command
-4-59/5 * * * *		autopkgtest/runner/adt-testreport-cronjob adt-play cfg
-22 0 * * Mon		savelog -n7 adt-play/var/log adt-play/var/overall.log
-58 7 * * *		adt-play/cleanup
-
-MAILTO=iwj@ubuntu.com
-# m h dom mon dow       command
-6-46/20 * * * * 	autopkgtest/runner/adt-openbugs-update adt-play cfg >/dev/null
+# m h    dom mon dow	command
+4-59/5 *    * * *	autopkgtest/runner/adt-testreport-cronjob adt-play cfg
+5-35/30 *   * * *	autopkgtest/runner/adt-openbugs-update adt-play cfg >/dev/null
+4 13	    * * Sun	savelog -c7 adt-play/var/log adt-play/var/overall.log

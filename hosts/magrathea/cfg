@@ -1,6 +1,7 @@
 PATH=/home/ian/autopkgtest/runner:/usr/local/sbin:/usr/sbin:$PATH
 export PATH
 
+tmp=/volatile/ian/adt-tmp
 mirror=http://mirror.relativity.greenend.org.uk/mirror/debian-ftp/
 distro=lenny
 suite=main

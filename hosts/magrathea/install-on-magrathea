@@ -2,3 +2,4 @@
 set -e
 cd /work/AutomatedTesting/autopkgtest--main/
 rsync -a . magrathea:autopkgtest/.
+rsync hosts/magrathea/crontab.root root@magrathea:/etc/cron.d/autopkgtest-magrathea
