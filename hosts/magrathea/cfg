@@ -19,6 +19,9 @@ suppressrepeatedemails=false
 suppresspackages=openbugs
 blacklistbinarypackages=blacklist
 
+rsync='rsync --bwlimit=16'
+# 16kby/s = 128kbit/s
+
 email_extra_info='
 The test environment is an i386 Xen guest with limited amounts of
 memory.  The relevant dependencies are installed for each test but
