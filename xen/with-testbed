@@ -42,6 +42,11 @@ rc=$?
 set -e
 
 xm destroy $adt_xmname
+
+sleep 1
+# ... this helps races where xm destroy leaves network interfaces etc.
+#     still enabled
+
 sleep=0
 while true; do
 	if dmsetup remove $adt_devmapper_cowdev; then break; fi
