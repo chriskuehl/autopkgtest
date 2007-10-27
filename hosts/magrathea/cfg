@@ -23,6 +23,13 @@ email_extra_info='
 The test environment is an i386 Xen guest with limited amounts of
 memory.  The relevant dependencies are installed for each test but
 very few other packages.  Most autopkgtest reports are FTBFS problems.
+Failures to satisfy build-dependencies are sometimes due to ambiguity
+rather than simple lack of a suitable package.
+
+While this bug remains open and assigned to this package, no further
+retesting will be done and no additional bugs will be filed.  When you
+have corrected the problem, close the bug and your package will be
+immediatley eligible for retesting.
 '
 
 #maintainer_email_override="new@bugs.launchpad.net"
