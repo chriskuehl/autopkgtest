@@ -9,9 +9,9 @@ administrator_email=ian@davenant.greenend.org.uk
 salutation="Ian"
 from="$salutation Jackson <ian+debian-autopkgtest@chiark.greenend.org.uk>"
 disable=false
-desthttphead=http://www.chiark.greenend.org.uk/~ijackson/
+desthttphead=http://www.chiark.greenend.org.uk/~ijackson
 destrsynchead=ijackson@chiark:public-html/
-destdirtail=autopkgtest/testing
+destdircommon=autopkgtest/
 adtvirt_extra_opts=--userv
 upload_if_ok=false
 upload_if_notests=true
@@ -32,23 +32,25 @@ rather than simple lack of a suitable package.
 While this bug remains open and assigned to this package, no further
 retesting will be done and no additional bugs will be filed.  When you
 have corrected the problem, close the bug and your package will be
-immediatley eligible for retesting.
+immediately eligible for retesting.
+
+If this automatic testing and bug filing is undesirable for certain
+packages(s) please let me know and I will add them to my blacklist.
 '
 
-#maintainer_email_override="new@bugs.launchpad.net"
 maintainer_email_override="$administrator_email"
 
 email_sourcepackage_header=\
 "Source: @p
 Version: @v
-User: autopkgtest@packages.debian.org
+User: autopkgtest@_packages.debian.org
 Usertags: autopkgtest
 
 "
 email_binarypackage_header=\
 "Package: @p
 Version: @v
-User: autopkgtest@packages.debian.org
+User: autopkgtest@_packages.debian.org
 Usertags: autopkgtest
 
 "
