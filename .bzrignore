@@ -13,3 +13,8 @@ hosts/chinstrap/suppressions.new
 hosts/magrathea/openbugs
 hosts/magrathea/openbugs-lock
 hosts/magrathea/openbugs.new
+hosts/*/cronjob-lock
+hosts/*/esummary
+hosts/*/swap
+hosts/*/tmp
+hosts/*/var
