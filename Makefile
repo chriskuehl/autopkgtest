@@ -25,6 +25,7 @@ include settings.make
 programs =	virt-subproc/adt-virt-chroot \
 		virt-subproc/adt-virt-xenlvm \
 		virt-subproc/adt-virt-null \
+		virt-subproc/adt-virt-schroot \
 		runner/adt-run \
 		runner/adt-testreport-onepackage \
 		runner/adt-testreport-runloop \
