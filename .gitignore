@@ -1,3 +1,8 @@
+*~
+*.orig
+*.rej
+*.pyc
+
 debian/autopkgtest
 debian/autopkgtest-xenlvm
 debian/*.debhelper
