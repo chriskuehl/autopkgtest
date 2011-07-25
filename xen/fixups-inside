@@ -76,6 +76,5 @@ fi
 
 apt-get update
 apt-get install libc6-xen ||:
-apt-get -y install gdebi-core || apt-get -y install gdebi
 
 echo '---)'
