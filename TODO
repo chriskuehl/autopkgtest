@@ -1,6 +1,11 @@
 
 not needed for demo:
 
+- check how to run test against existing binaries from archive
+  tried 
+    ./adt-run --tmp-dir=`pwd`/d -d --no-built-binaries --binaries=auto --binary ../../Mawk/mawk_1.3.3-11ubuntu2_i386.deb ../../Mawk/ancient/mawk_1.3.3-11ubuntu2.dsc --- ../virt-subproc/adt-virt-schroot wheezy-snap
+  but it seemed to do install of old mawk before build
+
 - file bugs against pbuilder-satisfydepends
     * uses "/usr/bin/apt-get"
     * --internal-chrootexec should be exposed
