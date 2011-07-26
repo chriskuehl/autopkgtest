@@ -1,0 +1,18 @@
+
+- infinite priority to local repo
+
+not needed for demo:
+
+- file bugs against pbuilder-satisfydepends
+    * uses "/usr/bin/apt-get"
+    * --internal-chrootexec should be exposed
+    * .dsc parsing bug (last line ignored)
+
+- remove dependency on python in testbed
+
+- Nightmare shell quoting situation:
+    * satdep-auxverb and the sh -c hack
+    * testbeds should provide /only/ print-execute-command auxverb
+
+- schroot's snapshots should use dmsetup directly, not lvm ?
+    at least there should be non-persistent snapshots
