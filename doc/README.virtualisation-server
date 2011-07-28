@@ -63,11 +63,6 @@ Protocol
 	(with distinct <username>s) may be advertised in which case
 	more than one such user is available.
 
-   + print-execute-command
-	The 'print-execute-command' command is available, so that the
-	caller can execute multiple concurrent commands on the testbed
-        with asynchronous input and output, if desired.
-
 
 * Command
 	open
@@ -77,11 +72,14 @@ Protocol
   Checks that the testbed is present and reserves it (waiting for
   other uses of the testbed to finish first, if necessary).  State:
   Closed to Open.  <testbed-scratchspace> is a pathname on the
-  testbed which can be used freely by the test scripts.
+  testbed which can be used freely by the test scripts and which
+  is valid until the next `close', `revert' or `quit'.
 
 
 * Command
 	revert
+  response
+	ok <testbed-scratchspace>  
 
   Restores the testbed, undoing all of the changes made so far.
   State: Open, remains Open.  Only available if the `revert'
@@ -96,25 +94,27 @@ Protocol
   advertised). State: Open to Closed.
 
 
-* Command
-	print-execute-command
+* Commands
+	print-auxverb-command
+	print-shstring-command
   response
-	ok <program>,<arg>,<arg>... auxverb|shstring [<keyword-info> ...]
+	ok <program>,<arg>,<arg>... [<keyword-info> ...]
   Prints a command that can be executed by the caller to run a command
-  on the testbed.  Only available if the `print-execute-command'
-  capability is advertised.
+  on the testbed.
 
   The command has the following properties (which are, for example,
   satisfiable when the virt server uses `env' `ssh' or `dchroot'):
    - The caller is expected to url-decode <program> and each <arg>,
      append the command to be run on the testbed, and call exec on the
      results.
-   - If auxverb is advertised, the supplied additional arguments to
-     command will be interpreted as the command and arguments to be
-     run on the testbed (as env and nice interpret their arguments)
-   - If shstring is advertised, there should be one additional
-     argument which will be fed to sh -c on the testbed (this is the
-     way ssh interprets its arguments).
+   - For the command provided by `print-auxverb-command', the supplied
+     additional arguments to command will be interpreted as the
+     command and arguments to be run on the testbed (as env and nice
+     interpret their arguments)
+   - The command provided by `print-shstring-command', should be
+     invoked with exactly one additional argument which should be a
+     legal shell script.  It will be fed to sh -c on the testbed (this
+     is the way ssh interprets its arguments).
    - The testbed program's stdin, stdout and stderr will be plumbed
      through to the stdin, stdout and stderr passed to <program>; this
      may involve fd passing, or indirection via pipes or sockets.  The
