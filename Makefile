@@ -34,7 +34,8 @@ programs =	virt-subproc/adt-virt-chroot \
 examples =	runner/onepackage-config \
 		runner/ubuntu-config
 
-pythonfiles =	virt-subproc/VirtSubproc.py
+pythonfiles =	lib/Autopkgtest.py \
+		lib/VirtSubproc.py
 
 all:
 	cd xen && $(MAKE)
