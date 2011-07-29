@@ -13,5 +13,3 @@ not needed for demo:
 
 - schroot snapshots share /tmp and /home which is a bit strange
   need to make 'revert' property more granular
-
-- remove debugging from auxverb script
