@@ -162,9 +162,9 @@ Protocol
   response
 	ok <exit-status>
 
-  Executes the command (args separated by commas, everything
-  url-encoded).  stdin, stdout, stderr are files on the testbed
-  (must be files, not pipes).
+  Executes the command (args separated by commas, everything including
+  filenames and env var names and values url-encoded).  stdin, stdout,
+  stderr are files on the testbed (must be files, not pipes).
 
   Currently defined keyword arguments:
 
@@ -198,11 +198,21 @@ Protocol
 		that facility is available.
 
 * Commands
-	copydown <host-tree> <testbed-path>
-	copyup <testbed-tree> <host-path>
+	copydown <host-path> <testbed-path>
+	copyup <testbed-path> <host-path>
 
-  Like cp -dR --preserve=mode,timestamps exce[t across the testbed
-  boundary.
+  Either
+
+  1. Both paths end in `/', in which case the source must be an
+     existing directory.  The destination directory is replaced with a
+     copy as if made by cp -dR --preserve=mode,timestamps except
+     across the testbed boundary.
+
+  2. Neither path ends in `/', in which case the source must be an
+     existing file.  The data from the source file is written to the
+     destination as if via shell redirection; except that if for
+     copydown of an executable file, `chmod +x' is run on the
+     destination file after the copy.
 
 
 * Command
