@@ -1,5 +1,5 @@
 
-not needed for demo:
+- change needs-build to be not the default
 
 - check how to run test against existing binaries from archive
   tried 
