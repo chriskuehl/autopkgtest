@@ -1,6 +1,4 @@
 
-- change needs-build to be not the default
-
 - schroot's snapshots should use dmsetup directly, not lvm ?
     at least there should be non-persistent snapshots
 
