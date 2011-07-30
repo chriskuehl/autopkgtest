@@ -60,4 +60,4 @@ sed-readconfig:	README Makefile
 	echo 'd}' >>$@.new && mv -f $@.new $@
 
 clean:
-	rm -f readconfig *~
+	rm -f readconfig sed-readconfig *~

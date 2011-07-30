@@ -56,4 +56,5 @@ install: install-here
 	cd xen && $(MAKE) install
 
 clean:
+	rm -f */*.pyc
 	cd xen && $(MAKE) clean
