@@ -9,6 +9,10 @@ debian/*.debhelper
 debian/tmp
 debian/files
 debian/copyright
+
+debian/*.debhelper.log
+debian/*.substvars
+
 xen/sed-readconfig
 xen/readconfig
 hosts/chinstrap/webpage
