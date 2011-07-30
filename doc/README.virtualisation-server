@@ -38,7 +38,7 @@ Protocol
 * Command
 	capabilities
   response, for example
-	ok efficient-diff revert ...
+	ok gnomovision-server revert ...
   where the words after ok are features that not all regimes
   support.  Valid in all states.
 
@@ -229,10 +229,3 @@ On any error including signals to the regime server or EOF on stdin
 the testbed is unreserved and restored to its original state (ie,
 closed), and the regime server will print a message to stderr (unless
 it is dying with a signal).
-
-The representation of changes to the local filesystem is a directory
-containing zero or more of:
-	+ changed-files: list of filenames, each one nul-terminated
-	+ other formats with other data or combinations of data
-	  (for future use)
-
