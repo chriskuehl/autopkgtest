@@ -21,7 +21,7 @@ else
   log_progress_msg () { printf "%s " "$1"; }
   log_end_msg () { echo "done."; }
 fi
-. /etc/default/rcS
+if test -f /etc/default/rcS; then . /etc/default/rcS; fi
 
 chains='AdtXenIn AdtXenFwd AdtXenIcmp'
 
