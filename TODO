@@ -1,6 +1,3 @@
 
 - schroot's snapshots should use dmsetup directly, not lvm ?
     at least there should be non-persistent snapshots
-
-- schroot snapshots share /tmp and /home which is a bit strange
-  need to make 'revert' property more granular

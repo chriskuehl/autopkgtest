@@ -45,6 +45,22 @@ Protocol
   Currently defined capabilities:
 
     + revert
+	The "revert" command is supported.  The base semantics
+	are that the following aspects of the testbed are reverted:
+		- the set of installed packages
+		- the contents of the root filesystem, BUT
+		- NOT the contents of /home
+		- NOT the contents of /tmp
+		- NOT the set of running processes
+
+    + revert-full-system
+	The "revert" and "close" commands will completely revert the
+	testbed to the state after "open".  This reversion is done
+	with some kind of virtualisation, and includes (without
+	limitation) the contents of all the testbed filesystems, its
+	running processes, network configuration, etc. etc. etc.
+
+    + revert
 	The testbed will actually revert when it is closed.  If this
 	feature is not mentioned then changes to the testbed are
 	persistent (so destructive tests should not be performed).
