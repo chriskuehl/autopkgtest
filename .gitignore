@@ -27,3 +27,5 @@ hosts/*/esummary
 hosts/*/swap
 hosts/*/tmp
 hosts/*/var
+
+runner/tmp
