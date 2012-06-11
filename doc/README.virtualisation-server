@@ -230,6 +230,8 @@ Protocol
      copydown of an executable file, `chmod +x' is run on the
      destination file after the copy.
 
+  Both filenames are url-encoded.
+
 
 * Command
 	quit
