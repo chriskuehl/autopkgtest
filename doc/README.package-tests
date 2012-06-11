@@ -11,7 +11,7 @@ debian/tests/control. This is a file containing zero or more
 RFC822-style stanzas, along these lines:
 
         Tests: fred bill bongo
-        Restrictions: needs-root breaks-computer
+        Restrictions: needs-root breaks-testbed
 
 This example defines three tests, called `fred', `bill' and `bongo'.
 The tests will be performed by executing debian/tests/fred,
