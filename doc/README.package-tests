@@ -28,7 +28,7 @@ If the file to be executed has no execute bits set, chmod a+x is
 applied to it (this means that tests can be added in patches without
 the need for additional chmod; contrast this with debian/rules).
 
-During execution of the test, the environment variable TMPDIR will
+During execution of the test, the environment variable ADTTMP will
 point to a directory for the execution of this particular test, which
 starts empty and will be deleted afterwards (so there is no need for
 the test to clean up files left there).
