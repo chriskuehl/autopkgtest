@@ -128,3 +128,19 @@ The defined Restrictions are:
 
 
 There are no currently defined Features.
+
+
+Source package header
+---------------------
+
+To allow test execution environments to discover packages which provide tests,
+their source packages should have a `Testsuite:` header containing
+`autopkgtest` (which is currently the only defined value). Multiple values get
+comma separated, as usual in control files.
+
+This tag can be set manually in debian/control by adding
+
+    XS-Testsuite: autopkgtest
+
+in the `Source:` paragraph. Future versions of dpkg-source might add this
+automatically when a debian/tests/control file is present.
