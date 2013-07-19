@@ -126,6 +126,11 @@ The defined Restrictions are:
     are NOT entitled to assume that the source package's build
     dependencies will be installed when the test is run.
 
+  allow-stderr
+
+    Output to stderr is not considered a failure. This is useful for
+    tests which write e. g. lots of logging to stderr.
+
 
 There are no currently defined Features.
 
