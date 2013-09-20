@@ -1,0 +1,142 @@
+#!/usr/bin/python3
+
+# this testsuite is part of autopkgtest
+# autopkgtest is a tool for testing Debian binary packages
+#
+# autopkgtest is Copyright (C) 2006-2013 Canonical Ltd.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+#
+# See the file CREDITS for a full list of credits information (often
+# installed as /usr/share/doc/autopkgtest/CREDITS).
+
+import sys
+import os
+import subprocess
+import unittest
+import tempfile
+import shutil
+
+test_dir = os.path.dirname(os.path.abspath(__file__))
+root_dir = os.path.dirname(test_dir)
+
+
+class NullRunner(unittest.TestCase):
+    def setUp(self):
+        self.workdir = tempfile.TemporaryDirectory()
+        self.adt_run_path = os.path.join(root_dir, 'runner', 'adt-run')
+        self.cwd = os.getcwd()
+        self.addCleanup(os.chdir, self.cwd)
+
+    def build_src(self, test_control, test_scripts):
+        '''Create source package with given tests.
+
+         @test_control: contents of debian/tests/control
+         @test_scripts: map of test name (in debian/tests/) to file contents
+
+        Return path to the source tree.
+        '''
+        srcdir = os.path.join(self.workdir.name, 'testpkg')
+        shutil.copytree(os.path.join(test_dir, 'testpkg'), srcdir, symlinks=True)
+        if test_control:
+            dtdir = os.path.join(srcdir, 'debian', 'tests')
+            os.mkdir(dtdir)
+            with open(os.path.join(dtdir, 'control'), 'w') as f:
+                f.write(test_control)
+            for name, contents in test_scripts.items():
+                with open(os.path.join(dtdir, name), 'w') as f:
+                    f.write(contents)
+
+        return srcdir
+
+    def adt_run(self, args):
+        '''Run adt-run with given arguments with null virt.
+
+         @args: command line args of adt-run, excluding "adt-run" itself; "---
+                adt-virt-null" will be appended automatically (with using
+                adt-virt-null from the source tree)
+
+        Return a tuple (exit_code, stdout, stderr).
+        '''
+        # run adt command
+        adt = subprocess.Popen([self.adt_run_path] + args +
+                               ['---', os.path.join(root_dir, 'virt-subproc', 'adt-virt-null')],
+                               stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                               universal_newlines=True)
+        (out, err) = adt.communicate()
+        return (adt.returncode, out, err)
+
+    def test_tree_norestrictions_nobuild_success(self):
+        '''source tree, no build, no restrictions, test success'''
+
+        p = self.build_src('Tests: pass\nDepends: coreutils\n', {'pass': '#!/bin/sh\necho I am fine\n'})
+
+        (code, out, err) = self.adt_run(['--no-built-binaries', '--built-tree=' + p])
+        #print('----- out ----\n%s\n----- err ----\n%s\n----' % (out, err))
+        # test should succeed
+        self.assertEqual(code, 0)
+        self.assertIn('coreutils', out)
+        self.assertRegex(out, 'tree0t-pass\s+PASS', out)
+
+        self.assertIn('processing dependency coreutils', err)
+        # should show test stdout
+        self.assertIn('\nI am fine\n', err)
+        # should not have any test stderr
+        self.assertNotIn('stderr', err)
+
+    def test_tree_norestrictions_nobuild_fail_on_exit(self):
+        '''source tree, no build, no restrictions, test fails with non-zero'''
+
+        p = self.build_src('Tests: nz\nDepends: coreutils\n',
+                           {'nz': '#!/bin/sh\necho I am sick\nexit 7'})
+
+        (code, out, err) = self.adt_run(['--no-built-binaries', '--built-tree=' + p])
+        # test should fail
+        self.assertEqual(code, 4)
+        self.assertIn('coreutils', out)
+        self.assertRegex(out, 'tree0t-nz\s+FAIL non-zero exit status 7')
+
+        self.assertIn('processing dependency coreutils', err)
+        # should show test stdout
+        self.assertIn('\nI am sick\n', err)
+        # should not have any test stderr
+        self.assertNotIn('stderr', err)
+
+    def test_tree_norestrictions_nobuild_fail_on_stderr(self):
+        '''source tree, no build, no restrictions, test fails with stderr'''
+
+        p = self.build_src('Tests: se\nDepends: coreutils\n',
+                           {'se': '#!/bin/sh\necho I am sick >&2\n'})
+
+        (code, out, err) = self.adt_run(['--no-built-binaries', '--built-tree=' + p])
+        # test should fail
+        self.assertEqual(code, 4)
+        self.assertIn('coreutils', out)
+        self.assertRegex(out, '\ntree0t-se\s+FAIL status: 0, stderr: I am sick\n')
+
+        self.assertIn('processing dependency coreutils', err)
+        # should show test stderr
+        self.assertRegex(err, 'stderr [ -]+\nI am sick', err)
+        # should not have any test stdout
+        self.assertNotIn('stdout', err)
+
+
+if __name__ == '__main__':
+    if os.geteuid() != 0:
+        sys.stderr.write('ERROR: You need to run this test suite as root.\n')
+        sys.exit(1)
+
+    unittest.main(testRunner=unittest.TextTestRunner(stream=sys.stdout, verbosity=2))
+
