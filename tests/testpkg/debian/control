@@ -1,0 +1,12 @@
+Source: testpkg
+Maintainer: Autopkgtest team <autopkgtest-devel@lists.alioth.debian.org>
+Section: oldlibs
+Priority: extra
+Standards-Version: 3.9.4
+Build-Depends: debhelper (>= 9)
+
+Package: testpkg
+Architecture: all
+Depends: ${misc:Depends}
+Description: test package
+ Test package, do not install.
