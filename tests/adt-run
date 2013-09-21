@@ -97,7 +97,8 @@ class NullRunner(unittest.TestCase):
     def test_tree_norestrictions_nobuild_success(self):
         '''source tree, no build, no restrictions, test success'''
 
-        p = self.build_src('Tests: pass\nDepends: coreutils\n', {'pass': '#!/bin/sh\necho I am fine\n'})
+        p = self.build_src('Tests: pass\nDepends: coreutils\n',
+                           {'pass': '#!/bin/sh\necho I am fine\n'})
 
         (code, out, err) = self.adt_run(['--no-built-binaries', '--built-tree=' + p])
         #print('----- out ----\n%s\n----- err ----\n%s\n----' % (out, err))
@@ -179,6 +180,24 @@ class NullRunner(unittest.TestCase):
         self.assertRegex(err, 'stdout [ -]+\nbabble', err)
         self.assertRegex(err, 'stderr [ -]+\nI am fine', err)
 
+    # http://bugs.debian.org/711209
+    @unittest.expectedFailure
+    def test_tree_build_needed_success(self):
+        '''source tree, build-needed restriction, test success'''
+
+        p = self.build_src('Tests: pass\nDepends: coreutils\nRestrictions: build-needed\n',
+                           {'pass': '#!/bin/sh -e\n./test_built | grep -q "built script OK"\n'})
+
+        (code, out, err) = self.adt_run(['--no-built-binaries', '--built-tree=' + p])
+        #print('----- out ----\n%s\n----- err ----\n%s\n----' % (out, err))
+        # test should succeed
+        self.assertRegex(out, 'tree0t-pass\s+PASS', out)
+        self.assertEqual(code, 0)
+
+        # should not have any test stdout/stderr
+        self.assertNotIn('stdout', err)
+        self.assertNotIn('stderr', err)
+
     def test_dsc_norestrictions_nobuild_success(self):
         '''dsc, no build, no restrictions, test success'''
 
@@ -195,6 +214,21 @@ class NullRunner(unittest.TestCase):
         # should show test stdout
         self.assertRegex(err, 'stdout [ -]+\nI am fine', err)
         # should not have any test stderr
+        self.assertNotIn('stderr', err)
+
+    def test_dsc_build_needed_success(self):
+        '''dsc, build-needed restriction, test success'''
+
+        p = self.build_dsc('Tests: pass\nDepends: coreutils\nRestrictions: build-needed\n',
+                           {'pass': '#!/bin/sh -e\n./test_built | grep -q "built script OK"\n'})
+
+        (code, out, err) = self.adt_run(['--no-built-binaries', p])
+        # test should succeed
+        self.assertRegex(out, 'dsc0t-pass\s+PASS', out)
+        self.assertEqual(code, 0)
+
+        # should not have any test stdout/stderr
+        self.assertNotIn('stdout', err)
         self.assertNotIn('stderr', err)
 
 
