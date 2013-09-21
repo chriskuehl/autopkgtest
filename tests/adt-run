@@ -32,6 +32,7 @@ import shutil
 test_dir = os.path.dirname(os.path.abspath(__file__))
 root_dir = os.path.dirname(test_dir)
 
+os.environ['AUTOPKGTEST_BASE'] = root_dir
 
 class NullRunner(unittest.TestCase):
     def setUp(self):
@@ -231,6 +232,27 @@ class NullRunner(unittest.TestCase):
         self.assertNotIn('stdout', err)
         self.assertNotIn('stderr', err)
 
+    def test_tmpdir_for_other_users(self):
+        '''$TMPDIR is accessible to non-root users'''
+
+        p = self.build_src('Tests: t\nDepends: coreutils\nRestrictions: needs-root\n',
+                           {'t': '''#!/bin/sh -e
+echo hello > $TMPDIR/rootowned.txt
+su -c "echo hello > $TMPDIR/world.txt" nobody
+if su -c "echo break > $TMPDIR/rootowned.txt" nobody 2>/dev/null; then
+    exit 1
+fi
+'''})
+
+        (code, out, err) = self.adt_run(['--no-built-binaries', '--built-tree=' + p])
+        #print('----- out ----\n%s\n----- err ----\n%s\n----' % (out, err))
+        # test should succeed
+        self.assertRegex(out, 'tree0t-t\s+PASS', out)
+        self.assertEqual(code, 0)
+
+        # should not have any test stdout/stderr
+        self.assertNotIn('stdout', err)
+        self.assertNotIn('stderr', err)
 
 if __name__ == '__main__':
     if os.geteuid() != 0:
