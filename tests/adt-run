@@ -132,6 +132,37 @@ class NullRunner(unittest.TestCase):
         # should not have any test stdout
         self.assertNotIn('stdout', err)
 
+    def test_tree_allow_stderr_nobuild_success(self):
+        '''source tree, no build, allow-stderr, test success'''
+
+        p = self.build_src('Tests: pass\nDepends: coreutils\nRestrictions: allow-stderr',
+                           {'pass': '#!/bin/sh\necho I am fine >&2\necho babble'})
+
+        (code, out, err) = self.adt_run(['--no-built-binaries', '--built-tree=' + p])
+        self.assertEqual(code, 0)
+        self.assertIn('coreutils', out)
+        self.assertRegex(out, 'tree0t-pass\s+PASS', out)
+
+        # should show test stdout/err
+        self.assertRegex(err, 'stdout [ -]+\nbabble', err)
+        self.assertRegex(err, 'stderr [ -]+\nI am fine', err)
+
+    def test_tree_allow_stderr_nobuild_fail_on_exit(self):
+        '''source tree, no build, allow-stderr, test fails with non-zero'''
+
+        p = self.build_src('Tests: nz\nDepends: coreutils\nRestrictions: allow-stderr',
+                           {'nz': '#!/bin/sh\necho I am fine >&2\necho babble\nexit 7'})
+
+        (code, out, err) = self.adt_run(['--no-built-binaries', '--built-tree=' + p])
+        # test should fail
+        self.assertEqual(code, 4)
+        self.assertIn('coreutils', out)
+        self.assertRegex(out, 'tree0t-nz\s+FAIL non-zero exit status 7')
+
+        # should show test stdout/err
+        self.assertRegex(err, 'stdout [ -]+\nbabble', err)
+        self.assertRegex(err, 'stderr [ -]+\nI am fine', err)
+
 
 if __name__ == '__main__':
     if os.geteuid() != 0:
