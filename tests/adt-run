@@ -110,7 +110,7 @@ class NullRunner(unittest.TestCase):
 
         self.assertIn('processing dependency coreutils', err)
         # should show test stdout
-        self.assertIn('\nI am fine\n', err)
+        self.assertIn('\nI am fine\n', out)
         # should not have any test stderr
         self.assertNotIn('stderr', err)
 
@@ -128,7 +128,7 @@ class NullRunner(unittest.TestCase):
 
         self.assertIn('processing dependency coreutils', err)
         # should show test stdout
-        self.assertIn('\nI am sick\n', err)
+        self.assertIn('\nI am sick\n', out)
         # should not have any test stderr
         self.assertNotIn('stderr', err)
 
@@ -147,8 +147,6 @@ class NullRunner(unittest.TestCase):
         self.assertIn('processing dependency coreutils', err)
         # should show test stderr
         self.assertRegex(err, 'stderr [ -]+\nI am sick', err)
-        # should not have any test stdout
-        self.assertNotIn('stdout', err)
 
     def test_tree_allow_stderr_nobuild_success(self):
         '''source tree, no build, allow-stderr, test success'''
@@ -162,8 +160,10 @@ class NullRunner(unittest.TestCase):
         self.assertRegex(out, 'tree0t-pass\s+PASS', out)
 
         # should show test stdout/err
-        self.assertRegex(err, 'stdout [ -]+\nbabble', err)
-        self.assertRegex(err, 'stderr [ -]+\nI am fine', err)
+        self.assertRegex(out, '\nbabble\n')
+        self.assertRegex(err, '-+\nI am fine\nadt-run: & tree0t-pass: --')
+        # but not complain about stderr
+        self.assertNotIn('stderr', err)
 
     def test_tree_allow_stderr_nobuild_fail_on_exit(self):
         '''source tree, no build, allow-stderr, test fails with non-zero'''
@@ -178,8 +178,10 @@ class NullRunner(unittest.TestCase):
         self.assertRegex(out, 'tree0t-nz\s+FAIL non-zero exit status 7')
 
         # should show test stdout/err
-        self.assertRegex(err, 'stdout [ -]+\nbabble', err)
-        self.assertRegex(err, 'stderr [ -]+\nI am fine', err)
+        self.assertRegex(out, '\nbabble\n')
+        self.assertRegex(err, '---+\nI am fine\nadt-run', err)
+        # but not complain about stderr
+        self.assertNotIn('stderr', err)
 
     # http://bugs.debian.org/711209
     @unittest.expectedFailure
@@ -196,7 +198,6 @@ class NullRunner(unittest.TestCase):
         self.assertEqual(code, 0)
 
         # should not have any test stdout/stderr
-        self.assertNotIn('stdout', err)
         self.assertNotIn('stderr', err)
 
     def test_dsc_norestrictions_nobuild_success(self):
@@ -213,7 +214,7 @@ class NullRunner(unittest.TestCase):
 
         self.assertIn('processing dependency coreutils', err)
         # should show test stdout
-        self.assertRegex(err, 'stdout [ -]+\nI am fine', err)
+        self.assertRegex(out, '\nI am fine\n')
         # should not have any test stderr
         self.assertNotIn('stderr', err)
 
@@ -229,7 +230,6 @@ class NullRunner(unittest.TestCase):
         self.assertEqual(code, 0)
 
         # should not have any test stdout/stderr
-        self.assertNotIn('stdout', err)
         self.assertNotIn('stderr', err)
 
     def test_tmpdir_for_other_users(self):
