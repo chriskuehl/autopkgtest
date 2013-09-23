@@ -1,0 +1,12 @@
+#!/bin/sh
+set -e
+testdir="$(dirname $(readlink -f $0))"
+rootdir="$(dirname $testdir)"
+
+pep8 $rootdir/lib/*.py
+
+for v in chroot null schroot xenlvm; do
+    pep8 $rootdir/virt-subproc/adt-virt-$v
+done
+
+pep8 --ignore E501 $rootdir/runner/adt-run $testdir/adt-run
