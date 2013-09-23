@@ -4,6 +4,7 @@
 # autopkgtest is a tool for testing Debian binary packages
 #
 # autopkgtest is Copyright (C) 2006-2013 Canonical Ltd.
+# Author: Martin Pitt <martin.pitt@ubuntu.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -33,6 +34,7 @@ test_dir = os.path.dirname(os.path.abspath(__file__))
 root_dir = os.path.dirname(test_dir)
 
 os.environ['AUTOPKGTEST_BASE'] = root_dir
+
 
 class NullRunner(unittest.TestCase):
     def setUp(self):
@@ -319,4 +321,3 @@ if __name__ == '__main__':
         sys.exit(1)
 
     unittest.main(testRunner=unittest.TextTestRunner(stream=sys.stdout, verbosity=2))
-
