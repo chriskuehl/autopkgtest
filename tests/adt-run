@@ -101,7 +101,7 @@ class NullRunner(unittest.TestCase):
         p = self.build_src('Tests: pass\nDepends: coreutils\n',
                            {'pass': '#!/bin/sh\necho I am fine\n'})
 
-        (code, out, err) = self.adt_run(['--no-built-binaries', '--built-tree=' + p])
+        (code, out, err) = self.adt_run(['--no-built-binaries', '--unbuilt-tree=' + p])
         #print('----- out ----\n%s\n----- err ----\n%s\n----' % (out, err))
         # test should succeed
         self.assertEqual(code, 0)
@@ -113,6 +113,9 @@ class NullRunner(unittest.TestCase):
         self.assertIn('\nI am fine\n', out)
         # should not have any test stderr
         self.assertNotIn('stderr', err)
+
+        # should not build package
+        self.assertNotIn('debian/rules build', err)
 
     def test_tree_norestrictions_nobuild_fail_on_exit(self):
         '''source tree, no build, no restrictions, test fails with non-zero'''
@@ -183,22 +186,22 @@ class NullRunner(unittest.TestCase):
         # but not complain about stderr
         self.assertNotIn('stderr', err)
 
-    # http://bugs.debian.org/711209
-    @unittest.expectedFailure
     def test_tree_build_needed_success(self):
         '''source tree, build-needed restriction, test success'''
 
         p = self.build_src('Tests: pass\nDepends: coreutils\nRestrictions: build-needed\n',
                            {'pass': '#!/bin/sh -e\n./test_built | grep -q "built script OK"\n'})
 
-        (code, out, err) = self.adt_run(['--no-built-binaries', '--built-tree=' + p])
-        #print('----- out ----\n%s\n----- err ----\n%s\n----' % (out, err))
+        (code, out, err) = self.adt_run(['--no-built-binaries', '--unbuilt-tree=' + p])
         # test should succeed
         self.assertRegex(out, 'tree0t-pass\s+PASS', out)
         self.assertEqual(code, 0)
 
         # should not have any test stdout/stderr
         self.assertNotIn('stderr', err)
+
+        # should build package
+        self.assertIn('debian/rules build', err)
 
     def test_dsc_norestrictions_nobuild_success(self):
         '''dsc, no build, no restrictions, test success'''
@@ -231,6 +234,9 @@ class NullRunner(unittest.TestCase):
 
         # should not have any test stdout/stderr
         self.assertNotIn('stderr', err)
+
+        # should build package
+        self.assertIn('debian/rules build', err)
 
     def test_tmpdir_for_other_users(self):
         '''$TMPDIR is accessible to non-root users'''
