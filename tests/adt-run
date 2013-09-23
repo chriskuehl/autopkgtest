@@ -260,6 +260,59 @@ fi
         self.assertNotIn('stdout', err)
         self.assertNotIn('stderr', err)
 
+    def test_tree_tmp_dir(self):
+        '''source tree, explicit --tmp-dir'''
+
+        p = self.build_src('Tests: sp sf\nDepends: coreutils\n\n'
+                           'Tests: bp\nDepends: coreutils\nRestrictions: build-needed',
+                           {'sp': '#!/bin/sh\n./test_static\n',
+                            'sf': '#!/bin/sh\necho kaputt >&2',
+                            'bp': '#!/bin/sh\n./test_built'})
+
+        tmpdir = os.path.join(self.workdir.name, 'tmp')
+        os.mkdir(tmpdir)
+
+        (code, out, err) = self.adt_run(['--no-built-binaries',
+                                         '--unbuilt-tree=' + p,
+                                         '--tmp-dir=' + tmpdir])
+
+        # test results
+        self.assertEqual(code, 4, err)
+        self.assertRegex(out, 'ubtree0t-sp\s+PASS', out)
+        self.assertRegex(out, 'ubtree0t-sf\s+FAIL status: 0, stderr: kaputt', out)
+        self.assertRegex(out, 'ubtree0t-bp\s+PASS', out)
+
+        # should show test stdout and stderr
+        self.assertIn('\nstatic script OK\n', out)
+        self.assertIn('\nbuilt script OK\n', out)
+        self.assertRegex(err, 'stderr [ -]+\nkaputt', err)
+
+        # should build package
+        self.assertIn('debian/rules build', err)
+
+        # check tmpdir test stdout/err
+        with open(os.path.join(tmpdir, 'ubtree0t-sp-stdout')) as f:
+            self.assertEqual(f.read(), 'static script OK\n')
+        with open(os.path.join(tmpdir, 'ubtree0t-sp-stderr')) as f:
+            self.assertEqual(f.read(), '')
+        with open(os.path.join(tmpdir, 'ubtree0t-bp-stdout')) as f:
+            self.assertEqual(f.read(), 'built script OK\n')
+        with open(os.path.join(tmpdir, 'ubtree0t-bp-stderr')) as f:
+            self.assertEqual(f.read(), '')
+        with open(os.path.join(tmpdir, 'ubtree0t-sf-stdout')) as f:
+            self.assertEqual(f.read(), '')
+        with open(os.path.join(tmpdir, 'ubtree0t-sf-stderr')) as f:
+            self.assertEqual(f.read(), 'kaputt\n')
+
+        # check tmpdir log
+        with open(os.path.join(tmpdir, 'log')) as f:
+            contents = f.read()
+        self.assertIn('build needed for test bp', contents)
+        self.assertIn('debian/rules build', contents)
+        self.assertRegex(contents, 'ubtree0t-sf\s+FAIL status: 0, stderr: kaputt')
+        self.assertIn('@@@@ tests done', contents)
+
+
 if __name__ == '__main__':
     if os.geteuid() != 0:
         sys.stderr.write('ERROR: You need to run this test suite as root.\n')
