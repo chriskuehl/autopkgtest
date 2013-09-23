@@ -1,0 +1,18 @@
+#!/bin/sh
+
+# This testsuite is part of autopkgtest
+# autopkgtest is a tool for testing Debian binary packages
+#
+# autopkgtest is Copyright (C) 2006-2013 Canonical Ltd.
+# Author: Martin Pitt <martin.pitt@ubuntu.com>
+
+set -e
+testdir="$(dirname $(readlink -f $0))"
+rootdir="$(dirname $testdir)"
+
+pyflakes $rootdir/lib $rootdir/runner/adt-run
+pyflakes3 $testdir/adt-run
+
+for v in chroot null schroot xenlvm; do
+    pyflakes virt-subproc/adt-virt-$v
+done
