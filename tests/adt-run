@@ -156,16 +156,15 @@ class NullRunner(unittest.TestCase):
     def test_tree_allow_stderr_nobuild_success(self):
         '''source tree, no build, allow-stderr, test success'''
 
-        p = self.build_src('Tests: pass\nDepends: coreutils\nRestrictions: allow-stderr',
+        p = self.build_src('Tests: pass\nDepends:\nRestrictions: allow-stderr',
                            {'pass': '#!/bin/sh\necho I am fine >&2\necho babble'})
 
         (code, out, err) = self.adt_run(['--no-built-binaries', '--built-tree=' + p])
-        self.assertEqual(code, 0)
-        self.assertIn('coreutils', out)
+        self.assertEqual(code, 0, err)
         self.assertRegex(out, 'tree0t-pass\s+PASS', out)
 
         # should show test stdout/err
-        self.assertRegex(out, '\nbabble\n')
+        self.assertIn('babble\n', out)
         self.assertRegex(err, '-+\nI am fine\nadt-run: & tree0t-pass: --')
         # but not complain about stderr
         self.assertNotIn('stderr', err)
