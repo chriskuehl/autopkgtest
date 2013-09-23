@@ -262,13 +262,15 @@ fi
         self.assertNotIn('stderr', err)
 
     def test_tree_tmp_dir(self):
-        '''source tree, explicit --tmp-dir'''
+        '''source tree, explicit --tmp-dir
 
-        p = self.build_src('Tests: sp sf\nDepends: coreutils\n\n'
-                           'Tests: bp\nDepends: coreutils\nRestrictions: build-needed',
-                           {'sp': '#!/bin/sh\n./test_static\n',
-                            'sf': '#!/bin/sh\necho kaputt >&2',
-                            'bp': '#!/bin/sh\n./test_built'})
+        This also covers using upper-case lettes in test names.
+        '''
+        p = self.build_src('Tests: sP sF\nDepends: coreutils\n\n'
+                           'Tests: bP\nDepends: coreutils\nRestrictions: build-needed',
+                           {'sP': '#!/bin/sh\n./test_static\n',
+                            'sF': '#!/bin/sh\necho kaputt >&2',
+                            'bP': '#!/bin/sh\n./test_built'})
 
         tmpdir = os.path.join(self.workdir.name, 'tmp')
         os.mkdir(tmpdir)
@@ -279,9 +281,9 @@ fi
 
         # test results
         self.assertEqual(code, 4, err)
-        self.assertRegex(out, 'ubtree0t-sp\s+PASS', out)
-        self.assertRegex(out, 'ubtree0t-sf\s+FAIL status: 0, stderr: kaputt', out)
-        self.assertRegex(out, 'ubtree0t-bp\s+PASS', out)
+        self.assertRegex(out, 'ubtree0t-sP\s+PASS', out)
+        self.assertRegex(out, 'ubtree0t-sF\s+FAIL status: 0, stderr: kaputt', out)
+        self.assertRegex(out, 'ubtree0t-bP\s+PASS', out)
 
         # should show test stdout and stderr
         self.assertIn('\nstatic script OK\n', out)
@@ -292,25 +294,25 @@ fi
         self.assertIn('debian/rules build', err)
 
         # check tmpdir test stdout/err
-        with open(os.path.join(tmpdir, 'ubtree0t-sp-stdout')) as f:
+        with open(os.path.join(tmpdir, 'ubtree0t-sP-stdout')) as f:
             self.assertEqual(f.read(), 'static script OK\n')
-        with open(os.path.join(tmpdir, 'ubtree0t-sp-stderr')) as f:
+        with open(os.path.join(tmpdir, 'ubtree0t-sP-stderr')) as f:
             self.assertEqual(f.read(), '')
-        with open(os.path.join(tmpdir, 'ubtree0t-bp-stdout')) as f:
+        with open(os.path.join(tmpdir, 'ubtree0t-bP-stdout')) as f:
             self.assertEqual(f.read(), 'built script OK\n')
-        with open(os.path.join(tmpdir, 'ubtree0t-bp-stderr')) as f:
+        with open(os.path.join(tmpdir, 'ubtree0t-bP-stderr')) as f:
             self.assertEqual(f.read(), '')
-        with open(os.path.join(tmpdir, 'ubtree0t-sf-stdout')) as f:
+        with open(os.path.join(tmpdir, 'ubtree0t-sF-stdout')) as f:
             self.assertEqual(f.read(), '')
-        with open(os.path.join(tmpdir, 'ubtree0t-sf-stderr')) as f:
+        with open(os.path.join(tmpdir, 'ubtree0t-sF-stderr')) as f:
             self.assertEqual(f.read(), 'kaputt\n')
 
         # check tmpdir log
         with open(os.path.join(tmpdir, 'log')) as f:
             contents = f.read()
-        self.assertIn('build needed for test bp', contents)
+        self.assertIn('build needed for test bP', contents)
         self.assertIn('debian/rules build', contents)
-        self.assertRegex(contents, 'ubtree0t-sf\s+FAIL status: 0, stderr: kaputt')
+        self.assertRegex(contents, 'ubtree0t-sF\s+FAIL status: 0, stderr: kaputt')
         self.assertIn('@@@@ tests done', contents)
 
 
