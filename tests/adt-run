@@ -332,6 +332,30 @@ fi
         # but not let the test finish
         self.assertNotIn('after_sleep', out)
 
+    def test_summary(self):
+        '''--summary option'''
+
+        p = self.build_src('Tests: good bad\nDepends:\n',
+                           {'good': '#!/bin/sh\necho happy\n',
+                            'bad': '#!/bin/sh\nexit 1'})
+
+        summary = os.path.join(self.workdir.name, 'summary.log')
+
+        (code, out, err) = self.adt_run(['--no-built-binaries',
+                                         '--unbuilt-tree=' + p,
+                                         '--summary=' + summary])
+
+        # test results
+        self.assertEqual(code, 4, err)
+        self.assertRegex(out, 'ubtree0t-good\s+PASS', out)
+        self.assertRegex(out, 'ubtree0t-bad\s+FAIL non-zero exit status 1', out)
+
+        # check summary file
+        with open(summary) as f:
+            self.assertEqual(f.read(), '''ubtree0t-good        PASS
+ubtree0t-bad         FAIL non-zero exit status 1
+''')
+
 
 if __name__ == '__main__':
     if os.geteuid() != 0:
