@@ -117,7 +117,7 @@ class NullRunner(unittest.TestCase):
         self.assertNotIn('stderr', err)
 
         # should not build package
-        self.assertNotIn('debian/rules build', err)
+        self.assertNotIn('dh build', err)
 
     def test_tree_norestrictions_nobuild_fail_on_exit(self):
         '''source tree, no build, no restrictions, test fails with non-zero'''
@@ -202,7 +202,7 @@ class NullRunner(unittest.TestCase):
         self.assertNotIn('stderr', err)
 
         # should build package
-        self.assertIn('debian/rules build', err)
+        self.assertIn('dh build', err)
 
     def test_dsc_norestrictions_nobuild_success(self):
         '''dsc, no build, no restrictions, test success'''
@@ -237,7 +237,7 @@ class NullRunner(unittest.TestCase):
         self.assertNotIn('stderr', err)
 
         # should build package
-        self.assertIn('debian/rules build', err)
+        self.assertIn('dh build', err)
 
     def test_tmpdir_for_other_users(self):
         '''$TMPDIR is accessible to non-root users'''
@@ -291,7 +291,7 @@ fi
         self.assertRegex(err, 'stderr [ -]+\nkaputt', err)
 
         # should build package
-        self.assertIn('debian/rules build', err)
+        self.assertIn('dh build', err)
 
         # check tmpdir test stdout/err
         with open(os.path.join(tmpdir, 'ubtree0t-sP-stdout')) as f:
@@ -311,7 +311,7 @@ fi
         with open(os.path.join(tmpdir, 'log')) as f:
             contents = f.read()
         self.assertIn('build needed for test bP', contents)
-        self.assertIn('debian/rules build', contents)
+        self.assertIn('dh build', contents)
         self.assertRegex(contents, 'ubtree0t-sF\s+FAIL status: 0, stderr: kaputt')
         self.assertIn('@@@@ tests done', contents)
 
