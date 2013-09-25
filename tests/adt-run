@@ -315,6 +315,23 @@ fi
         self.assertRegex(contents, 'ubtree0t-sF\s+FAIL status: 0, stderr: kaputt')
         self.assertIn('@@@@ tests done', contents)
 
+    def test_timeout(self):
+        '''handling test timeout'''
+
+        p = self.build_dsc('Tests: to\nDepends:\n',
+                           {'to': '#!/bin/sh\necho start\nsleep 10\necho after_sleep\n'})
+
+        (code, out, err) = self.adt_run(['--no-built-binaries', '--timeout-test=3', p])
+        # test should time out
+        self.assertEqual(code, 16, err)
+        self.assertIn("got `timeout', expected `ok...'", err)
+        self.assertNotIn('dsc0t-to', out)
+
+        # should show test stdout
+        self.assertIn('start', out)
+        # but not let the test finish
+        self.assertNotIn('after_sleep', out)
+
 
 if __name__ == '__main__':
     if os.geteuid() != 0:
