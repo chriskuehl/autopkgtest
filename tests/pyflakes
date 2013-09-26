@@ -10,8 +10,14 @@ set -e
 testdir="$(dirname $(readlink -f $0))"
 rootdir="$(dirname $testdir)"
 
+if type pyflakes3 >/dev/null 2>&1; then
+    FLAKES3=pyflakes3
+else
+    FLAKES3=pyflakes
+fi
+
 pyflakes $rootdir/lib $rootdir/runner/adt-run
-pyflakes3 $testdir/adt-run
+$FLAKES3 $testdir/adt-run
 
 for v in chroot null schroot xenlvm; do
     pyflakes $rootdir/virt-subproc/adt-virt-$v
