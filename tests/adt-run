@@ -332,6 +332,18 @@ fi
         # but not let the test finish
         self.assertNotIn('after_sleep', out)
 
+    def test_timeout_no_output(self):
+        '''handling test timeout for test without any output'''
+
+        p = self.build_dsc('Tests: to\nDepends:\n',
+                           {'to': '#!/bin/sh\nsleep 10\n'})
+
+        (code, out, err) = self.adt_run(['--no-built-binaries', '--timeout-test=3', p])
+        # test should time out
+        self.assertEqual(code, 16, err)
+        self.assertIn("got `timeout', expected `ok...'", err)
+        self.assertNotIn('dsc0t-to', out)
+
     def test_summary(self):
         '''--summary option'''
 
