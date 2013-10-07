@@ -25,6 +25,7 @@
 
 import sys
 import os
+import re
 import subprocess
 import unittest
 import tempfile
@@ -378,6 +379,118 @@ fi
             self.assertEqual(f.read(), '''ubtree0t-good        PASS
 ubtree0t-bad         FAIL non-zero exit status 1
 ''')
+
+
+class ChrootRunner(AdtTestCase):
+    def __init__(self, *args, **kwargs):
+        super(ChrootRunner, self).__init__('chroot', *args, **kwargs)
+
+    def setUp(self):
+        super(ChrootRunner, self).setUp()
+
+        def install_file(path):
+            destdir = self.chroot + '/' + os.path.dirname(path)
+            if not os.path.exists(destdir):
+                os.makedirs(destdir)
+            if os.path.isfile(path):
+                shutil.copy(path, destdir)
+            else:
+                subprocess.check_call(['cp', '-a', path, destdir])
+
+        def install_elf(path):
+            install_file(path)
+            out = subprocess.check_output(['ldd', path], universal_newlines=True)
+            libs = set()
+            for lib in re.finditer('/[^ ]+', out):
+                libs.add(lib.group(0))
+            for lib in libs:
+                install_file(lib)
+
+        # build a mini-chroot
+        self.chroot = os.path.join(self.workdir.name, 'chroot')
+        self.addCleanup(shutil.rmtree, self.chroot)
+        install_file('/dev/null')
+        install_elf('/bin/sh')
+        install_elf('/bin/ls')
+        install_elf('/bin/cat')
+        install_elf('/bin/rm')
+        install_elf('/bin/cp')
+        install_elf('/bin/mkdir')
+        install_elf('/bin/chmod')
+        install_elf('/bin/chown')
+        install_elf('/bin/mktemp')
+        install_elf('/bin/tar')
+        install_elf('/usr/bin/test')
+
+        # some fakes
+        for cmd in ['dpkg', 'apt-get', 'apt-key']:
+            p = os.path.join(self.chroot, 'usr', 'bin', cmd)
+            with open(p, 'w') as f:
+                f.write('#!/bin/sh\necho "fake-%s: $@" >&2\n' % cmd)
+            os.chmod(p, 0o755)
+
+        p = os.path.join(self.chroot, 'tmp')
+        os.mkdir(p)
+        os.chmod(p, 0o177)
+
+    def test_tree_norestrictions_nobuild_success(self):
+        '''source tree, no build, no restrictions, test success'''
+
+        p = self.build_src('Tests: pass\nDepends:\nRestrictions: needs-root\n',
+                           {'pass': '#!/bin/sh\necho I am fine\n'})
+
+        (code, out, err) = self.adt_run(['--no-built-binaries', '--unbuilt-tree=' + p],
+                                        [self.chroot])
+        #print('----- out ----\n%s\n----- err ----\n%s\n----' % (out, err))
+        # test should succeed
+        self.assertEqual(code, 0, err)
+        self.assertRegex(out, 'tree0t-pass\s+PASS', out)
+
+        # should show test stdout
+        self.assertRegex(err, 'stdout [ -]+\nI am fine\n')
+        # should not have any test stderr
+        self.assertNotIn('stderr', err)
+
+        # should not build package
+        self.assertNotIn('dh build', err)
+
+    def test_tree_norestrictions_nobuild_fail_on_exit(self):
+        '''source tree, no build, no restrictions, test fails with non-zero'''
+
+        p = self.build_src('Tests: nz\nDepends: fancypkg\nRestrictions: needs-root\n',
+                           {'nz': '#!/bin/sh\necho I am sick\nexit 7'})
+
+        (code, out, err) = self.adt_run(['--no-built-binaries', '--unbuilt-tree=' + p],
+                                        [self.chroot])
+        self.assertEqual(code, 4, err)
+        self.assertRegex(out, 'tree0t-nz\s+FAIL non-zero exit status 7')
+
+        # should show test stdout
+        self.assertRegex(err, 'stdout [ -]+\nI am sick\n')
+        # should not have any test stderr
+        self.assertNotIn('stderr', err)
+
+        self.assertIn('processing dependency fancypkg', err)
+        self.assertRegex(err, 'fake-apt-get: .*install.*fancypkg')
+
+        # should not build package
+        self.assertNotIn('dh build', err)
+
+    def test_tree_norestrictions_nobuild_fail_on_stderr(self):
+        '''source tree, no build, no restrictions, test fails with stderr'''
+
+        p = self.build_src('Tests: se\nDepends:\nRestrictions: needs-root\n',
+                           {'se': '#!/bin/sh\necho I am sick >&2'})
+
+        (code, out, err) = self.adt_run(['--no-built-binaries', '--unbuilt-tree=' + p],
+                                        [self.chroot])
+        self.assertEqual(code, 4, err)
+        self.assertRegex(out, 'ubtree0t-se\s+FAIL status: 0, stderr: I am sick\n')
+
+        # should show test stderr
+        self.assertRegex(err, 'stderr [ -]+\nI am sick\n')
+        # should not have any test stdout
+        self.assertNotIn('stdout', err)
 
 
 if __name__ == '__main__':
