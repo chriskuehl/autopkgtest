@@ -36,10 +36,16 @@ root_dir = os.path.dirname(test_dir)
 os.environ['AUTOPKGTEST_BASE'] = root_dir
 
 
-class NullRunner(unittest.TestCase):
+class AdtTestCase(unittest.TestCase):
+    '''Base class for adt-run tests'''
+
+    def __init__(self, virt, *args, **kwargs):
+        super(AdtTestCase, self).__init__(*args, **kwargs)
+        self.adt_run_path = os.path.join(root_dir, 'runner', 'adt-run')
+        self.adt_virt_path = os.path.join(root_dir, 'virt-subproc', 'adt-virt-' + virt)
+
     def setUp(self):
         self.workdir = tempfile.TemporaryDirectory()
-        self.adt_run_path = os.path.join(root_dir, 'runner', 'adt-run')
         self.cwd = os.getcwd()
         self.addCleanup(os.chdir, self.cwd)
 
@@ -80,22 +86,27 @@ class NullRunner(unittest.TestCase):
         self.assertEqual(dbp.returncode, 0)
         return os.path.join(os.path.dirname(srcdir), 'testpkg_1.dsc')
 
-    def adt_run(self, args):
-        '''Run adt-run with given arguments with null virt.
+    def adt_run(self, args, virt_args=[]):
+        '''Run adt-run with given arguments with configured virt runner.
 
          @args: command line args of adt-run, excluding "adt-run" itself; "---
-                adt-virt-null" will be appended automatically (with using
-                adt-virt-null from the source tree)
+                adt-virt-XXX" will be appended automatically (called from the
+                source tree)
 
         Return a tuple (exit_code, stdout, stderr).
         '''
         # run adt command
         adt = subprocess.Popen([self.adt_run_path] + args +
-                               ['---', os.path.join(root_dir, 'virt-subproc', 'adt-virt-null')],
+                               ['---', self.adt_virt_path] + virt_args,
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                universal_newlines=True)
         (out, err) = adt.communicate()
         return (adt.returncode, out, err)
+
+
+class NullRunner(AdtTestCase):
+    def __init__(self, *args, **kwargs):
+        super(NullRunner, self).__init__('null', *args, **kwargs)
 
     def test_tree_norestrictions_nobuild_success(self):
         '''source tree, no build, no restrictions, test success'''
