@@ -37,6 +37,11 @@ root_dir = os.path.dirname(test_dir)
 os.environ['AUTOPKGTEST_BASE'] = root_dir
 
 
+# backwards compat shim for Python 3.1
+if not hasattr(unittest.TestCase, 'assertRegex'):
+    unittest.TestCase.assertRegex = unittest.TestCase.assertRegexpMatches
+
+
 class AdtTestCase(unittest.TestCase):
     '''Base class for adt-run tests'''
 
@@ -46,7 +51,8 @@ class AdtTestCase(unittest.TestCase):
         self.adt_virt_path = os.path.join(root_dir, 'virt-subproc', 'adt-virt-' + virt)
 
     def setUp(self):
-        self.workdir = tempfile.TemporaryDirectory()
+        self.workdir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.workdir)
         self.cwd = os.getcwd()
         self.addCleanup(os.chdir, self.cwd)
 
@@ -58,7 +64,7 @@ class AdtTestCase(unittest.TestCase):
 
         Return path to the source tree.
         '''
-        srcdir = os.path.join(self.workdir.name, 'testpkg')
+        srcdir = os.path.join(self.workdir, 'testpkg')
         shutil.copytree(os.path.join(test_dir, 'testpkg'), srcdir, symlinks=True)
         if test_control:
             dtdir = os.path.join(srcdir, 'debian', 'tests')
@@ -284,7 +290,7 @@ fi
                             'sF': '#!/bin/sh\necho kaputt >&2',
                             'bP': '#!/bin/sh\n./test_built'})
 
-        tmpdir = os.path.join(self.workdir.name, 'tmp')
+        tmpdir = os.path.join(self.workdir, 'tmp')
         os.mkdir(tmpdir)
 
         (code, out, err) = self.adt_run(['--no-built-binaries',
@@ -363,7 +369,7 @@ fi
                            {'good': '#!/bin/sh\necho happy\n',
                             'bad': '#!/bin/sh\nexit 1'})
 
-        summary = os.path.join(self.workdir.name, 'summary.log')
+        summary = os.path.join(self.workdir, 'summary.log')
 
         (code, out, err) = self.adt_run(['--no-built-binaries',
                                          '--unbuilt-tree=' + p,
@@ -407,7 +413,7 @@ class ChrootRunner(AdtTestCase):
                 install_file(lib)
 
         # build a mini-chroot
-        self.chroot = os.path.join(self.workdir.name, 'chroot')
+        self.chroot = os.path.join(self.workdir, 'chroot')
         self.addCleanup(shutil.rmtree, self.chroot)
         install_file('/dev/null')
         install_elf('/bin/sh')
