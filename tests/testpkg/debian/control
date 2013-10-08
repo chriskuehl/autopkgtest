@@ -3,7 +3,7 @@ Maintainer: Autopkgtest team <autopkgtest-devel@lists.alioth.debian.org>
 Section: oldlibs
 Priority: extra
 Standards-Version: 3.9.4
-Build-Depends: debhelper (>= 9)
+Build-Depends: debhelper (>= 7)
 
 Package: testpkg
 Architecture: all
