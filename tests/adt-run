@@ -387,6 +387,8 @@ ubtree0t-bad         FAIL non-zero exit status 1
 ''')
 
 
+@unittest.skipIf('cowdancer' in os.environ.get('LD_PRELOAD', ''),
+                 'chroot tests do not work under cowdancer')
 class ChrootRunner(AdtTestCase):
     def __init__(self, *args, **kwargs):
         super(ChrootRunner, self).__init__('chroot', *args, **kwargs)
