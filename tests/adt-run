@@ -532,6 +532,21 @@ class ChrootRunner(AdtTestCase):
         self.assertRegex(err, 'stderr [ -]+\nI am sick\n')
         self.assertNotIn('stdout', err)
 
+    def test_tree_allow_stderr_nobuild_success(self):
+        '''source tree, no build, allow-stderr, test success'''
+
+        p = self.build_src('Tests: pass\nDepends:\nRestrictions: allow-stderr needs-root',
+                           {'pass': '#!/bin/sh\necho I am fine >&2\necho babble'})
+
+        (code, out, err) = self.adt_run(['--no-built-binaries', '--built-tree=' + p],
+                                        [self.chroot])
+        self.assertEqual(code, 0, err)
+        self.assertRegex(out, 'tree0t-pass\s+PASS', out)
+
+        # should show test stdout/err
+        self.assertRegex(err, 'stdout [ -]+\nbabble\n')
+        self.assertRegex(err, 'stderr [ -]+\nI am fine\n')
+
 
 @unittest.skipUnless('ADT_TEST_SCHROOT' in os.environ,
                      'Set $ADT_TEST_SCHROOT to an existing schroot')
@@ -611,6 +626,21 @@ class SchrootRunner(AdtTestCase):
         # should show test stderr separately (no real-time output for chroot)
         self.assertRegex(err, 'stderr [ -]+\nI am sick\n')
         self.assertNotIn('stdout', err)
+
+    def test_tree_allow_stderr_nobuild_success(self):
+        '''source tree, no build, allow-stderr, test success'''
+
+        p = self.build_src('Tests: pass\nDepends:\nRestrictions: allow-stderr',
+                           {'pass': '#!/bin/sh\necho I am fine >&2\necho babble'})
+
+        (code, out, err) = self.adt_run(['--no-built-binaries', '--built-tree=' + p],
+                                        [self.schroot_name])
+        self.assertEqual(code, 0, err)
+        self.assertRegex(out, 'tree0t-pass\s+PASS', out)
+
+        # should show test stdout/err
+        self.assertRegex(err, 'stdout [ -]+\nbabble\n')
+        self.assertRegex(err, 'stderr [ -]+\nI am fine\n')
 
     def test_tree_build_needed_success(self):
         '''source tree, build-needed restriction, test success'''
