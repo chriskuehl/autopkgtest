@@ -171,6 +171,21 @@ class NullRunner(AdtTestCase):
         # should show test stderr
         self.assertRegex(err, 'stderr [ -]+\nI am sick', err)
 
+    def test_tree_norestrictions_nobuild_fail_on_stderr_and_exit(self):
+        '''source tree, no build, no restrictions, test fails with stderr+exit'''
+
+        p = self.build_src('Tests: senz\nDepends:\n',
+                           {'senz': '#!/bin/sh\necho I am sick >&2\nexit 7\n'})
+
+        (code, out, err) = self.adt_run(['--no-built-binaries', '--built-tree=' + p])
+        # test should fail
+        self.assertEqual(code, 4)
+        self.assertRegex(out, 'tree0t-senz\s+FAIL non-zero exit status 7')
+
+        # should show test stderr, but inline
+        self.assertRegex(err, 'stderr [ -]+\nI am sick', err)
+        self.assertNotIn('stdout', err)
+
     def test_tree_allow_stderr_nobuild_success(self):
         '''source tree, no build, allow-stderr, test success'''
 
@@ -199,7 +214,7 @@ class NullRunner(AdtTestCase):
         self.assertIn('coreutils', out)
         self.assertRegex(out, 'tree0t-nz\s+FAIL non-zero exit status 7')
 
-        # should show test stdout/err
+        # should show test stdout/err inline
         self.assertRegex(out, '\nbabble\n')
         self.assertRegex(err, '---+\nI am fine\nadt-run', err)
         # but not complain about stderr
@@ -498,6 +513,22 @@ class ChrootRunner(AdtTestCase):
         # should show test stderr
         self.assertRegex(err, 'stderr [ -]+\nI am sick\n')
         # should not have any test stdout
+        self.assertNotIn('stdout', err)
+
+    def test_tree_norestrictions_nobuild_fail_on_stderr_and_exit(self):
+        '''source tree, no build, no restrictions, test fails with stderr+exit'''
+
+        p = self.build_src('Tests: senz\nDepends:\nRestrictions: needs-root\n',
+                           {'senz': '#!/bin/sh\necho I am sick >&2\nexit 7\n'})
+
+        (code, out, err) = self.adt_run(['--no-built-binaries', '--built-tree=' + p],
+                                        [self.chroot])
+        # test should fail
+        self.assertEqual(code, 4)
+        self.assertRegex(out, 'tree0t-senz\s+FAIL non-zero exit status 7')
+
+        # should show test stderr separately (no real-time output for chroot)
+        self.assertRegex(err, 'stderr [ -]+\nI am sick\n')
         self.assertNotIn('stdout', err)
 
 
