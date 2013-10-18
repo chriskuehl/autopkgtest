@@ -19,6 +19,6 @@ fi
 pyflakes $rootdir/lib $rootdir/runner/adt-run
 $FLAKES3 $testdir/adt-run
 
-for v in chroot null schroot xenlvm; do
+for v in chroot null schroot xenlvm lxc; do
     pyflakes $rootdir/virt-subproc/adt-virt-$v
 done

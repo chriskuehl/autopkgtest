@@ -26,6 +26,7 @@ programs =	virt-subproc/adt-virt-chroot \
 		virt-subproc/adt-virt-xenlvm \
 		virt-subproc/adt-virt-null \
 		virt-subproc/adt-virt-schroot \
+		virt-subproc/adt-virt-lxc \
 		runner/adt-run \
 		runner/adt-testreport-onepackage \
 		runner/adt-testreport-runloop \

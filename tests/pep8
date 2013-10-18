@@ -5,7 +5,7 @@ rootdir="$(dirname $testdir)"
 
 pep8 $rootdir/lib/*.py
 
-for v in chroot null schroot xenlvm; do
+for v in chroot null schroot xenlvm lxc; do
     pep8 $rootdir/virt-subproc/adt-virt-$v
 done
 
