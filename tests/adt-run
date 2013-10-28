@@ -403,6 +403,71 @@ fi
 ubtree0t-bad         FAIL non-zero exit status 1
 ''')
 
+    def test_logfile_success(self):
+        '''--log-file option, success'''
+
+        p = self.build_src('Tests: pass\nDepends: coreutils\n',
+                           {'pass': '#!/bin/sh\necho I am fine\n'})
+
+        logfile = os.path.join(self.workdir, 'adt.log')
+        (code, out, err) = self.adt_run(['--no-built-binaries',
+                                         '--unbuilt-tree=' + p,
+                                         '--log-file=' + logfile])
+        #print('----- out ----\n%s\n----- err ----\n%s\n----' % (out, err))
+        # test should succeed
+        self.assertEqual(code, 0, err)
+
+        with open(logfile) as f:
+            log = f.read()
+        self.assertIn('coreutils', out)
+        self.assertIn('coreutils', log)
+        self.assertRegex(out, 'tree0t-pass\s+PASS')
+        self.assertRegex(log, 'tree0t-pass\s+PASS')
+
+        self.assertIn('processing dependency coreutils', err)
+        self.assertIn('processing dependency coreutils', log)
+        # should show test stdout
+        self.assertIn('\nI am fine\n', out)
+        self.assertIn('\nI am fine\n', log)
+        # should not have any test stderr
+        self.assertNotIn('stderr', err)
+        self.assertNotIn('stderr', log)
+
+        # should not build package
+        self.assertNotIn('dh build', err)
+
+    def test_logfile_failure(self):
+        '''--log-file option, failure'''
+
+        p = self.build_src('Tests: nz\nDepends: coreutils\nRestrictions: build-needed\n',
+                           {'nz': '#!/bin/sh\n./test_built\necho I am sick >&2\nexit 7'})
+
+        logfile = os.path.join(self.workdir, 'adt.log')
+        (code, out, err) = self.adt_run(['--no-built-binaries',
+                                         '--unbuilt-tree=' + p,
+                                         '--log-file=' + logfile])
+        with open(logfile) as f:
+            log = f.read()
+
+        # test should fail
+        self.assertEqual(code, 4)
+        self.assertRegex(out, 'tree0t-nz\s+FAIL non-zero exit status 7')
+        self.assertRegex(log, 'tree0t-nz\s+FAIL non-zero exit status 7')
+
+        self.assertIn('processing dependency coreutils', err)
+        self.assertIn('processing dependency coreutils', log)
+
+        # should build package
+        self.assertIn('dh build', err)
+        self.assertIn('dh build', log)
+
+        # should show test stdout
+        self.assertIn('\nbuilt script OK\n', out)
+        self.assertIn('\nbuilt script OK\n', log)
+        # should show test stderr
+        self.assertRegex(err, 'stderr [ -]+\nI am sick\n')
+        self.assertRegex(log, 'stderr [ -]+\nI am sick\n')
+
 
 @unittest.skipIf('cowdancer' in os.environ.get('LD_PRELOAD', ''),
                  'chroot tests do not work under cowdancer')
