@@ -468,6 +468,22 @@ ubtree0t-bad         FAIL non-zero exit status 1
         self.assertRegex(err, 'stderr [ -]+\nI am sick\n')
         self.assertRegex(log, 'stderr [ -]+\nI am sick\n')
 
+    def test_dev_stdouterr_access(self):
+        '''write to /dev/stdout and /dev/stderr in a test'''
+
+        p = self.build_src('Tests: pass\nDepends:\nRestrictions: allow-stderr',
+                           {'pass': '#!/bin/sh\necho I am fine >/dev/stdout\n'
+                            'echo SomeDebug >/dev/stderr\n'})
+
+        (code, out, err) = self.adt_run(['--no-built-binaries', '--built-tree=' + p])
+        self.assertEqual(code, 0, err)
+        self.assertRegex(out, 'tree0t-pass\s+PASS', out)
+
+        # should show test stdout/err
+        self.assertIn('I am fine\n', out)
+        # should show test stderr
+        self.assertIn('\nSomeDebug\n', err)
+
 
 @unittest.skipIf('cowdancer' in os.environ.get('LD_PRELOAD', ''),
                  'chroot tests do not work under cowdancer')
