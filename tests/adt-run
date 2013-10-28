@@ -448,7 +448,7 @@ class ChrootRunner(AdtTestCase):
         install_elf('/usr/bin/test')
 
         # some fakes
-        for cmd in ['dpkg', 'apt-get', 'apt-key']:
+        for cmd in ['dpkg', 'apt-get', 'apt-key', 'apt-cache']:
             p = os.path.join(self.chroot, 'usr', 'bin', cmd)
             with open(p, 'w') as f:
                 f.write('#!/bin/sh\necho "fake-%s: $@" >&2\n' % cmd)
@@ -542,11 +542,31 @@ class ChrootRunner(AdtTestCase):
         (code, out, err) = self.adt_run(['--no-built-binaries', '--built-tree=' + p],
                                         [self.chroot])
         self.assertEqual(code, 0, err)
-        self.assertRegex(out, 'tree0t-pass\s+PASS', out)
+        self.assertRegex(out, 'tree0t-pass\s+PASS')
 
         # should show test stdout/err
         self.assertRegex(err, 'stdout [ -]+\nbabble\n')
         self.assertRegex(err, 'stderr [ -]+\nI am fine\n')
+
+    def test_fancy_deps(self):
+        '''wrapped and versioned test dependencies'''
+
+        p = self.build_src('''Tests: pass
+Depends: fancypkg,
+         coreutils | vanilla (>= 10),
+         chocolate,
+Restrictions: needs-root
+''', {'pass': '#!/bin/sh\ntrue'})
+
+        (code, out, err) = self.adt_run(['--no-built-binaries', '--unbuilt-tree=' + p],
+                                        [self.chroot])
+        self.assertEqual(code, 0, err)
+        self.assertRegex(out, 'tree0t-pass\s+PASS')
+
+        self.assertIn('processing dependency fancypkg\n', err)
+        self.assertIn('processing dependency coreutils | vanilla (>= 10)\n', err)
+        self.assertIn('processing dependency chocolate\n', err)
+        self.assertRegex(err, 'fake-apt-get: .*install.*fancypkg coreutils chocolate')
 
 
 @unittest.skipUnless('ADT_TEST_SCHROOT' in os.environ,
