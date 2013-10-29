@@ -649,6 +649,35 @@ Restrictions: needs-root
         self.assertIn('processing dependency chocolate\n', err)
         self.assertRegex(err, 'fake-apt-get: .*install.*fancypkg coreutils chocolate')
 
+    def test_logfile(self):
+        '''--log-file option'''
+
+        p = self.build_src('Tests: nz\nDepends: coreutils\nRestrictions: needs-root\n',
+                           {'nz': '#!/bin/sh\n./test_static\necho I am sick >&2\nexit 7'})
+
+        logfile = os.path.join(self.workdir, 'adt.log')
+        (code, out, err) = self.adt_run(['--no-built-binaries',
+                                         '--unbuilt-tree=' + p,
+                                         '--log-file=' + logfile],
+                                        [self.chroot])
+        with open(logfile) as f:
+            log = f.read()
+
+        # test should fail
+        self.assertEqual(code, 4, err)
+        self.assertRegex(out, 'tree0t-nz\s+FAIL non-zero exit status 7')
+        self.assertRegex(log, 'tree0t-nz\s+FAIL non-zero exit status 7')
+
+        self.assertIn('processing dependency coreutils', err)
+        self.assertIn('processing dependency coreutils', log)
+
+        # should show test stdout
+        self.assertRegex(err, 'stdout [ -]+\nstatic script OK\n')
+        self.assertRegex(log, 'stdout [ -]+\nstatic script OK\n')
+        # should show test stderr
+        self.assertRegex(err, 'stderr [ -]+\nI am sick\n')
+        self.assertRegex(log, 'stderr [ -]+\nI am sick\n')
+
 
 @unittest.skipUnless('ADT_TEST_SCHROOT' in os.environ,
                      'Set $ADT_TEST_SCHROOT to an existing schroot')
@@ -782,6 +811,39 @@ class SchrootRunner(AdtTestCase):
 
         # should build package
         self.assertIn('dh build', err)
+
+    def test_logfile(self):
+        '''--log-file option'''
+
+        p = self.build_src('Tests: nz\nDepends: coreutils\nRestrictions: build-needed\n',
+                           {'nz': '#!/bin/sh\n./test_built\necho I am sick >&2\nexit 7'})
+
+        logfile = os.path.join(self.workdir, 'adt.log')
+        (code, out, err) = self.adt_run(['--no-built-binaries',
+                                         '--unbuilt-tree=' + p,
+                                         '--log-file=' + logfile],
+                                        [self.schroot_name])
+        with open(logfile) as f:
+            log = f.read()
+
+        # test should fail
+        self.assertEqual(code, 4)
+        self.assertRegex(out, 'tree0t-nz\s+FAIL non-zero exit status 7')
+        self.assertRegex(log, 'tree0t-nz\s+FAIL non-zero exit status 7')
+
+        self.assertIn('processing dependency coreutils', err)
+        self.assertIn('processing dependency coreutils', log)
+
+        # should build package
+        self.assertIn('dh build', err)
+        self.assertIn('dh build', log)
+
+        # should show test stdout
+        self.assertRegex(err, 'stdout [ -]+\nbuilt script OK\n')
+        self.assertRegex(log, 'stdout [ -]+\nbuilt script OK\n')
+        # should show test stderr
+        self.assertRegex(err, 'stderr [ -]+\nI am sick\n')
+        self.assertRegex(log, 'stderr [ -]+\nI am sick\n')
 
 
 @unittest.skipUnless('ADT_TEST_LXC' in os.environ,
