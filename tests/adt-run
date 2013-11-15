@@ -812,6 +812,36 @@ class SchrootRunner(AdtTestCase):
         # should build package
         self.assertIn('dh build', err)
 
+    def test_tree_built_binaries(self):
+        '''source tree, install built binaries'''
+
+        # no "build-needed" restriction here, it should be built because we
+        # need to install the package as a dependency (@)
+        p = self.build_src('Tests: pass\n',
+                           {'pass': '#!/bin/sh -e\n/usr/bin/test_built | grep -q "built script OK"\necho GOOD'})
+
+        # add extra dependency to testpkg, to ensure autopkgtest does not stop
+        # and ask for confirmation in apt-get
+        subprocess.check_call(['sed', '-i', '/^Depends:/ s/$/, aspell-doc/',
+                               os.path.join(p, 'debian', 'control')])
+
+        (code, out, err) = self.adt_run(['--unbuilt-tree=' + p], [self.schroot_name])
+
+        # should build and install package
+        self.assertIn('dh build', err)
+        self.assertRegex(out, 'ubtree0t-pass\s+PASS', out)
+        self.assertRegex(out, 'Unpacking testpkg .*binaries/./testpkg.deb')
+        self.assertIn('Unpacking aspell-doc', out)
+
+        # test should succeed
+        self.assertRegex(out, 'ubtree0t-pass\s+PASS', out)
+        self.assertEqual(code, 0)
+
+        # should show test stdout
+        self.assertRegex(err, 'stdout [ -]+\nGOOD\n')
+        # should not have any test stderr
+        self.assertNotIn('stderr', err)
+
     def test_logfile(self):
         '''--log-file option'''
 
@@ -978,6 +1008,37 @@ class LxcRunner(AdtTestCase):
 
         # should build package
         self.assertIn('dh build', err)
+
+    def test_tree_built_binaries(self):
+        '''source tree, install built binaries'''
+
+        # no "build-needed" restriction here, it should be built because we
+        # need to install the package as a dependency (@)
+        p = self.build_src('Tests: pass\n',
+                           {'pass': '#!/bin/sh -e\n/usr/bin/test_built | grep -q "built script OK"\necho GOOD'})
+
+        # add extra dependency to testpkg, to ensure autopkgtest does not stop
+        # and ask for confirmation in apt-get
+        subprocess.check_call(['sed', '-i', '/^Depends:/ s/$/, aspell-doc/',
+                               os.path.join(p, 'debian', 'control')])
+
+        (code, out, err) = self.adt_run(['--unbuilt-tree=' + p],
+                                        ['--ephemeral', self.container_name])
+
+        # should build and install package
+        self.assertIn('dh build', err)
+        self.assertRegex(out, 'ubtree0t-pass\s+PASS', out)
+        self.assertRegex(out, 'testpkg .*binaries/./testpkg.deb')
+        self.assertRegex(out, 'aspell-doc .*\.\.\./aspell-doc_\d.*_all.deb\)')
+
+        # test should succeed
+        self.assertRegex(out, 'ubtree0t-pass\s+PASS', out)
+        self.assertEqual(code, 0)
+
+        # should show test stdout
+        self.assertRegex(err, 'stdout [ -]+\nGOOD\n')
+        # should not have any test stderr
+        self.assertNotIn('stderr', err)
 
     def test_tree_clone(self):
         '''source tree, no --ephemeral option (using clone)'''
