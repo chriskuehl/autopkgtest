@@ -988,7 +988,7 @@ class LxcRunner(AdtTestCase):
         (code, out, err) = self.adt_run(['--no-built-binaries', '--built-tree=' + p],
                                         [self.container_name])
         # test should fail
-        self.assertEqual(code, 4)
+        self.assertEqual(code, 4, err)
         self.assertRegex(out, 'tree0t-senz\s+FAIL non-zero exit status 7')
 
         # should show test stderr separately (no real-time output for chroot)
