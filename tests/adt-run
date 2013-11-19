@@ -297,8 +297,8 @@ fi
         self.assertNotIn('stdout', err)
         self.assertNotIn('stderr', err)
 
-    def test_tree_tmp_dir(self):
-        '''source tree, explicit --tmp-dir
+    def test_tree_output_dir(self):
+        '''source tree, explicit --output-dir
 
         This also covers using upper-case lettes in test names.
         '''
@@ -308,12 +308,12 @@ fi
                             'sF': '#!/bin/sh\necho kaputt >&2',
                             'bP': '#!/bin/sh\n./test_built'})
 
-        tmpdir = os.path.join(self.workdir, 'tmp')
-        os.mkdir(tmpdir)
+        outdir = os.path.join(self.workdir, 'out')
+        os.mkdir(outdir)
 
         (code, out, err) = self.adt_run(['--no-built-binaries',
                                          '--unbuilt-tree=' + p,
-                                         '--tmp-dir=' + tmpdir])
+                                         '--output-dir=' + outdir])
 
         # test results
         self.assertEqual(code, 4, err)
@@ -329,22 +329,22 @@ fi
         # should build package
         self.assertIn('dh build', err)
 
-        # check tmpdir test stdout/err
-        with open(os.path.join(tmpdir, 'ubtree0t-sP-stdout')) as f:
+        # check outdir test stdout/err
+        with open(os.path.join(outdir, 'ubtree0t-sP-stdout')) as f:
             self.assertEqual(f.read(), 'static script OK\n')
-        with open(os.path.join(tmpdir, 'ubtree0t-sP-stderr')) as f:
+        with open(os.path.join(outdir, 'ubtree0t-sP-stderr')) as f:
             self.assertEqual(f.read(), '')
-        with open(os.path.join(tmpdir, 'ubtree0t-bP-stdout')) as f:
+        with open(os.path.join(outdir, 'ubtree0t-bP-stdout')) as f:
             self.assertEqual(f.read(), 'built script OK\n')
-        with open(os.path.join(tmpdir, 'ubtree0t-bP-stderr')) as f:
+        with open(os.path.join(outdir, 'ubtree0t-bP-stderr')) as f:
             self.assertEqual(f.read(), '')
-        with open(os.path.join(tmpdir, 'ubtree0t-sF-stdout')) as f:
+        with open(os.path.join(outdir, 'ubtree0t-sF-stdout')) as f:
             self.assertEqual(f.read(), '')
-        with open(os.path.join(tmpdir, 'ubtree0t-sF-stderr')) as f:
+        with open(os.path.join(outdir, 'ubtree0t-sF-stderr')) as f:
             self.assertEqual(f.read(), 'kaputt\n')
 
-        # check tmpdir log
-        with open(os.path.join(tmpdir, 'log')) as f:
+        # check outdir log
+        with open(os.path.join(outdir, 'log')) as f:
             contents = f.read()
         self.assertIn('build needed for test bP', contents)
         self.assertIn('dh build', contents)
@@ -352,10 +352,10 @@ fi
         self.assertIn('@@@@ tests done', contents)
 
         # --no-built-binaries, we don't expect any debs
-        self.assertEqual(os.listdir(os.path.join(tmpdir, 'binaries')), [])
+        self.assertEqual(os.listdir(os.path.join(outdir, 'binaries')), [])
 
-        # check for cruft in tmpdir
-        files = [i for i in os.listdir(tmpdir) if not fnmatch.fnmatch(i, 'ubtree*-std*')]
+        # check for cruft in outdir
+        files = [i for i in os.listdir(outdir) if not fnmatch.fnmatch(i, 'ubtree*-std*')]
         self.assertEqual(set(files), set(['log', 'binaries']))
 
     def test_timeout(self):
@@ -883,18 +883,18 @@ class SchrootRunner(AdtTestCase):
         self.assertRegex(err, 'stderr [ -]+\nI am sick\n')
         self.assertRegex(log, 'stderr [ -]+\nI am sick\n')
 
-    def test_tree_tmp_dir(self):
-        '''source tree, explicit --tmp-dir'''
+    def test_tree_output_dir(self):
+        '''source tree, explicit --output-dir'''
 
         p = self.build_src('Tests: ok broken\n',
                            {'ok': '#!/bin/sh\n/usr/bin/test_built',
                             'broken': '#!/bin/sh\necho kaputt >&2'})
 
-        tmpdir = os.path.join(self.workdir, 'tmp')
-        os.mkdir(tmpdir)
+        outdir = os.path.join(self.workdir, 'out')
+        os.mkdir(outdir)
 
         (code, out, err) = self.adt_run(['--unbuilt-tree=' + p,
-                                         '--tmp-dir=' + tmpdir],
+                                         '--output-dir=' + outdir],
                                         [self.schroot_name])
 
         # test results
@@ -909,31 +909,31 @@ class SchrootRunner(AdtTestCase):
         # should build package
         self.assertIn('dh build', err)
 
-        # check tmpdir test stdout/err
-        with open(os.path.join(tmpdir, 'ubtree0t-ok-stdout')) as f:
+        # check outdir test stdout/err
+        with open(os.path.join(outdir, 'ubtree0t-ok-stdout')) as f:
             self.assertEqual(f.read(), 'built script OK\n')
-        with open(os.path.join(tmpdir, 'ubtree0t-ok-stderr')) as f:
+        with open(os.path.join(outdir, 'ubtree0t-ok-stderr')) as f:
             self.assertEqual(f.read(), '')
-        with open(os.path.join(tmpdir, 'ubtree0t-broken-stdout')) as f:
+        with open(os.path.join(outdir, 'ubtree0t-broken-stdout')) as f:
             self.assertEqual(f.read(), '')
-        with open(os.path.join(tmpdir, 'ubtree0t-broken-stderr')) as f:
+        with open(os.path.join(outdir, 'ubtree0t-broken-stderr')) as f:
             self.assertEqual(f.read(), 'kaputt\n')
 
-        # check tmpdir log
-        with open(os.path.join(tmpdir, 'log')) as f:
+        # check outdir log
+        with open(os.path.join(outdir, 'log')) as f:
             contents = f.read()
         self.assertIn('dh build', contents)
         self.assertRegex(contents, 'ubtree0t-broken\s+FAIL status: 0, stderr: kaputt')
         self.assertIn('@@@@ tests done', contents)
 
         # check binaries
-        bins = os.listdir(os.path.join(tmpdir, 'binaries'))
+        bins = os.listdir(os.path.join(outdir, 'binaries'))
         self.assertEqual(set(bins),
                          set(['Release.gpg', 'archive-key.pgp', 'Release',
                               'Packages.gz', 'Packages', 'testpkg.deb']))
 
-        # check for cruft in tmpdir
-        files = [i for i in os.listdir(tmpdir) if not fnmatch.fnmatch(i, 'ubtree*-std*')]
+        # check for cruft in outdir
+        files = [i for i in os.listdir(outdir) if not fnmatch.fnmatch(i, 'ubtree*-std*')]
         self.assertEqual(set(files), set(['log', 'binaries']))
 
 

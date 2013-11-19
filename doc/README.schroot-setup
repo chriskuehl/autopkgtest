@@ -40,7 +40,7 @@ schroot-mediated lvm snapshots.
 6. Clone autopkgtest, and you can do this
       cd autopkgtest.git/runner
       mkdir tmp
-      AUTOPKGTEST_BASE=.. ./adt-run --tmp-dir=`pwd`/tmp -d \
+      AUTOPKGTEST_BASE=.. ./adt-run --output-dir=`pwd`/tmp -d \
         ../../Mawk/ancient/mawk_1.3.3-11ubuntu2.dsc --- \
         ../virt-subproc/adt-virt-schroot wheezy-snap
    Or install autopkgtest.deb and run
