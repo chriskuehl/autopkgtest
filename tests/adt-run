@@ -310,6 +310,9 @@ fi
 
         outdir = os.path.join(self.workdir, 'out')
         os.mkdir(outdir)
+        # put some cruft into it, to check that it gets cleaned up
+        with open(os.path.join(outdir, 'cruft.txt'), 'w') as f:
+            f.write('hello world')
 
         (code, out, err) = self.adt_run(['--no-built-binaries',
                                          '--unbuilt-tree=' + p,
@@ -891,7 +894,6 @@ class SchrootRunner(AdtTestCase):
                             'broken': '#!/bin/sh\necho kaputt >&2'})
 
         outdir = os.path.join(self.workdir, 'out')
-        os.mkdir(outdir)
 
         (code, out, err) = self.adt_run(['--unbuilt-tree=' + p,
                                          '--output-dir=' + outdir],
