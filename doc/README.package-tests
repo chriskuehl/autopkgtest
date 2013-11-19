@@ -33,6 +33,12 @@ point to a directory for the execution of this particular test, which
 starts empty and will be deleted afterwards (so there is no need for
 the test to clean up files left there).
 
+If tests want to create artifacts which are useful to attach to test
+results, such as additional log files or screenshots, they can put them
+into the directory specified by the ADT_ARTIFACTS environment variable.
+When using the --output-dir option, they will be copied into
+<outputdir>/artifacts/.
+
 Tests must declare all applicable Restrictions - see below.
 
 

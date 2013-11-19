@@ -689,6 +689,32 @@ Restrictions: needs-root
         self.assertRegex(err, 'stderr [ -]+\nI am sick\n')
         self.assertRegex(log, 'stderr [ -]+\nI am sick\n')
 
+    def test_artifacts(self):
+        '''tests producing additional artifacts'''
+
+        p = self.build_src('Tests: pass\nDepends:\nRestrictions: needs-root\n',
+                           {'pass': '#!/bin/sh -e\n[ -d "$ADT_ARTIFACTS" ]\n'
+                                    'echo I am fine > $ADT_ARTIFACTS/health.txt\n'})
+
+        outdir = os.path.join(self.workdir, 'out')
+
+        (code, out, err) = self.adt_run(['--no-built-binaries',
+                                         '--unbuilt-tree=' + p,
+                                         '--output-dir=' + outdir],
+                                        [self.chroot])
+
+        # test should succeed
+        self.assertEqual(code, 0, err)
+        self.assertRegex(out, 'tree0t-pass\s+PASS', out)
+
+        # check for cruft in output dir
+        files = [f for f in os.listdir(outdir) if not fnmatch.fnmatch(f, 'ubtree*-std*')]
+        self.assertEqual(set(files), set(['log', 'binaries', 'artifacts']))
+
+        # check artifact
+        with open(os.path.join(outdir, 'artifacts', 'health.txt')) as f:
+            self.assertEqual(f.read(), 'I am fine\n')
+
 
 @unittest.skipUnless('ADT_TEST_SCHROOT' in os.environ,
                      'Set $ADT_TEST_SCHROOT to an existing schroot')
