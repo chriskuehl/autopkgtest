@@ -51,7 +51,7 @@ The fields which may appear in the RFC822-style stanza are:
     all of the named tests.
 
     Test names are separated by whitespace and should contain only
-    characters which are legal in package names, plus `/'. It is permitted, but
+    characters which are legal in package names. It is permitted, but
     not encouraged, to use upper-case characters as well.
 
   Restrictions: <restriction-name> [<another-restriction-name> ...]
