@@ -297,6 +297,26 @@ fi
         self.assertNotIn('stdout', err)
         self.assertNotIn('stderr', err)
 
+    def test_user(self):
+        '''--user option'''
+
+        p = self.build_src('Tests: t\nDepends:\n',
+                           {'t': '''#!/bin/sh -e
+                                    echo world > $TMPDIR/hello.txt
+                                    cat $TMPDIR/hello.txt
+                                    whoami'''})
+
+        (code, out, err) = self.adt_run(['--no-built-binaries',
+                                         '--unbuilt-tree=' + p,
+                                         '--user=nobody'])
+        self.assertEqual(code, 0, err)
+
+        # test should succeed
+        self.assertRegex(out, 'tree0t-t\s+PASS', out)
+
+        # has output from cat and whoami
+        self.assertIn('world\nnobody\n', out)
+
     def test_tree_output_dir(self):
         '''source tree, explicit --output-dir
 
@@ -982,6 +1002,27 @@ class SchrootRunner(AdtTestCase):
         # check for cruft in outdir
         files = [i for i in os.listdir(outdir) if not fnmatch.fnmatch(i, 'ubtree*-std*')]
         self.assertEqual(set(files), set(['log', 'binaries']))
+
+    def test_user(self):
+        '''--user option'''
+
+        p = self.build_src('Tests: t\nDepends:\n',
+                           {'t': '''#!/bin/sh -e
+                                    echo world > $TMPDIR/hello.txt
+                                    cat $TMPDIR/hello.txt
+                                    whoami'''})
+
+        (code, out, err) = self.adt_run(['--no-built-binaries',
+                                         '--unbuilt-tree=' + p,
+                                         '--user=nobody'],
+                                        [self.schroot_name])
+        self.assertEqual(code, 0, err)
+
+        # test should succeed
+        self.assertRegex(out, 'tree0t-t\s+PASS', out)
+
+        # has output from cat and whoami
+        self.assertRegex(err, 'stdout [ -]+\nworld\nnobody\n')
 
 
 @unittest.skipUnless('ADT_TEST_LXC' in os.environ,
