@@ -277,7 +277,8 @@ class NullRunner(AdtTestCase):
     def test_tmpdir_for_other_users(self):
         '''$TMPDIR is accessible to non-root users'''
 
-        os.umask(0o077)
+        prev_mask = os.umask(0o077)
+        self.addCleanup(os.umask, prev_mask)
         p = self.build_src('Tests: t\nDepends: coreutils\nRestrictions: needs-root\n',
                            {'t': '''#!/bin/sh -e
 echo hello > $TMPDIR/rootowned.txt
