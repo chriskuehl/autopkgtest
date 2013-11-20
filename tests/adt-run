@@ -869,6 +869,9 @@ class SchrootRunner(AdtTestCase):
         self.assertRegex(out, 'ubtree0t-pass\s+PASS', out)
         self.assertRegex(out, 'Unpacking testpkg .*binaries/./testpkg.deb')
         self.assertIn('Unpacking aspell-doc', out)
+        # does not install Recommends by default
+        self.assertNotIn('Unpacking cpp-doc', out)
+        self.assertNotIn('cpp-doc', err)
 
         # test should succeed
         self.assertRegex(out, 'ubtree0t-pass\s+PASS', out)
