@@ -715,6 +715,22 @@ Restrictions: needs-root
         with open(os.path.join(outdir, 'artifacts', 'health.txt')) as f:
             self.assertEqual(f.read(), 'I am fine\n')
 
+    def test_slash_in_test_name(self):
+        '''test names must not contain /'''
+
+        p = self.build_src('Tests: pass subdir/p\nDepends:\nRestrictions: needs-root',
+                           {'pass': '#!/bin/sh\ntrue'})
+
+        (code, out, err) = self.adt_run(['--no-built-binaries', '--unbuilt-tree=' + p],
+                                        [self.chroot])
+        # invalid test gets skipped
+        self.assertEqual(code, 2, err)
+        self.assertRegex(out, 'subdir/p\s+SKIP test name may not contain /.* line 1')
+
+        # valid test still gets run
+        self.assertNotRegex(out, 'pass\s+SKIP')
+        self.assertRegex(out, 'ubtree0t-pass\s+PASS', out)
+
 
 @unittest.skipUnless('ADT_TEST_SCHROOT' in os.environ,
                      'Set $ADT_TEST_SCHROOT to an existing schroot')
