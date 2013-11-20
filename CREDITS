@@ -1,7 +1,8 @@
 autopkgtest, a tool for testing Debian binary packages
 
-autopkgtest is Copyright (C) 2006-2007 Canonical Ltd.
-autopkgtest was written by Ian Jackson for Canonical.
+autopkgtest is Copyright (C) 2006-2013 Canonical Ltd.
+autopkgtest was initially written by Ian Jackson for Canonical,
+and is currently developed by Martin Pitt <martin.pitt@ubuntu.com>.
 
 (autopkgtest was previously known as autodebtest)
 
