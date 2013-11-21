@@ -513,6 +513,18 @@ ubtree0t-bad         FAIL non-zero exit status 1
         # should show test stderr
         self.assertIn('\nSomeDebug\n', err)
 
+    def test_breaks_testbed(self):
+        '''breaks-testbed restriction'''
+
+        p = self.build_src('Tests: rambo\nDepends:\nRestrictions: needs-root breaks-testbed',
+                           {'rambo': '#!/bin/sh\ntouch /var/tmp/zap\n'})
+
+        (code, out, err) = self.adt_run(['--no-built-binaries', '--unbuilt-tree=' + p])
+        # test should be skipped as null runner doesn't provide revert
+        self.assertEqual(code, 10)
+        self.assertRegex(out, 'rambo\s+SKIP Test breaks testbed')
+        self.assertFalse(os.path.exists('/var/tmp/zap'))
+
 
 @unittest.skipIf('cowdancer' in os.environ.get('LD_PRELOAD', ''),
                  'chroot tests do not work under cowdancer')
@@ -748,6 +760,19 @@ Restrictions: needs-root
         # valid test still gets run
         self.assertNotRegex(out, 'pass\s+SKIP')
         self.assertRegex(out, 'ubtree0t-pass\s+PASS', out)
+
+    def test_breaks_testbed(self):
+        '''breaks-testbed restriction'''
+
+        p = self.build_src('Tests: rambo\nDepends:\nRestrictions: needs-root breaks-testbed',
+                           {'rambo': '#!/bin/sh\ntouch /zap\n'})
+
+        (code, out, err) = self.adt_run(['--no-built-binaries', '--unbuilt-tree=' + p],
+                                        [self.chroot])
+        # test should be skipped as chroot runner doesn't provide revert
+        self.assertEqual(code, 10)
+        self.assertRegex(out, 'rambo\s+SKIP Test breaks testbed')
+        self.assertFalse(os.path.exists(os.path.join(self.chroot, 'zap')))
 
 
 @unittest.skipUnless('ADT_TEST_SCHROOT' in os.environ,
@@ -1022,6 +1047,18 @@ class SchrootRunner(AdtTestCase):
         # has output from cat and whoami
         self.assertRegex(err, 'stdout [ -]+\nworld\nnobody\n')
 
+    def test_breaks_testbed(self):
+        '''breaks-testbed restriction'''
+
+        p = self.build_src('Tests: rambo\nDepends:\nRestrictions: needs-root breaks-testbed',
+                           {'rambo': '#!/bin/sh\ntouch /zap\n'})
+
+        (code, out, err) = self.adt_run(['--no-built-binaries', '--unbuilt-tree=' + p],
+                                        [self.schroot_name])
+        # test should be skipped as chroot runner doesn't provide revert
+        self.assertEqual(code, 10)
+        self.assertRegex(out, 'rambo\s+SKIP Test breaks testbed')
+
 
 @unittest.skipUnless('ADT_TEST_LXC' in os.environ,
                      'Set $ADT_TEST_LXC to an existing ubuntu-cloud container')
@@ -1202,6 +1239,21 @@ class LxcRunner(AdtTestCase):
         # should show test stderr separately (no real-time output for chroot)
         self.assertRegex(err, 'stderr [ -]+\nI am sick\n')
         self.assertNotIn('stdout', err)
+
+    def test_breaks_testbed(self):
+        '''breaks-testbed restriction'''
+
+        p = self.build_src('Tests: zap boom\nDepends:\nRestrictions: needs-root breaks-testbed',
+                           {'zap': '#!/bin/sh\ntouch /zap\n',
+                            'boom': '#!/bin/sh\n[ ! -e /zap ]; touch /boom'})
+
+        (code, out, err) = self.adt_run(['--no-built-binaries', '--unbuilt-tree=' + p, '-d'],
+                                        ['--ephemeral', self.container_name])
+        # both tests should run; the second one (boom) should not see the
+        # effect of the first one (/zap existing)
+        self.assertEqual(code, 0)
+        self.assertRegex(out, 'ubtree0t-zap\s+PASS')
+        self.assertRegex(out, 'ubtree0t-boom\s+PASS')
 
 
 if __name__ == '__main__':
