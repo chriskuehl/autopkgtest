@@ -119,7 +119,7 @@ class NullRunner(AdtTestCase):
         p = self.build_src('Tests: pass\nDepends: coreutils\n',
                            {'pass': '#!/bin/sh\necho I am fine\n'})
 
-        (code, out, err) = self.adt_run(['--no-built-binaries', '--unbuilt-tree=' + p])
+        (code, out, err) = self.adt_run(['-B', '--unbuilt-tree=' + p])
         #print('----- out ----\n%s\n----- err ----\n%s\n----' % (out, err))
         # test should succeed
         self.assertEqual(code, 0)
