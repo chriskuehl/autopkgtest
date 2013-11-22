@@ -1,0 +1,17 @@
+#!/bin/sh
+# Run tests for different runners in parallel
+
+MYDIR=$(dirname $0)
+
+# these are fast, run them first
+$MYDIR/pep8
+$MYDIR/pyflakes
+
+# parse out the AdtTestCase classes
+CLASSES=`grep -oP '(?<=class )[a-zA-Z]+(?=\(AdtTest)' tests/adt-run`
+#CLASSES="ChrootRunner NullRunner.test_tree_norestrictions_nobuild_success"
+
+for c in $CLASSES; do
+    (OUT=$($MYDIR/adt-run $c 2>&1) || rc=$?; echo "=== $c ==="; echo "$OUT"; exit $rc) &
+done
+for c in $CLASSES; do wait; done
