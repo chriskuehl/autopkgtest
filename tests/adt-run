@@ -761,7 +761,7 @@ Restrictions: needs-root
         self.assertRegex(out, 'subdir/p\s+SKIP test name may not contain /.* line 1')
 
         # valid test still gets run
-        self.assertNotRegex(out, 'pass\s+SKIP')
+        self.assertFalse(re.match('pass\s+SKIP', out), out)
         self.assertRegex(out, 'ubtree0t-pass\s+PASS', out)
 
     def test_breaks_testbed(self):
