@@ -32,9 +32,6 @@ programs =	virt-subproc/adt-virt-chroot \
 		runner/adt-testreport-runloop \
 		runner/adt-testreport-cronjob
 
-examples =	runner/onepackage-config \
-		runner/ubuntu-config
-
 pythonfiles =	lib/Autopkgtest.py \
 		lib/VirtSubproc.py
 
@@ -43,7 +40,7 @@ all:
 
 install-here:
 	$(INSTALL_DIRS) -d $(bindir) $(docdir) $(man1dir) \
-		$(pythondir) $(examplesdir)
+		$(pythondir)
 	set -e; for f in $(programs); do \
 		$(INSTALL_PROGRAM) $$f $(bindir); \
 		test ! -f $$f.1 || $(INSTALL_DOC) $$f.1 $(man1dir); \
@@ -51,7 +48,6 @@ install-here:
 	$(INSTALL_DATA) $(pythonfiles) $(pythondir)
 	$(INSTALL_DOC) CREDITS debian/changelog $(docdir)
 	$(INSTALL_DOC) doc/README*[!~] $(docdir)
-	$(INSTALL_DOC) $(examples) $(examplesdir)
 
 install: install-here
 	cd xen && $(MAKE) install
