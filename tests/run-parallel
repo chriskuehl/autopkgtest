@@ -4,8 +4,10 @@
 MYDIR=$(dirname $0)
 
 # these are fast, run them first
+set -e
 $MYDIR/pep8
 $MYDIR/pyflakes
+set +e
 
 # parse out the AdtTestCase classes
 CLASSES=`grep -oP '(?<=class )[a-zA-Z]+(?=\(AdtTest)' tests/adt-run`
