@@ -23,6 +23,7 @@
 include ../settings.make
 
 programs =	cleanup setup on-testbed with-testbed purge
+binprograms =	adt-testreport-onepackage adt-testreport-runloop adt-testreport-cronjob
 shareprograms =	fixups fixups-inside userv-target
 sharefiles =	readconfig justconfig
 
@@ -40,6 +41,10 @@ install:	all
 		ln -sf $(sharedir_lnfrom)/$$f $(bindir)/$(exec_prefix)$$f; \
 		test ! -f $$f.1 || $(INSTALL_DOC) $$f.1 \
 			$(man1dir)/$(exec_prefix)$$f; \
+		done
+	set -e; for f in $(binprograms); do \
+		$(INSTALL_PROGRAM) $$f $(bindir); \
+		test ! -f $$f.1 || $(INSTALL_DOC) $$f.1 $(man1dir); \
 		done
 	set -e; for f in $(sharefiles); do \
 		$(INSTALL_DATA) $$f $(sharedir); \
