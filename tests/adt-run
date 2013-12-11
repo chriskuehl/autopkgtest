@@ -929,7 +929,8 @@ class SchrootRunner(AdtTestCase):
         # should build and install package
         self.assertIn('dh build', err)
         self.assertRegex(out, 'ubtree0t-pass\s+PASS', out)
-        self.assertRegex(out, 'Unpacking testpkg .*binaries/./testpkg.deb')
+        self.assertIn('Unpacking testpkg', out)
+        self.assertIn('binaries/./testpkg.deb', out)
         self.assertIn('Unpacking aspell-doc', out)
         # does not install Recommends by default
         self.assertNotIn('Unpacking cpp-doc', out)
