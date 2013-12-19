@@ -987,6 +987,43 @@ class SchrootRunner(AdtTestCase):
         # should not have any test stderr
         self.assertNotIn('stderr', err)
 
+    def test_explicit_binary_for_test(self):
+        '''--binary for test'''
+
+        p = self.build_src('Tests: pass\n',
+                           {'pass': '#!/bin/sh -e\n/usr/bin/test_built'})
+
+        # build the package
+        subprocess.check_call(['dpkg-buildpackage', '-b', '-us', '-uc', '-tc'],
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                              cwd=p)
+        deb = os.path.join(os.path.dirname(p), 'testpkg_1_all.deb')
+        self.assertTrue(os.path.exists(deb))
+        # destroy debian/rules, to ensure it does not try to build the package
+        # again
+        with open(os.path.join(p, 'debian', 'rules'), 'w') as f:
+            f.write('bwhahahahano!')
+
+        (code, out, err) = self.adt_run(['-d', '-B', '--binary', deb, '--unbuilt-tree=' + p],
+                                        [self.schroot_name])
+
+        # should install package
+        self.assertNotIn('dh build', err)
+        self.assertIn('Unpacking testpkg', out)
+        self.assertIn('binaries/./testpkg.deb', out)
+
+        # test should succeed
+        self.assertRegex(out, '-pass\s+PASS', out)
+        self.assertEqual(code, 0)
+
+        # should show test stdout
+        self.assertRegex(err, 'stdout [ -]+\nbuilt script OK\n')
+        # should not have any test stderr
+        self.assertNotIn('stderr', err)
+
+        # our deb should still be there
+        self.assertTrue(os.path.exists(deb))
+
     def test_logfile(self):
         '''--log-file option'''
 
