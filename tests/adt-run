@@ -1112,7 +1112,7 @@ class SchrootRunner(AdtTestCase):
     def test_user(self):
         '''--user option'''
 
-        p = self.build_src('Tests: t\nDepends:\n',
+        p = self.build_src('Tests: t\nDepends: aspell-doc\n',
                            {'t': '''#!/bin/sh -e
                                     echo world > $TMPDIR/hello.txt
                                     cat $TMPDIR/hello.txt
@@ -1124,11 +1124,40 @@ class SchrootRunner(AdtTestCase):
                                         [self.schroot_name])
         self.assertEqual(code, 0, err)
 
+        # should install dependencies
+        self.assertIn('processing dependency aspell-doc', err)
+        self.assertIn('Unpacking aspell-doc', out)
+
         # test should succeed
         self.assertRegex(out, 'tree0t-t\s+PASS', out)
 
         # has output from cat and whoami
         self.assertRegex(err, 'stdout [ -]+\nworld\nnobody\n')
+
+    def test_user_needs_root(self):
+        '''--user option with needs-root restriction'''
+
+        p = self.build_src('Tests: t\nDepends: aspell-doc\nRestrictions: needs-root',
+                           {'t': '''#!/bin/sh -e
+                                    echo world > $TMPDIR/hello.txt
+                                    cat $TMPDIR/hello.txt
+                                    whoami'''})
+
+        (code, out, err) = self.adt_run(['--no-built-binaries',
+                                         '--unbuilt-tree=' + p,
+                                         '--user=nobody'],
+                                        [self.schroot_name])
+        self.assertEqual(code, 0, err)
+
+        # should install dependencies
+        self.assertIn('processing dependency aspell-doc', err)
+        self.assertIn('Unpacking aspell-doc', out)
+
+        # test should succeed
+        self.assertRegex(out, 'tree0t-t\s+PASS', out)
+
+        # has output from cat and whoami
+        self.assertRegex(err, 'stdout [ -]+\nworld\nroot\n')
 
     def test_breaks_testbed(self):
         '''breaks-testbed restriction'''
