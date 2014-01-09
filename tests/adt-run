@@ -278,8 +278,8 @@ class NullRunner(AdtTestCase):
         p = self.build_src('Tests: t\nDepends: coreutils\nRestrictions: needs-root\n',
                            {'t': '''#!/bin/sh -e
 echo hello > $TMPDIR/rootowned.txt
-su -c "echo hello > $TMPDIR/world.txt" nobody
-if su -c "echo break > $TMPDIR/rootowned.txt" nobody 2>/dev/null; then
+su -s /bin/sh -c "echo hello > $TMPDIR/world.txt" nobody
+if su -s /bin/sh -c "echo break > $TMPDIR/rootowned.txt" nobody 2>/dev/null; then
     exit 1
 fi
 '''})
