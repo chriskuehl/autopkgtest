@@ -419,7 +419,8 @@ fi
                            {'p': '#!/bin/sh\necho start\nsleep 5\n./test_built\n'})
 
         (code, out, err) = self.adt_run(['-B', '--timeout-test=6',
-                                         '--timeout-build=3', p])
+                                         '--timeout-build=3',
+                                         '--timeout-install=3', p])
         # test should not time out
         self.assertEqual(code, 0, err)
         self.assertNotIn('timeout', err)
@@ -441,7 +442,8 @@ fi
                                os.path.join(p, 'Makefile')])
 
         (code, out, err) = self.adt_run(['--timeout-test=1', '--timeout-build=5',
-                                         '-B', '--unbuilt-tree', p])
+                                         '--timeout-install=3', '-B',
+                                         '--unbuilt-tree', p])
         # should build package
         self.assertIn('dh build', err)
 
@@ -466,7 +468,8 @@ fi
                                os.path.join(p, 'Makefile')])
 
         (code, out, err) = self.adt_run(['--timeout-test=1', '--timeout-build=5',
-                                         '-B', '--unbuilt-tree', p])
+                                         '--timeout-install=3', '-B',
+                                         '--unbuilt-tree', p])
         # should start building package
         self.assertIn('dh build', err)
 
