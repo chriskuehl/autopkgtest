@@ -410,6 +410,73 @@ fi
         self.assertIn("got `timeout', expected `ok...'", err)
         self.assertNotIn('dsc0t-to', out)
 
+    def test_timeout_long_test(self):
+        '''long-running test with custom timeouts
+
+        This verifies that the right timeout is being used for tests.
+        '''
+        p = self.build_dsc('Tests: p\nDepends:\nRestrictions: build-needed',
+                           {'p': '#!/bin/sh\necho start\nsleep 5\n./test_built\n'})
+
+        (code, out, err) = self.adt_run(['-B', '--timeout-test=6',
+                                         '--timeout-build=3', p])
+        # test should not time out
+        self.assertEqual(code, 0, err)
+        self.assertNotIn('timeout', err)
+
+        # should show test stdout
+        self.assertIn('start\n', out)
+        self.assertIn('built script OK\n', out)
+
+    def test_timeout_long_build(self):
+        '''long-running build with custom timeouts
+
+        This verifies that the right timeout is being used for builds.
+        '''
+        p = self.build_src('Tests: p\nDepends:\nRestrictions: build-needed',
+                           {'p': '#!/bin/sh\necho start\n\n./test_built\n'})
+
+        # make build take 4s
+        subprocess.check_call(['sed', '-i', '/^build:/ s/$/\\n\\tsleep 4/',
+                               os.path.join(p, 'Makefile')])
+
+        (code, out, err) = self.adt_run(['--timeout-test=1', '--timeout-build=5',
+                                         '-B', '--unbuilt-tree', p])
+        # should build package
+        self.assertIn('dh build', err)
+
+        # test should not time out
+        self.assertEqual(code, 0, err)
+        self.assertNotIn('timeout', err)
+
+        # should show test stdout
+        self.assertIn('start\n', out)
+        self.assertIn('built script OK\n', out)
+
+    def test_timeout_long_build_fail(self):
+        '''long-running build times out
+
+        This verifies that the right timeout is being used for builds.
+        '''
+        p = self.build_src('Tests: p\nDepends:\nRestrictions: build-needed',
+                           {'p': '#!/bin/sh\necho start\n\n./test_built\n'})
+
+        # make build take 6s
+        subprocess.check_call(['sed', '-i', '/^build:/ s/$/\\n\\tsleep 6/',
+                               os.path.join(p, 'Makefile')])
+
+        (code, out, err) = self.adt_run(['--timeout-test=1', '--timeout-build=5',
+                                         '-B', '--unbuilt-tree', p])
+        # should start building package
+        self.assertIn('dh build', err)
+
+        # build should time out
+        self.assertEqual(code, 16, err)
+        self.assertIn("got `timeout', expected `ok...'", err)
+
+        # should not start tests
+        self.assertNotIn('start\n', out)
+
     def test_summary(self):
         '''--summary option'''
 
