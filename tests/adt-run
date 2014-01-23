@@ -696,6 +696,8 @@ class ChrootRunner(AdtTestCase):
         # should not build package
         self.assertNotIn('dh build', err)
 
+        self.assertNotIn('@@@@@@ test bed setup', err)
+
     def test_tree_norestrictions_nobuild_fail_on_exit(self):
         '''source tree, no build, no restrictions, test fails with non-zero'''
 
@@ -939,6 +941,53 @@ Restrictions: needs-root
         self.assertNotIn('dh build', err)
 
         self.assertRegex(err, 'fake-apt-get: source testpkg')
+
+    def test_setup_commands_string(self):
+        '''--setup-commands with command string'''
+
+        p = self.build_src('Tests: pass\nDepends:\nRestrictions: needs-root\n',
+                           {'pass': '#!/bin/sh -e\n[ -x /bin/cp_cp ]; cat /setup.log\n'})
+
+        (code, out, err) = self.adt_run(['-B', '--unbuilt-tree=' + p,
+                                         '--setup-commands', 'cp /bin/cp /bin/cp_cp; '
+                                         'echo setup_success > /setup.log\n'
+                                         'cp /bin/cp /bin/cp_cp'],
+                                        [self.chroot])
+        # test should succeed
+        self.assertEqual(code, 0, err)
+        self.assertRegex(out, 'tree0t-pass\s+PASS', out)
+
+        # should show test stdout
+        self.assertRegex(err, 'stdout [ -]+\nsetup_success\n')
+        # should not have any test stderr
+        self.assertNotIn('stderr', err)
+
+        self.assertIn('@@@@@@ test bed setup', err)
+
+    def test_setup_commands_file(self):
+        '''--setup-commands with command file'''
+
+        p = self.build_src('Tests: pass\nDepends:\nRestrictions: needs-root\n',
+                           {'pass': '#!/bin/sh -e\n[ -x /bin/cp_cp ]; cat /setup.log\n'})
+
+        cmds = os.path.join(self.workdir, 'setup.sh')
+        with open(cmds, 'w') as f:
+            f.write('cp /bin/cp /bin/cp_cp\necho setup_success > /setup.log\n')
+            f.flush()
+
+        (code, out, err) = self.adt_run(['-B', '-d', '--unbuilt-tree=' + p,
+                                         '--setup-commands', cmds],
+                                        [self.chroot])
+        # test should succeed
+        self.assertEqual(code, 0, err)
+        self.assertRegex(out, 'tree0t-pass\s+PASS', out)
+
+        # should show test stdout
+        self.assertRegex(err, 'stdout [ -]+\nsetup_success\n')
+        # should not have any test stderr
+        self.assertNotIn('stderr', err)
+
+        self.assertIn('@@@@@@ test bed setup', err)
 
 
 @unittest.skipUnless('ADT_TEST_SCHROOT' in os.environ,
@@ -1488,6 +1537,29 @@ class LxcRunner(AdtTestCase):
         self.assertRegex(out, 'ubtree0t-zap\s+PASS')
         self.assertRegex(out, 'ubtree0t-boom\s+PASS')
 
+    def test_setup_commands(self):
+        '''--setup-commands'''
+
+        p = self.build_src('Tests: t1 t2\nDepends:\n',
+                           {'t1': '#!/bin/sh -e\ncat /setup.log; echo t1ok\n',
+                            't2': '#!/bin/sh -e\ncat /setup.log; echo t2ok\n'})
+
+        (code, out, err) = self.adt_run(['-B', '-d', p + '//',
+                                         '--setup-commands', 'echo setupok >> /setup.log'],
+                                        ['--ephemeral', self.container_name])
+
+        # test should succeed
+        self.assertEqual(code, 0, err)
+        self.assertRegex(out, 'tree0t-t1\s+PASS', out)
+        self.assertRegex(out, 'tree0t-t2\s+PASS', out)
+
+        # should show test stdout
+        self.assertRegex(err, 'stdout [ -]+\nsetupok\nt1ok\n')
+        self.assertRegex(err, 'stdout [ -]+\nsetupok\nt2ok\n')
+        # should not have any test stderr
+        self.assertNotIn('stderr', err)
+
+        self.assertIn('@@@@@@ test bed setup', err)
 
 if __name__ == '__main__':
     if os.geteuid() != 0:
