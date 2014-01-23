@@ -667,6 +667,8 @@ class ChrootRunner(AdtTestCase):
             p = os.path.join(self.chroot, 'usr', 'bin', cmd)
             with open(p, 'w') as f:
                 f.write('#!/bin/sh\necho "fake-%s: $@" >&2\n' % cmd)
+                if cmd == 'apt-get':
+                    f.write('if [ "$1" = source ]; then cp -r /aptget-src $2-1; fi\n')
             os.chmod(p, 0o755)
 
         p = os.path.join(self.chroot, 'tmp')
@@ -914,6 +916,29 @@ Restrictions: needs-root
 
         with open(summary, encoding='UTF-8') as f:
             self.assertEqual(f.read(), 'ubtree0t-se          FAIL status: 0, stderr: fancy ‴ʎɔuɐɟ″!\n')
+
+    def test_apt_source_no_restrictions(self):
+        '''apt source, no build, no restrictions'''
+
+        p = self.build_src('Tests: pass\nDepends:\nRestrictions: needs-root\n',
+                           {'pass': '#!/bin/sh\necho I am fine\n'})
+        # copy that into the chroot where fake apt-get source can find it
+        shutil.copytree(p, os.path.join(self.chroot, 'aptget-src'))
+
+        (code, out, err) = self.adt_run(['testpkg'], [self.chroot])
+        # test should succeed
+        self.assertEqual(code, 0, err)
+        self.assertRegex(out, 'apt0t-pass\s+PASS', out)
+
+        # should show test stdout
+        self.assertRegex(err, 'stdout [ -]+\nI am fine\n')
+        # should not have any test stderr
+        self.assertNotIn('stderr', err)
+
+        # should not build package
+        self.assertNotIn('dh build', err)
+
+        self.assertRegex(err, 'fake-apt-get: source testpkg')
 
 
 @unittest.skipUnless('ADT_TEST_SCHROOT' in os.environ,
