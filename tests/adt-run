@@ -374,12 +374,10 @@ fi
         self.assertRegex(contents, 'ubtree0t-sF\s+FAIL status: 0, stderr: kaputt')
         self.assertIn('@@@@ tests done', contents)
 
-        # --no-built-binaries, we don't expect any debs
-        self.assertEqual(os.listdir(os.path.join(outdir, 'binaries')), [])
-
         # check for cruft in outdir
+        # --no-built-binaries, we don't expect any debs
         files = [i for i in os.listdir(outdir) if not fnmatch.fnmatch(i, 'ubtree*-std*')]
-        self.assertEqual(set(files), set(['log', 'binaries']))
+        self.assertEqual(set(files), set(['log']))
 
     def test_timeout(self):
         '''handling test timeout'''
@@ -862,7 +860,7 @@ Restrictions: needs-root
 
         # check for cruft in output dir
         files = [f for f in os.listdir(outdir) if not fnmatch.fnmatch(f, 'ubtree*-std*')]
-        self.assertEqual(set(files), set(['log', 'binaries', 'artifacts']))
+        self.assertEqual(set(files), set(['log', 'artifacts']))
 
         # check artifact
         with open(os.path.join(outdir, 'artifacts', 'health.txt')) as f:
