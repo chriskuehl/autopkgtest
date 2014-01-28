@@ -1492,8 +1492,8 @@ class LxcRunner(AdtTestCase):
         # should build and install package
         self.assertIn('dh build', err)
         self.assertRegex(out, 'ubtree0t-pass\s+PASS', out)
-        self.assertRegex(out, 'testpkg .*binaries/./testpkg.deb')
-        self.assertRegex(out, 'aspell-doc .*\.\.\./aspell-doc_\d.*_all.deb\)')
+        self.assertIn('binaries/./testpkg.deb', out)
+        self.assertRegex(out, '\.\.\./aspell-doc_\d.*_all.deb')
 
         # test should succeed
         self.assertRegex(out, 'ubtree0t-pass\s+PASS', out)
