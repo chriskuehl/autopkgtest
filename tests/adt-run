@@ -616,6 +616,49 @@ ubtree0t-bad         FAIL non-zero exit status 1
         with open(summary, encoding='UTF-8') as f:
             self.assertEqual(f.read(), 'ubtree0t-se          FAIL status: 0, stderr: fancy ‴ʎɔuɐɟ″!\n')
 
+    def test_tree_apply_patches(self):
+        '''source tree, 3.0 (quilt) patches get applied'''
+
+        p = self.build_src('Tests: pass\nDepends: coreutils\nRestrictions: build-needed\n',
+                           {'pass': '#!/bin/sh -e\n./test_built\n./test_static\n'})
+
+        # add patch
+        patchdir = os.path.join(p, 'debian', 'patches')
+        os.mkdir(patchdir)
+        with open(os.path.join(patchdir, '01_hack.patch'), 'w') as f:
+            f.write('''--- testpkg.orig/test_static
++++ testpkg/test_static
+@@ -1,2 +1,2 @@
+ #!/bin/sh
+-echo "static script OK"
++echo "static patched script OK"
+''')
+        with open(os.path.join(patchdir, 'series'), 'w') as f:
+            f.write('01_hack.patch')
+
+        # turn into 3.0 (quilt) source
+        dsrcdir = os.path.join(p, 'debian', 'source')
+        os.mkdir(dsrcdir)
+        with open(os.path.join(dsrcdir, 'format'), 'w') as f:
+            f.write('3.0 (quilt)\n')
+
+        # run tests, should apply unapplied patches
+        (code, out, err) = self.adt_run(['-B', '-d', '--unbuilt-tree=' + p])
+
+        # test should succeed
+        self.assertRegex(out, 'tree0t-pass\s+PASS', out)
+        self.assertEqual(code, 0)
+
+        # should have patched source
+        self.assertIn('01_hack.patch\n', err)
+        self.assertIn('built script OK\nstatic patched script OK\n', out)
+
+        # should not have any test stderr
+        self.assertNotIn('stderr', err)
+
+        # should build package
+        self.assertIn('dh build', err)
+
 
 @unittest.skipIf('cowdancer' in os.environ.get('LD_PRELOAD', ''),
                  'chroot tests do not work under cowdancer')
