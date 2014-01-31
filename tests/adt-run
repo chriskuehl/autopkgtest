@@ -1092,7 +1092,7 @@ class SchrootRunner(AdtTestCase):
                                         [self.schroot_name])
         # test should succeed
         self.assertRegex(out, 'tree0t-pass\s+PASS', out)
-        self.assertEqual(code, 0)
+        self.assertEqual(code, 0, out + err)
 
         # should build package
         self.assertIn('dh build', err)
@@ -1221,7 +1221,7 @@ class SchrootRunner(AdtTestCase):
 
         # test should succeed
         self.assertRegex(out, '-pass\s+PASS', out + err)
-        self.assertEqual(code, 0)
+        self.assertEqual(code, 0, out + err)
 
         # should show test stdout
         self.assertRegex(err, 'stdout [ -]+\nbuilt script OK\nbuilt script OK')
