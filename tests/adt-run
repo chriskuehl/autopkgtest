@@ -439,7 +439,7 @@ fi
         subprocess.check_call(['sed', '-i', '/^build:/ s/$/\\n\\tsleep 4/',
                                os.path.join(p, 'Makefile')])
 
-        (code, out, err) = self.adt_run(['--timeout-test=1', '--timeout-build=5',
+        (code, out, err) = self.adt_run(['--timeout-test=1', '--timeout-build=15',
                                          '--timeout-install=3', '-B',
                                          '--unbuilt-tree', p])
         # should build package
@@ -461,11 +461,11 @@ fi
         p = self.build_src('Tests: p\nDepends:\nRestrictions: build-needed',
                            {'p': '#!/bin/sh\necho start\n\n./test_built\n'})
 
-        # make build take 6s
-        subprocess.check_call(['sed', '-i', '/^build:/ s/$/\\n\\tsleep 6/',
+        # make build take 4s
+        subprocess.check_call(['sed', '-i', '/^build:/ s/$/\\n\\tsleep 4/',
                                os.path.join(p, 'Makefile')])
 
-        (code, out, err) = self.adt_run(['--timeout-test=1', '--timeout-build=5',
+        (code, out, err) = self.adt_run(['--timeout-test=1', '--timeout-build=6',
                                          '--timeout-install=3', '-B',
                                          '--unbuilt-tree', p])
         # should start building package
@@ -620,7 +620,8 @@ ubtree0t-bad         FAIL non-zero exit status 1
         '''source tree, 3.0 (quilt) patches get applied'''
 
         p = self.build_src('Tests: pass\nDepends: coreutils\nRestrictions: build-needed\n',
-                           {'pass': '#!/bin/sh -e\n./test_built\n./test_static\n'})
+                           {'pass': '#!/bin/sh -e\ndebian/testpkg/usr/bin/test_built\n'
+                            'debian/testpkg/usr/bin/test_static\n'})
 
         # add patch
         patchdir = os.path.join(p, 'debian', 'patches')
