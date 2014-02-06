@@ -3,7 +3,7 @@ set -e
 testdir="$(dirname $(readlink -f $0))"
 rootdir="$(dirname $testdir)"
 
-pep8 $rootdir/lib/*.py
+pep8 $rootdir/lib/*.py $rootdir/tools/adt-buildvm-ubuntu-cloud
 
 for v in chroot null schroot xenlvm lxc qemu; do
     pep8 --ignore E501 $rootdir/virt-subproc/adt-virt-$v
