@@ -5,8 +5,8 @@ rootdir="$(dirname $testdir)"
 
 pep8 $rootdir/lib/*.py
 
-for v in chroot null schroot xenlvm lxc; do
-    pep8 $rootdir/virt-subproc/adt-virt-$v
+for v in chroot null schroot xenlvm lxc qemu; do
+    pep8 --ignore E501 $rootdir/virt-subproc/adt-virt-$v
 done
 
 pep8 --ignore E501 $rootdir/runner/adt-run $testdir/adt-run

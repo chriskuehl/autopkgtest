@@ -12,6 +12,6 @@ rootdir="$(dirname $testdir)"
 
 pyflakes $rootdir/lib $rootdir/runner/adt-run $testdir/adt-run
 
-for v in chroot null schroot xenlvm lxc; do
+for v in chroot null schroot xenlvm lxc qemu; do
     pyflakes $rootdir/virt-subproc/adt-virt-$v
 done
