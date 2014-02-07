@@ -854,7 +854,7 @@ Restrictions: needs-root
         self.assertIn('synthesised dependency bdep2\n', err)
         self.assertIn('synthesised dependency bdep3\n', err)
         self.assertIn('processing dependency testdep2\n', err)
-        self.assertRegex(err, 'fake-apt-get: .*install.*testpkg testdep1 bdep1 bdep2 bdep3 testdep2')
+        self.assertRegex(err, 'fake-apt-get: .*install.*testpkg testdep1 bdep1 bdep2 bdep3 make testdep2')
 
     def test_logfile(self):
         '''--log-file option'''
