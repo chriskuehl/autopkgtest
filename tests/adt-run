@@ -936,7 +936,7 @@ Restrictions: needs-root
         (code, out, err) = self.adt_run(['--no-built-binaries', '--unbuilt-tree=' + p],
                                         [self.chroot])
         # test should be skipped as chroot runner doesn't provide revert
-        self.assertEqual(code, 10)
+        self.assertEqual(code, 2)
         self.assertRegex(out, 'rambo\s+SKIP Test breaks testbed')
         self.assertFalse(os.path.exists(os.path.join(self.chroot, 'zap')))
 
@@ -1420,7 +1420,7 @@ class SchrootRunner(AdtTestCase):
         (code, out, err) = self.adt_run(['--no-built-binaries', '--unbuilt-tree=' + p],
                                         [self.schroot_name])
         # test should be skipped as chroot runner doesn't provide revert
-        self.assertEqual(code, 10)
+        self.assertEqual(code, 2)
         self.assertRegex(out, 'rambo\s+SKIP Test breaks testbed')
 
 
