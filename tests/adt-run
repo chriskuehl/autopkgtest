@@ -417,7 +417,7 @@ fi
                            {'p': '#!/bin/sh\necho start\nsleep 5\n./test_built\n'})
 
         (code, out, err) = self.adt_run(['-B', '--timeout-test=6',
-                                         '--timeout-build=3',
+                                         '--timeout-build=20',
                                          '--timeout-install=3', p])
         # test should not time out
         self.assertEqual(code, 0, err)
