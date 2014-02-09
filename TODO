@@ -1,6 +1,0 @@
-
-- schroot's snapshots should use dmsetup directly, not lvm ?
-    at least there should be non-persistent snapshots
-
-- wheezy's dpkg with squeeze's kernel is very very slow due to fsync
-  stupidity
