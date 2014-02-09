@@ -27,6 +27,8 @@ programs =	virt-subproc/adt-virt-chroot \
 		virt-subproc/adt-virt-null \
 		virt-subproc/adt-virt-schroot \
 		virt-subproc/adt-virt-lxc \
+		virt-subproc/adt-virt-qemu \
+		tools/adt-buildvm-ubuntu-cloud \
 		runner/adt-run
 
 pythonfiles =	lib/VirtSubproc.py
