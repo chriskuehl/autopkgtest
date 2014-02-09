@@ -7,6 +7,11 @@
 
 set -e
 
+echo "The adt-openbugs-* scripts are unmaintained and deprecated in favor of" >&2
+echo "http://ci.debian.net, debci, and/or jenkins. They will go away soon if " >&2
+echo "nobody uses them any more; so if you still do, please mail " >&2
+echo "autopkgtest-devel@lists.alioth.debian.org. Thanks!" >&2
+
 export openbugs_kind=debbugs
 export openbugs_debbugs_soap=Debbugs/SOAP
 export openbugs_debbugs_uri=http://bugs.debian.org/cgi-bin/soap.cgi

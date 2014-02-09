@@ -5,6 +5,11 @@ use strict;
 use Data::Dumper;
 use SOAP::Lite;
 
+print STDERR "The adt-openbugs-* scripts are unmaintained and deprecated in favor of\n";
+print STDERR "http://ci.debian.net, debci, and/or jenkins. They will go away soon if\n";
+print STDERR "nobody uses them any more; so if you still do, please mail\n";
+print STDERR "autopkgtest-devel\@lists.alioth.debian.org. Thanks!\n";
+
 die if @ARGV;
 
 sub e ($) {
