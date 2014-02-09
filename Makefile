@@ -29,8 +29,7 @@ programs =	virt-subproc/adt-virt-chroot \
 		virt-subproc/adt-virt-lxc \
 		runner/adt-run
 
-pythonfiles =	lib/Autopkgtest.py \
-		lib/VirtSubproc.py
+pythonfiles =	lib/VirtSubproc.py
 
 all:
 	cd xen && $(MAKE)
