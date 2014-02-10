@@ -79,6 +79,11 @@ Protocol
 	(with distinct <username>s) may be advertised in which case
 	more than one such user is available.
 
+    + downtmp-host=<path>
+	If the testbed has the ability of setting up a shared directory
+	with the host, this gives the host directory path of the "downtmp"
+	directory as reported by the virt server's hook_downtmp() function.
+
 
 * Command
 	open
