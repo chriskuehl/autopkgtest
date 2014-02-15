@@ -747,7 +747,7 @@ class ChrootRunner(AdtTestCase):
         self.assertRegex(out, 'tree0t-pass\s+PASS', out)
 
         # should show test stdout
-        self.assertRegex(err, 'stdout [ -]+\nI am fine\n')
+        self.assertRegex(out, '^I am fine\n')
         # should not have any test stderr
         self.assertNotIn('stderr', err)
 
@@ -768,7 +768,7 @@ class ChrootRunner(AdtTestCase):
         self.assertRegex(out, 'tree0t-nz\s+FAIL non-zero exit status 7')
 
         # should show test stdout
-        self.assertRegex(err, 'stdout [ -]+\nI am sick\n')
+        self.assertIn('\nI am sick\n', out)
         # should not have any test stderr
         self.assertNotIn('stderr', err)
 
@@ -822,8 +822,8 @@ class ChrootRunner(AdtTestCase):
         self.assertRegex(out, 'tree0t-pass\s+PASS')
 
         # should show test stdout/err
-        self.assertRegex(err, 'stdout [ -]+\nbabble\n')
-        self.assertRegex(err, 'stderr [ -]+\nI am fine\n')
+        self.assertRegex(out, '^babble\n')
+        self.assertIn('\nI am fine\n', err)
 
     def test_fancy_deps(self):
         '''wrapped and versioned test dependencies'''
@@ -894,8 +894,8 @@ Restrictions: needs-root
         self.assertIn('processing dependency coreutils', log)
 
         # should show test stdout
-        self.assertRegex(err, 'stdout [ -]+\nstatic script OK\n')
-        self.assertRegex(log, 'stdout [ -]+\nstatic script OK\n')
+        self.assertIn('\nstatic script OK\n', out)
+        self.assertIn('\nstatic script OK\n', log)
         # should show test stderr
         self.assertRegex(err, 'stderr [ -]+\nI am sick\n')
         self.assertRegex(log, 'stderr [ -]+\nI am sick\n')
@@ -971,8 +971,8 @@ Restrictions: needs-root
         self.assertRegex(out, 'ubtree0t-se\s+FAIL status: 0, stderr: fancy ‴ʎɔuɐɟ″!\n')
 
         # should show test stdout/stderr
-        self.assertRegex(err, 'stdout [ -]+\n‘a♩’\n')
-        self.assertRegex(err, 'stderr [ -]+\nfancy ‴ʎɔuɐɟ″!\n')
+        self.assertRegex(out, '‘a♩’\n')
+        self.assertRegex(err, '\nfancy ‴ʎɔuɐɟ″!\n')
 
         with open(summary, encoding='UTF-8') as f:
             self.assertEqual(f.read(), 'ubtree0t-se          FAIL status: 0, stderr: fancy ‴ʎɔuɐɟ″!\n')
@@ -991,7 +991,7 @@ Restrictions: needs-root
         self.assertRegex(out, 'apt0t-pass\s+PASS', out)
 
         # should show test stdout
-        self.assertRegex(err, 'stdout [ -]+\nI am fine\n')
+        self.assertIn('\nI am fine\n', out)
         # should not have any test stderr
         self.assertNotIn('stderr', err)
 
@@ -1017,7 +1017,7 @@ Restrictions: needs-root
         self.assertRegex(out, 'tree0t-pass\s+PASS', out)
 
         # should show test stdout
-        self.assertRegex(err, 'stdout [ -]+\nsetup_success\n')
+        self.assertRegex(out, '^setup_success\n')
         # should not have any test stderr
         self.assertNotIn('stderr', err)
 
@@ -1047,7 +1047,7 @@ Restrictions: needs-root
         self.assertRegex(out, 'tree0t-pass\s+PASS', out)
 
         # should show test stdout
-        self.assertRegex(err, 'stdout [ -]+\nsetup_success\n')
+        self.assertRegex(out, '^setup_success\n')
         # should not have any test stderr
         self.assertNotIn('stderr', err)
 
