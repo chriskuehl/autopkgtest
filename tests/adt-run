@@ -1107,8 +1107,8 @@ class SchrootRunner(AdtTestCase):
         self.assertRegex(out, 'tree0t-p2\s+PASS', out)
 
         # should show test stdout
-        self.assertRegex(err, 'stdout [ -]+\nI am fine\n')
-        self.assertRegex(err, 'stdout [ -]+\nI am also fine\n')
+        self.assertIn('\nI am fine\n', out)
+        self.assertIn('\nI am also fine\n', out)
         # should not have any test stderr
         self.assertNotIn('stderr', err)
 
@@ -1127,7 +1127,7 @@ class SchrootRunner(AdtTestCase):
         self.assertRegex(out, 'tree0t-nz\s+FAIL non-zero exit status 7')
 
         # should show test stdout
-        self.assertRegex(err, 'stdout [ -]+\nI am sick\n')
+        self.assertRegex(out, '^I am sick\n')
         # should not have any test stderr
         self.assertNotIn('stderr', err)
 
@@ -1162,7 +1162,7 @@ class SchrootRunner(AdtTestCase):
         self.assertEqual(code, 4)
         self.assertRegex(out, 'tree0t-senz\s+FAIL non-zero exit status 7')
 
-        # should show test stderr separately (no real-time output for chroot)
+        # should show test stderr separately
         self.assertRegex(err, 'stderr [ -]+\nI am sick\n')
         self.assertNotIn('stdout', err)
 
@@ -1178,8 +1178,10 @@ class SchrootRunner(AdtTestCase):
         self.assertRegex(out, 'tree0t-pass\s+PASS', out)
 
         # should show test stdout/err
-        self.assertRegex(err, 'stdout [ -]+\nbabble\n')
-        self.assertRegex(err, 'stderr [ -]+\nI am fine\n')
+        self.assertRegex(out, '^babble\n')
+        self.assertIn('\nI am fine\n', err)
+        # stderr test output should be inline
+        self.assertNotIn('stderr', err)
 
     def test_tree_build_needed_success(self):
         '''source tree, build-needed restriction, test success'''
@@ -1197,7 +1199,7 @@ class SchrootRunner(AdtTestCase):
         self.assertIn('dh build', err)
 
         # should show test stdout
-        self.assertRegex(err, 'stdout [ -]+\nGOOD\n')
+        self.assertIn('\nGOOD\n', out)
         # should not have any test stderr
         self.assertNotIn('stderr', err)
 
@@ -1250,7 +1252,7 @@ class SchrootRunner(AdtTestCase):
         self.assertEqual(code, 0, err)
 
         # should show test stdout
-        self.assertRegex(err, 'stdout [ -]+\nGOOD\n')
+        self.assertIn('\nGOOD\n', out)
         # should not have any test stderr
         self.assertNotIn('stderr', err)
 
@@ -1284,7 +1286,7 @@ class SchrootRunner(AdtTestCase):
         self.assertEqual(code, 0, err)
 
         # should show test stdout
-        self.assertRegex(err, 'stdout [ -]+\nbuilt script OK\n')
+        self.assertIn('\nbuilt script OK\n', out)
         # should not have any test stderr
         self.assertNotIn('stderr', err)
 
@@ -1323,7 +1325,7 @@ class SchrootRunner(AdtTestCase):
         self.assertEqual(code, 0, out + err)
 
         # should show test stdout
-        self.assertRegex(err, 'stdout [ -]+\nbuilt script OK\nbuilt script OK')
+        self.assertIn('\nbuilt script OK\nbuilt script OK', out)
         # should not have any test stderr
         self.assertNotIn('stderr', err)
 
@@ -1357,8 +1359,8 @@ class SchrootRunner(AdtTestCase):
         self.assertIn('dh build', log)
 
         # should show test stdout
-        self.assertRegex(err, 'stdout [ -]+\nbuilt script OK\n')
-        self.assertRegex(log, 'stdout [ -]+\nbuilt script OK\n')
+        self.assertIn('\nbuilt script OK\n', out)
+        self.assertIn('\nbuilt script OK\n', log)
         # should show test stderr
         self.assertRegex(err, 'stderr [ -]+\nI am sick\n')
         self.assertRegex(log, 'stderr [ -]+\nI am sick\n')
@@ -1382,7 +1384,7 @@ class SchrootRunner(AdtTestCase):
         self.assertRegex(out, 'ubtree0t-broken\s+FAIL status: 0, stderr: kaputt', out)
 
         # should show test stdout and stderr
-        self.assertRegex(err, 'stdout [ -]+\nbuilt script OK\n')
+        self.assertIn('\nbuilt script OK\n', out)
         self.assertRegex(err, 'stderr [ -]+\nkaputt', err)
 
         # should build package
@@ -1438,7 +1440,7 @@ class SchrootRunner(AdtTestCase):
         self.assertRegex(out, 'tree0t-t\s+PASS', out)
 
         # has output from cat and whoami
-        self.assertRegex(err, 'stdout [ -]+\nworld\nnobody\n')
+        self.assertIn('\nworld\nnobody\n', out)
 
     def test_user_needs_root(self):
         '''--user option with needs-root restriction'''
@@ -1463,7 +1465,7 @@ class SchrootRunner(AdtTestCase):
         self.assertRegex(out, 'tree0t-t\s+PASS', out)
 
         # has output from cat and whoami
-        self.assertRegex(err, 'stdout [ -]+\nworld\nroot\n')
+        self.assertIn('\nworld\nroot\n', out)
 
     def test_breaks_testbed(self):
         '''breaks-testbed restriction'''
