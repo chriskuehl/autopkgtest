@@ -1043,18 +1043,21 @@ class SchrootRunner(AdtTestCase):
     def test_tree_norestrictions_nobuild_success(self):
         '''source tree, no build, no restrictions, test success'''
 
-        p = self.build_src('Tests: pass\nDepends: coreutils\nRestrictions: needs-root\n',
-                           {'pass': '#!/bin/sh\necho I am fine\n'})
+        p = self.build_src('Tests: p1 p2\nDepends: coreutils\nRestrictions: needs-root\n',
+                           {'p1': '#!/bin/sh\necho I am fine\n',
+                            'p2': '#!/bin/sh\necho I am also fine\n'})
 
         (code, out, err) = self.adt_run(['-d', '--no-built-binaries', '--unbuilt-tree=' + p],
                                         [self.schroot_name])
         # test should succeed
         self.assertEqual(code, 0, err)
         self.assertIn('coreutils', out)
-        self.assertRegex(out, 'tree0t-pass\s+PASS', out)
+        self.assertRegex(out, 'tree0t-p1\s+PASS', out)
+        self.assertRegex(out, 'tree0t-p2\s+PASS', out)
 
         # should show test stdout
         self.assertRegex(err, 'stdout [ -]+\nI am fine\n')
+        self.assertRegex(err, 'stdout [ -]+\nI am also fine\n')
         # should not have any test stderr
         self.assertNotIn('stderr', err)
 
