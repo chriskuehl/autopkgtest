@@ -88,7 +88,7 @@ class AdtTestCase(unittest.TestCase):
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                cwd=srcdir)
         out, err = dbp.communicate()
-        self.assertEqual(dbp.returncode, 0)
+        self.assertEqual(dbp.returncode, 0, err)
         return os.path.join(os.path.dirname(srcdir), 'testpkg_1.dsc')
 
     def adt_run(self, args, virt_args=[]):
@@ -121,7 +121,7 @@ class NullRunner(AdtTestCase):
         (code, out, err) = self.adt_run(['-B', '--unbuilt-tree=' + p])
         #print('----- out ----\n%s\n----- err ----\n%s\n----' % (out, err))
         # test should succeed
-        self.assertEqual(code, 0)
+        self.assertEqual(code, 0, err)
         self.assertIn('coreutils', out)
         self.assertRegex(out, 'tree0t-pass\s+PASS', out)
 
@@ -226,7 +226,7 @@ class NullRunner(AdtTestCase):
         (code, out, err) = self.adt_run(['--no-built-binaries', '--unbuilt-tree=' + p])
         # test should succeed
         self.assertRegex(out, 'tree0t-pass\s+PASS', out)
-        self.assertEqual(code, 0)
+        self.assertEqual(code, 0, err)
 
         # should not have any test stdout/stderr
         self.assertNotIn('stderr', err)
@@ -242,7 +242,7 @@ class NullRunner(AdtTestCase):
 
         (code, out, err) = self.adt_run(['--no-built-binaries', p])
         # test should succeed
-        self.assertEqual(code, 0)
+        self.assertEqual(code, 0, err)
         self.assertIn('coreutils', out)
         self.assertRegex(out, 'dsc0t-pass\s+PASS', out)
 
@@ -261,7 +261,7 @@ class NullRunner(AdtTestCase):
         (code, out, err) = self.adt_run(['--no-built-binaries', p])
         # test should succeed
         self.assertRegex(out, 'dsc0t-pass\s+PASS', out)
-        self.assertEqual(code, 0)
+        self.assertEqual(code, 0, err)
 
         # should not have any test stdout/stderr
         self.assertNotIn('stdout', err)
@@ -288,7 +288,7 @@ fi
         #print('----- out ----\n%s\n----- err ----\n%s\n----' % (out, err))
         # test should succeed
         self.assertRegex(out, 'tree0t-t\s+PASS', out)
-        self.assertEqual(code, 0)
+        self.assertEqual(code, 0, err)
 
         # should not have any test stdout/stderr
         self.assertNotIn('stdout', err)
@@ -649,7 +649,7 @@ ubtree0t-bad         FAIL non-zero exit status 1
 
         # test should succeed
         self.assertRegex(out, 'tree0t-pass\s+PASS', out)
-        self.assertEqual(code, 0)
+        self.assertEqual(code, 0, err)
 
         # should have patched source
         self.assertIn('01_hack.patch\n', err)
@@ -1157,7 +1157,7 @@ class SchrootRunner(AdtTestCase):
                                         [self.schroot_name])
         # test should succeed
         self.assertRegex(out, 'dsc0t-pass\s+PASS', out)
-        self.assertEqual(code, 0)
+        self.assertEqual(code, 0, err)
 
         # should not have any test stdout/stderr
         self.assertNotIn('stdout', err)
@@ -1193,7 +1193,7 @@ class SchrootRunner(AdtTestCase):
 
         # test should succeed
         self.assertRegex(out, 'ubtree0t-pass\s+PASS', out)
-        self.assertEqual(code, 0)
+        self.assertEqual(code, 0, err)
 
         # should show test stdout
         self.assertRegex(err, 'stdout [ -]+\nGOOD\n')
@@ -1227,7 +1227,7 @@ class SchrootRunner(AdtTestCase):
 
         # test should succeed
         self.assertRegex(out, '-pass\s+PASS', out)
-        self.assertEqual(code, 0)
+        self.assertEqual(code, 0, err)
 
         # should show test stdout
         self.assertRegex(err, 'stdout [ -]+\nbuilt script OK\n')
@@ -1528,7 +1528,7 @@ class LxcRunner(AdtTestCase):
                                         ['--ephemeral', self.container_name])
         # test should succeed
         self.assertRegex(out, 'tree0t-pass\s+PASS', out)
-        self.assertEqual(code, 0)
+        self.assertEqual(code, 0, err)
 
         # should build package
         self.assertIn('dh build', err)
@@ -1548,7 +1548,7 @@ class LxcRunner(AdtTestCase):
                                         ['--ephemeral', self.container_name])
         # test should succeed
         self.assertRegex(out, 'dsc0t-pass\s+PASS', out)
-        self.assertEqual(code, 0)
+        self.assertEqual(code, 0, err)
 
         # should not have any test stdout/stderr
         self.assertNotIn('stdout', err)
@@ -1581,7 +1581,7 @@ class LxcRunner(AdtTestCase):
 
         # test should succeed
         self.assertRegex(out, 'ubtree0t-pass\s+PASS', out)
-        self.assertEqual(code, 0)
+        self.assertEqual(code, 0, err)
 
         # should show test stdout
         self.assertRegex(err, 'stdout [ -]+\nGOOD\n')
@@ -1615,7 +1615,7 @@ class LxcRunner(AdtTestCase):
                                         ['--ephemeral', self.container_name])
         # both tests should run; the second one (boom) should not see the
         # effect of the first one (/zap existing)
-        self.assertEqual(code, 0)
+        self.assertEqual(code, 0, err)
         self.assertRegex(out, 'ubtree0t-zap\s+PASS')
         self.assertRegex(out, 'ubtree0t-boom\s+PASS')
 
@@ -1705,7 +1705,7 @@ class QemuRunner(AdtTestCase):
                                         [self.image])
         # both tests should run; the second one (boom) should not see the
         # effect of the first one (/zap existing)
-        self.assertEqual(code, 0)
+        self.assertEqual(code, 0, err)
         self.assertRegex(out, 'ubtree0t-zap\s+PASS')
         self.assertRegex(out, 'ubtree0t-boom\s+PASS')
 
