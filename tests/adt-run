@@ -1428,7 +1428,7 @@ class SchrootRunner(AdtTestCase):
 
 
 @unittest.skipUnless('ADT_TEST_LXC' in os.environ,
-                     'Set $ADT_TEST_LXC to an existing ubuntu-cloud container')
+                     'Set $ADT_TEST_LXC to an existing container')
 class LxcRunner(AdtTestCase):
     def __init__(self, *args, **kwargs):
         super(LxcRunner, self).__init__('lxc', *args, **kwargs)
