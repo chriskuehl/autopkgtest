@@ -993,8 +993,8 @@ Restrictions: needs-root
 
         (code, out, err) = self.adt_run(['-B', '--unbuilt-tree=' + p,
                                          '--setup-commands', 'cp /bin/cp /bin/cp_cp; '
-                                         'echo setup_success > /setup.log\n'
-                                         'cp /bin/cp /bin/cp_cp'],
+                                         'echo setup_success > /setup.log',
+                                         '--setup-commands', 'cp /bin/cp /bin/cp_cp'],
                                         [self.chroot])
         # test should succeed
         self.assertEqual(code, 0, err)
@@ -1011,15 +1011,20 @@ Restrictions: needs-root
         '''--setup-commands with command file'''
 
         p = self.build_src('Tests: pass\nDepends:\nRestrictions: needs-root\n',
-                           {'pass': '#!/bin/sh -e\n[ -x /bin/cp_cp ]; cat /setup.log\n'})
+                           {'pass': '#!/bin/sh -e\n[ -x /bin/cp_cp ]; cat /setup.log\ncat /s2.log'})
 
         cmds = os.path.join(self.workdir, 'setup.sh')
         with open(cmds, 'w') as f:
             f.write('cp /bin/cp /bin/cp_cp\necho setup_success > /setup.log\n')
             f.flush()
+        cmds2 = os.path.join(self.workdir, 'setup2.sh')
+        with open(cmds2, 'w') as f:
+            f.write('echo setup2_success > /s2.log\n')
+            f.flush()
 
         (code, out, err) = self.adt_run(['-B', '-d', '--unbuilt-tree=' + p,
-                                         '--setup-commands', cmds],
+                                         '--setup-commands', cmds,
+                                         '--setup-commands', cmds2],
                                         [self.chroot])
         # test should succeed
         self.assertEqual(code, 0, err)
