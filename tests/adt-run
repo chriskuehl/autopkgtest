@@ -704,6 +704,7 @@ class ChrootRunner(AdtTestCase):
         install_elf('/bin/mktemp')
         install_elf('/bin/tar')
         install_elf('/usr/bin/test')
+        install_elf('/usr/bin/awk')
 
         # some fakes
         for cmd in ['dpkg', 'apt-get', 'apt-key', 'apt-cache']:
@@ -1036,6 +1037,36 @@ Restrictions: needs-root
         self.assertNotIn('stderr', err)
 
         self.assertIn('@@@@@@ test bed setup', err)
+
+    def test_apt_pocket(self):
+        '''--apt-pocket'''
+
+        p = self.build_src('Tests: pass\nDepends:\nRestrictions: needs-root\n',
+                           {'pass': '#!/bin/sh -e\ntest -e /etc/apt/sources.list.d/proposed.list'})
+
+        apt_dir = os.path.join(self.chroot, 'etc', 'apt')
+        os.makedirs(os.path.join(apt_dir, 'sources.list.d'))
+        with open(os.path.join(apt_dir, 'sources.list'), 'w') as f:
+            f.write('''# comment
+deb http://my.distro/ fluffy-updates main non-free
+deb-src http://my.distro/ fluffy-updates main non-free
+deb http://my.distro/ fluffy main non-free
+deb-src http://my.distro/ fluffy main non-free
+''')
+
+        (code, out, err) = self.adt_run(['-B', '-d', '--unbuilt-tree=' + p,
+                                         '--apt-pocket', 'proposed'],
+                                        [self.chroot])
+
+        # test should succeed
+        self.assertEqual(code, 0, err)
+        self.assertRegex(out, 'tree0t-pass\s+PASS', out)
+
+        # verify proposed.list
+        with open(os.path.join(apt_dir, 'sources.list.d', 'proposed.list')) as f:
+            self.assertEqual(f.read(), '''deb http://my.distro/ fluffy-proposed main non-free
+deb-src http://my.distro/ fluffy-proposed main non-free
+''')
 
 
 @unittest.skipUnless('ADT_TEST_SCHROOT' in os.environ,
