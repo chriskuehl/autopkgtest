@@ -703,6 +703,7 @@ class ChrootRunner(AdtTestCase):
         install_elf('/bin/chown')
         install_elf('/bin/mktemp')
         install_elf('/bin/tar')
+        install_elf('/bin/sleep')
         install_elf('/usr/bin/test')
         install_elf('/usr/bin/awk')
 
@@ -993,9 +994,10 @@ Restrictions: needs-root
                            {'pass': '#!/bin/sh -e\n[ -x /bin/cp_cp ]; cat /setup.log\n'})
 
         (code, out, err) = self.adt_run(['-B', '--unbuilt-tree=' + p,
-                                         '--setup-commands', 'cp /bin/cp /bin/cp_cp; '
+                                         '--setup-commands', 'sleep 3; cp /bin/cp /bin/cp_cp; '
                                          'echo setup_success > /setup.log',
-                                         '--setup-commands', 'cp /bin/cp /bin/cp_cp'],
+                                         '--setup-commands', 'cp /bin/cp /bin/cp_cp',
+                                         '--timeout-short=1', '--timeout-copy=1'],
                                         [self.chroot])
         # test should succeed
         self.assertEqual(code, 0, err)
