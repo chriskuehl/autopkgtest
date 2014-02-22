@@ -427,14 +427,14 @@ fi
         # check outdir test stdout/err
         with open(os.path.join(outdir, 'ubtree0t-sP-stdout')) as f:
             self.assertEqual(f.read(), 'static script OK\n')
-        with open(os.path.join(outdir, 'ubtree0t-sP-stderr')) as f:
-            self.assertEqual(f.read(), '')
+        self.assertFalse(os.path.exists(
+            os.path.join(outdir, 'ubtree0t-sP-stderr')))
         with open(os.path.join(outdir, 'ubtree0t-bP-stdout')) as f:
             self.assertEqual(f.read(), 'built script OK\n')
-        with open(os.path.join(outdir, 'ubtree0t-bP-stderr')) as f:
-            self.assertEqual(f.read(), '')
-        with open(os.path.join(outdir, 'ubtree0t-sF-stdout')) as f:
-            self.assertEqual(f.read(), '')
+        self.assertFalse(os.path.exists(
+            os.path.join(outdir, 'ubtree0t-bP-stderr')))
+        self.assertFalse(os.path.exists(
+            os.path.join(outdir, 'ubtree0t-sF-stdout')))
         with open(os.path.join(outdir, 'ubtree0t-sF-stderr')) as f:
             self.assertEqual(f.read(), 'kaputt\n')
 
@@ -1391,10 +1391,10 @@ class SchrootRunner(AdtTestCase):
         # check outdir test stdout/err
         with open(os.path.join(outdir, 'ubtree0t-ok-stdout')) as f:
             self.assertEqual(f.read(), 'built script OK\n')
-        with open(os.path.join(outdir, 'ubtree0t-ok-stderr')) as f:
-            self.assertEqual(f.read(), '')
-        with open(os.path.join(outdir, 'ubtree0t-broken-stdout')) as f:
-            self.assertEqual(f.read(), '')
+        self.assertFalse(os.path.exists(
+            os.path.join(outdir, 'ubtree0t-ok-stderr')))
+        self.assertFalse(os.path.exists(
+            os.path.join(outdir, 'ubtree0t-broken-stdout')))
         with open(os.path.join(outdir, 'ubtree0t-broken-stderr')) as f:
             self.assertEqual(f.read(), 'kaputt\n')
 
