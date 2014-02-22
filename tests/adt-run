@@ -109,6 +109,105 @@ class AdtTestCase(unittest.TestCase):
         return (adt.returncode, out.decode('UTF-8'), err.decode('UTF-8'))
 
 
+class NullRunnerNoRoot(AdtTestCase):
+    def __init__(self, *args, **kwargs):
+        super(NullRunnerNoRoot, self).__init__('null', *args, **kwargs)
+
+    def test_dev_stdouterr_access(self):
+        '''write to /dev/stdout and /dev/stderr in a test'''
+
+        p = self.build_src('Tests: pass\nDepends:\nRestrictions: allow-stderr',
+                           {'pass': '#!/bin/sh\necho I am fine >/dev/stdout\n'
+                            'echo SomeDebug >/dev/stderr\n'})
+
+        (code, out, err) = self.adt_run(['--no-built-binaries', '--built-tree=' + p])
+        self.assertEqual(code, 0, err)
+        self.assertRegex(out, 'tree0t-pass\s+PASS', out)
+
+        # should show test stdout/err
+        self.assertIn('I am fine\n', out)
+        # should show test stderr
+        self.assertIn('\nSomeDebug\n', err)
+
+    def test_summary(self):
+        '''--summary option'''
+
+        p = self.build_src('Tests: good bad\nDepends:\n',
+                           {'good': '#!/bin/sh\necho happy\n',
+                            'bad': '#!/bin/sh\nexit 1'})
+
+        summary = os.path.join(self.workdir, 'summary.log')
+
+        (code, out, err) = self.adt_run(['--no-built-binaries',
+                                         '--unbuilt-tree=' + p,
+                                         '--summary=' + summary])
+
+        # test results
+        self.assertEqual(code, 4, err)
+        self.assertRegex(out, 'ubtree0t-good\s+PASS', out)
+        self.assertRegex(out, 'ubtree0t-bad\s+FAIL non-zero exit status 1', out)
+
+        # check summary file
+        with open(summary) as f:
+            self.assertEqual(f.read(), '''ubtree0t-good        PASS
+ubtree0t-bad         FAIL non-zero exit status 1
+''')
+
+    def test_tree_norestrictions_nobuild_fail_on_stderr_and_exit(self):
+        '''source tree, no build, no restrictions, test fails with stderr+exit'''
+
+        p = self.build_src('Tests: senz\nDepends:\n',
+                           {'senz': '#!/bin/sh\necho I am sick >&2\nexit 7\n'})
+
+        (code, out, err) = self.adt_run(['--no-built-binaries', '--built-tree=' + p])
+        # test should fail
+        self.assertEqual(code, 4)
+        self.assertRegex(out, 'tree0t-senz\s+FAIL non-zero exit status 7')
+
+        # should show test stderr, but inline
+        self.assertRegex(err, 'stderr [ -]+\nI am sick', err)
+        self.assertNotIn('stdout', err)
+
+    def test_tree_allow_stderr_nobuild_success(self):
+        '''source tree, no build, allow-stderr, test success'''
+
+        p = self.build_src('Tests: pass\nDepends:\nRestrictions: allow-stderr',
+                           {'pass': '#!/bin/sh\necho I am fine >&2\necho babble'})
+
+        (code, out, err) = self.adt_run(['--no-built-binaries', '--built-tree=' + p])
+        self.assertEqual(code, 0, err)
+        self.assertRegex(out, 'tree0t-pass\s+PASS', out)
+
+        # should show test stdout/err
+        self.assertIn('babble\n', out)
+        self.assertRegex(err, '-+\nI am fine\nadt-run: & tree0t-pass: --')
+        # but not complain about stderr
+        self.assertNotIn('stderr', err)
+
+    def test_unicode(self):
+        '''Unicode test output'''
+
+        p = self.build_src('Tests: se\nDepends:\n',
+                           {'se': '#!/bin/sh\necho ‘a♩’; echo fancy ‴ʎɔuɐɟ″!>&2'})
+
+        summary = os.path.join(self.workdir, 'summary.log')
+
+        (code, out, err) = self.adt_run(['--no-built-binaries',
+                                         '--unbuilt-tree=' + p,
+                                         '--summary=' + summary])
+        self.assertEqual(code, 4, err)
+        self.assertRegex(out, 'ubtree0t-se\s+FAIL status: 0, stderr: fancy ‴ʎɔuɐɟ″!\n')
+
+        # should show test stdout/stderr
+        self.assertIn('‘a♩’\n', out)
+        self.assertRegex(err, 'stderr [ -]+\nfancy ‴ʎɔuɐɟ″!\n')
+
+        with open(summary, encoding='UTF-8') as f:
+            self.assertEqual(f.read(), 'ubtree0t-se          FAIL status: 0, stderr: fancy ‴ʎɔuɐɟ″!\n')
+
+
+@unittest.skipIf(os.getuid() > 0,
+                 'null runner tests need to run as root')
 class NullRunner(AdtTestCase):
     def __init__(self, *args, **kwargs):
         super(NullRunner, self).__init__('null', *args, **kwargs)
@@ -168,37 +267,6 @@ class NullRunner(AdtTestCase):
         self.assertIn('processing dependency coreutils', err)
         # should show test stderr
         self.assertRegex(err, 'stderr [ -]+\nI am sick', err)
-
-    def test_tree_norestrictions_nobuild_fail_on_stderr_and_exit(self):
-        '''source tree, no build, no restrictions, test fails with stderr+exit'''
-
-        p = self.build_src('Tests: senz\nDepends:\n',
-                           {'senz': '#!/bin/sh\necho I am sick >&2\nexit 7\n'})
-
-        (code, out, err) = self.adt_run(['--no-built-binaries', '--built-tree=' + p])
-        # test should fail
-        self.assertEqual(code, 4)
-        self.assertRegex(out, 'tree0t-senz\s+FAIL non-zero exit status 7')
-
-        # should show test stderr, but inline
-        self.assertRegex(err, 'stderr [ -]+\nI am sick', err)
-        self.assertNotIn('stdout', err)
-
-    def test_tree_allow_stderr_nobuild_success(self):
-        '''source tree, no build, allow-stderr, test success'''
-
-        p = self.build_src('Tests: pass\nDepends:\nRestrictions: allow-stderr',
-                           {'pass': '#!/bin/sh\necho I am fine >&2\necho babble'})
-
-        (code, out, err) = self.adt_run(['--no-built-binaries', '--built-tree=' + p])
-        self.assertEqual(code, 0, err)
-        self.assertRegex(out, 'tree0t-pass\s+PASS', out)
-
-        # should show test stdout/err
-        self.assertIn('babble\n', out)
-        self.assertRegex(err, '-+\nI am fine\nadt-run: & tree0t-pass: --')
-        # but not complain about stderr
-        self.assertNotIn('stderr', err)
 
     def test_tree_allow_stderr_nobuild_fail_on_exit(self):
         '''source tree, no build, allow-stderr, test fails with non-zero'''
@@ -479,30 +547,6 @@ fi
         # should not start tests
         self.assertNotIn('start\n', out)
 
-    def test_summary(self):
-        '''--summary option'''
-
-        p = self.build_src('Tests: good bad\nDepends:\n',
-                           {'good': '#!/bin/sh\necho happy\n',
-                            'bad': '#!/bin/sh\nexit 1'})
-
-        summary = os.path.join(self.workdir, 'summary.log')
-
-        (code, out, err) = self.adt_run(['--no-built-binaries',
-                                         '--unbuilt-tree=' + p,
-                                         '--summary=' + summary])
-
-        # test results
-        self.assertEqual(code, 4, err)
-        self.assertRegex(out, 'ubtree0t-good\s+PASS', out)
-        self.assertRegex(out, 'ubtree0t-bad\s+FAIL non-zero exit status 1', out)
-
-        # check summary file
-        with open(summary) as f:
-            self.assertEqual(f.read(), '''ubtree0t-good        PASS
-ubtree0t-bad         FAIL non-zero exit status 1
-''')
-
     def test_logfile_success(self):
         '''--log-file option, success'''
 
@@ -568,22 +612,6 @@ ubtree0t-bad         FAIL non-zero exit status 1
         self.assertRegex(err, 'stderr [ -]+\nI am sick\n')
         self.assertRegex(log, 'stderr [ -]+\nI am sick\n')
 
-    def test_dev_stdouterr_access(self):
-        '''write to /dev/stdout and /dev/stderr in a test'''
-
-        p = self.build_src('Tests: pass\nDepends:\nRestrictions: allow-stderr',
-                           {'pass': '#!/bin/sh\necho I am fine >/dev/stdout\n'
-                            'echo SomeDebug >/dev/stderr\n'})
-
-        (code, out, err) = self.adt_run(['--no-built-binaries', '--built-tree=' + p])
-        self.assertEqual(code, 0, err)
-        self.assertRegex(out, 'tree0t-pass\s+PASS', out)
-
-        # should show test stdout/err
-        self.assertIn('I am fine\n', out)
-        # should show test stderr
-        self.assertIn('\nSomeDebug\n', err)
-
     def test_breaks_testbed(self):
         '''breaks-testbed restriction'''
 
@@ -596,27 +624,6 @@ ubtree0t-bad         FAIL non-zero exit status 1
         self.assertRegex(out, 'rambo\s+SKIP Test breaks testbed')
         self.assertNotIn(out, 'no tests')
         self.assertFalse(os.path.exists('/var/tmp/zap'))
-
-    def test_unicode(self):
-        '''Unicode test output'''
-
-        p = self.build_src('Tests: se\nDepends:\n',
-                           {'se': '#!/bin/sh\necho ‘a♩’; echo fancy ‴ʎɔuɐɟ″!>&2'})
-
-        summary = os.path.join(self.workdir, 'summary.log')
-
-        (code, out, err) = self.adt_run(['--no-built-binaries',
-                                         '--unbuilt-tree=' + p,
-                                         '--summary=' + summary])
-        self.assertEqual(code, 4, err)
-        self.assertRegex(out, 'ubtree0t-se\s+FAIL status: 0, stderr: fancy ‴ʎɔuɐɟ″!\n')
-
-        # should show test stdout/stderr
-        self.assertIn('‘a♩’\n', out)
-        self.assertRegex(err, 'stderr [ -]+\nfancy ‴ʎɔuɐɟ″!\n')
-
-        with open(summary, encoding='UTF-8') as f:
-            self.assertEqual(f.read(), 'ubtree0t-se          FAIL status: 0, stderr: fancy ‴ʎɔuɐɟ″!\n')
 
     def test_tree_apply_patches(self):
         '''source tree, 3.0 (quilt) patches get applied'''
@@ -665,6 +672,8 @@ ubtree0t-bad         FAIL non-zero exit status 1
 
 @unittest.skipIf('cowdancer' in os.environ.get('LD_PRELOAD', ''),
                  'chroot tests do not work under cowdancer')
+@unittest.skipIf(os.getuid() > 0,
+                 'chroot runner needs to run as root')
 class ChrootRunner(AdtTestCase):
     def __init__(self, *args, **kwargs):
         super(ChrootRunner, self).__init__('chroot', *args, **kwargs)
@@ -1472,6 +1481,9 @@ class LxcRunner(AdtTestCase):
     def __init__(self, *args, **kwargs):
         super(LxcRunner, self).__init__('lxc', *args, **kwargs)
         self.container_name = os.environ.get('ADT_TEST_LXC')
+        self.virt_args = ['--ephemeral', self.container_name]
+        if os.getuid() > 0:
+            self.virt_args.insert(0, '--sudo')
 
     def test_tree_norestrictions_nobuild_success(self):
         '''source tree, no build, no restrictions, test success'''
@@ -1480,7 +1492,7 @@ class LxcRunner(AdtTestCase):
                            {'pass': '#!/bin/sh\necho I am fine\n'})
 
         (code, out, err) = self.adt_run(['--no-built-binaries', '--unbuilt-tree=' + p],
-                                        ['--ephemeral', self.container_name])
+                                        self.virt_args)
         # test should succeed
         self.assertEqual(code, 0, err)
         self.assertIn('coreutils', out)
@@ -1501,7 +1513,7 @@ class LxcRunner(AdtTestCase):
                            {'nz': '#!/bin/sh\necho I am sick\nexit 7'})
 
         (code, out, err) = self.adt_run(['--no-built-binaries', '--unbuilt-tree=' + p],
-                                        ['--ephemeral', self.container_name])
+                                        self.virt_args)
         self.assertEqual(code, 4, err)
         self.assertRegex(out, 'tree0t-nz\s+FAIL non-zero exit status 7')
 
@@ -1520,7 +1532,7 @@ class LxcRunner(AdtTestCase):
                            {'se': '#!/bin/sh\necho I am sick >&2'})
 
         (code, out, err) = self.adt_run(['--no-built-binaries', '--unbuilt-tree=' + p],
-                                        ['--ephemeral', self.container_name])
+                                        self.virt_args)
         self.assertEqual(code, 4, err)
         self.assertRegex(out, 'ubtree0t-se\s+FAIL status: 0, stderr: I am sick\n')
 
@@ -1536,7 +1548,7 @@ class LxcRunner(AdtTestCase):
                            {'senz': '#!/bin/sh\necho I am sick >&2\nexit 7\n'})
 
         (code, out, err) = self.adt_run(['--no-built-binaries', '--built-tree=' + p],
-                                        ['--ephemeral', self.container_name])
+                                        self.virt_args)
         # test should fail
         self.assertEqual(code, 4)
         self.assertRegex(out, 'tree0t-senz\s+FAIL non-zero exit status 7')
@@ -1552,7 +1564,7 @@ class LxcRunner(AdtTestCase):
                            {'pass': '#!/bin/sh\necho I am fine >&2\necho babble'})
 
         (code, out, err) = self.adt_run(['--no-built-binaries', '--built-tree=' + p],
-                                        ['--ephemeral', self.container_name])
+                                        self.virt_args)
         self.assertEqual(code, 0, err)
         self.assertRegex(out, 'tree0t-pass\s+PASS', out)
 
@@ -1567,7 +1579,7 @@ class LxcRunner(AdtTestCase):
                            {'pass': '#!/bin/sh -e\n./test_built | grep -q "built script OK"\necho GOOD'})
 
         (code, out, err) = self.adt_run(['--no-built-binaries', '--unbuilt-tree=' + p],
-                                        ['--ephemeral', self.container_name])
+                                        self.virt_args)
         # test should succeed
         self.assertRegex(out, 'tree0t-pass\s+PASS', out)
         self.assertEqual(code, 0, err)
@@ -1587,7 +1599,7 @@ class LxcRunner(AdtTestCase):
                            {'pass': '#!/bin/sh -e\n./test_built | grep -q "built script OK"\n'})
 
         (code, out, err) = self.adt_run(['--no-built-binaries', p],
-                                        ['--ephemeral', self.container_name])
+                                        self.virt_args)
         # test should succeed
         self.assertRegex(out, 'dsc0t-pass\s+PASS', out)
         self.assertEqual(code, 0, err)
@@ -1613,7 +1625,7 @@ class LxcRunner(AdtTestCase):
                                os.path.join(p, 'debian', 'control')])
 
         (code, out, err) = self.adt_run(['--unbuilt-tree=' + p],
-                                        ['--ephemeral', self.container_name])
+                                        self.virt_args)
 
         # should build and install package
         self.assertIn('dh build', err)
@@ -1636,8 +1648,9 @@ class LxcRunner(AdtTestCase):
         p = self.build_src('Tests: senz\nDepends:\n',
                            {'senz': '#!/bin/sh\necho I am sick >&2\nexit 7\n'})
 
+        virt_args = [a for a in self.virt_args if a != '--ephemeral']
         (code, out, err) = self.adt_run(['--no-built-binaries', '--built-tree=' + p],
-                                        [self.container_name])
+                                        virt_args)
         # test should fail
         self.assertEqual(code, 4, err)
         self.assertRegex(out, 'tree0t-senz\s+FAIL non-zero exit status 7')
@@ -1654,7 +1667,7 @@ class LxcRunner(AdtTestCase):
                             'boom': '#!/bin/sh\n[ ! -e /zap ]; touch /boom'})
 
         (code, out, err) = self.adt_run(['--no-built-binaries', '--unbuilt-tree=' + p, '-d'],
-                                        ['--ephemeral', self.container_name])
+                                        self.virt_args)
         # both tests should run; the second one (boom) should not see the
         # effect of the first one (/zap existing)
         self.assertEqual(code, 0, err)
@@ -1670,7 +1683,7 @@ class LxcRunner(AdtTestCase):
 
         (code, out, err) = self.adt_run(['-B', '-d', p + '//',
                                          '--setup-commands', 'echo setupok >> /setup.log'],
-                                        ['--ephemeral', self.container_name])
+                                        self.virt_args)
 
         # test should succeed
         self.assertEqual(code, 0, err)
@@ -1777,8 +1790,4 @@ class QemuRunner(AdtTestCase):
 
 
 if __name__ == '__main__':
-    if os.geteuid() != 0:
-        sys.stderr.write('ERROR: You need to run this test suite as root.\n')
-        sys.exit(1)
-
     unittest.main(testRunner=unittest.TextTestRunner(stream=sys.stdout, verbosity=2))
