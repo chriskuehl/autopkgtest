@@ -47,6 +47,7 @@ class AdtTestCase(unittest.TestCase):
         super(AdtTestCase, self).__init__(*args, **kwargs)
         self.adt_run_path = os.path.join(root_dir, 'run-from-checkout')
         self.virt = 'adt-virt-' + virt
+        os.environ['HOME'] = os.path.join(test_dir, 'home')
 
     def setUp(self):
         self.workdir = tempfile.mkdtemp()
