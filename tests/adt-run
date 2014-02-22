@@ -47,13 +47,16 @@ class AdtTestCase(unittest.TestCase):
         super(AdtTestCase, self).__init__(*args, **kwargs)
         self.adt_run_path = os.path.join(root_dir, 'run-from-checkout')
         self.virt = 'adt-virt-' + virt
-        os.environ['HOME'] = os.path.join(test_dir, 'home')
 
     def setUp(self):
         self.workdir = tempfile.mkdtemp()
         self.addCleanup(shutil.rmtree, self.workdir)
         self.cwd = os.getcwd()
         self.addCleanup(os.chdir, self.cwd)
+
+        temp_home = os.path.join(self.workdir, 'home')
+        shutil.copytree(os.path.join(test_dir, 'home'), temp_home)
+        os.environ['HOME'] = temp_home
 
     def build_src(self, test_control, test_scripts):
         '''Create source package tree with given tests.
