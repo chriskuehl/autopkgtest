@@ -11,14 +11,7 @@ PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 # Short-Description: Prepare firewall tables for autopkgtest Xen guests
 ### END INIT INFO
 
-lsbif=/lib/lsb/init-functions
-if test -e $lsbif; then
-  . $lsbif
-else
-  log_daemon_msg () { printf "%s: " "$1"; }
-  log_progress_msg () { printf "%s " "$1"; }
-  log_end_msg () { echo "done."; }
-fi
+. /lib/lsb/init-functions
 if test -f /etc/default/rcS; then . /etc/default/rcS; fi
 
 chains='AdtXenIn AdtXenFwd AdtXenIcmp'
