@@ -148,6 +148,23 @@ The defined Restrictions are:
     Output to stderr is not considered a failure. This is useful for
     tests which write e. g. lots of logging to stderr.
 
+  isolation-container
+
+    The test wants to start services or open network TCP ports. This
+    commonly fails in a simple chroot/schroot, so tests need to be run
+    in their own container (e. g. adt-virt-lxc) or their own machine/VM
+    (e. g. adt-virt-qemu or adt-virt-null). When running the test in a
+    virtualization server which does not provide this (like
+    adt-virt-schroot) it will be skipped.
+
+  isolation-machine
+
+    The test wants to interact with the kernel, reboot the machine, or
+    other things which fail in a simple schroot and even a container.
+    Those tests need to be run in their own machine/VM (e. g.
+    adt-virt-qemu or adt-virt-null). When running the test in a
+    virtualization server which does not provide this it will be
+    skipped.
 
 There are no currently defined Features.
 

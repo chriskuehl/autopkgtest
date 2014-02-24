@@ -208,6 +208,21 @@ ubtree0t-bad         FAIL non-zero exit status 1
         with open(summary, encoding='UTF-8') as f:
             self.assertEqual(f.read(), 'ubtree0t-se          FAIL status: 0, stderr: fancy ‴ʎɔuɐɟ″!\n')
 
+    def test_isolation(self):
+        '''isolation restrictions'''
+
+        p = self.build_src('Tests: ic\nDepends:\nRestrictions: isolation-container\n\n'
+                           'Tests: im\nDepends:\nRestrictions: isolation-machine\n',
+                           {'ic': '#!/bin/sh\necho container ok',
+                            'im': '#!/bin/sh\necho machine ok'})
+
+        (code, out, err) = self.adt_run(['-B', '--built-tree=' + p])
+        self.assertEqual(code, 0, out + err)
+        self.assertRegex(out, 'tree0t-ic\s+PASS', out)
+        self.assertRegex(out, 'tree0t-im\s+PASS', out)
+        self.assertIn('container ok\n', out)
+        self.assertIn('machine ok\n', out)
+
 
 @unittest.skipIf(os.getuid() > 0,
                  'null runner tests need to run as root')
@@ -1083,6 +1098,20 @@ deb-src http://my.distro/ fluffy main non-free
 deb-src http://my.distro/ fluffy-proposed main non-free
 ''')
 
+    def test_isolation(self):
+        '''isolation restrictions'''
+
+        p = self.build_src('Tests: ic\nDepends:\nRestrictions: isolation-container\n\n'
+                           'Tests: im\nDepends:\nRestrictions: isolation-machine\n',
+                           {'ic': '#!/bin/sh\necho container ok',
+                            'im': '#!/bin/sh\necho machine ok'})
+
+        (code, out, err) = self.adt_run(['-B', '--built-tree=' + p], [self.chroot])
+        self.assertEqual(code, 2, out + err)
+        self.assertRegex(out, 'ic\s+SKIP .*container', out)
+        self.assertRegex(out, 'im\s+SKIP .*machine', out)
+        self.assertNotIn('ok', out)
+
 
 @unittest.skipUnless('ADT_TEST_SCHROOT' in os.environ,
                      'Set $ADT_TEST_SCHROOT to an existing schroot')
@@ -1479,6 +1508,21 @@ class SchrootRunner(AdtTestCase):
         self.assertEqual(code, 2)
         self.assertRegex(out, 'rambo\s+SKIP Test breaks testbed')
 
+    def test_isolation(self):
+        '''isolation restrictions'''
+
+        p = self.build_src('Tests: ic\nDepends:\nRestrictions: isolation-container\n\n'
+                           'Tests: im\nDepends:\nRestrictions: isolation-machine\n',
+                           {'ic': '#!/bin/sh\necho container ok',
+                            'im': '#!/bin/sh\necho machine ok'})
+
+        (code, out, err) = self.adt_run(['-B', '--built-tree=' + p],
+                                        [self.schroot_name])
+        self.assertEqual(code, 2, out + err)
+        self.assertRegex(out, 'ic\s+SKIP .*container', out)
+        self.assertRegex(out, 'im\s+SKIP .*machine', out)
+        self.assertNotIn('ok', out)
+
 
 @unittest.skipUnless('ADT_TEST_LXC' in os.environ,
                      'Set $ADT_TEST_LXC to an existing container')
@@ -1705,6 +1749,21 @@ class LxcRunner(AdtTestCase):
 
         self.assertIn('@@@@@@ test bed setup', err)
 
+    def test_isolation(self):
+        '''isolation restrictions'''
+
+        p = self.build_src('Tests: ic\nDepends:\nRestrictions: isolation-container\n\n'
+                           'Tests: im\nDepends:\nRestrictions: isolation-machine\n',
+                           {'ic': '#!/bin/sh\necho container ok',
+                            'im': '#!/bin/sh\necho machine ok'})
+
+        (code, out, err) = self.adt_run(['-B', '--built-tree=' + p], self.virt_args)
+        self.assertEqual(code, 2, out + err)
+        self.assertRegex(out, 'tree0t-ic\s+PASS', out)
+        self.assertRegex(out, 'im\s+SKIP .*machine', out)
+        self.assertIn('container ok\n', out)
+        self.assertNotIn('machine ok', out)
+
 
 @unittest.skipUnless('ADT_TEST_QEMU' in os.environ,
                      'Set $ADT_TEST_QEMU to an existing autopkgtest QEMU image')
@@ -1794,6 +1853,21 @@ class QemuRunner(AdtTestCase):
         self.assertNotIn('stderr', err)
 
         self.assertIn('@@@@@@ test bed setup', err)
+
+    def test_isolation(self):
+        '''isolation restrictions'''
+
+        p = self.build_src('Tests: ic\nDepends:\nRestrictions: isolation-container\n\n'
+                           'Tests: im\nDepends:\nRestrictions: isolation-machine\n',
+                           {'ic': '#!/bin/sh\necho container ok',
+                            'im': '#!/bin/sh\necho machine ok'})
+
+        (code, out, err) = self.adt_run(['-B', '--built-tree=' + p], [self.image])
+        self.assertEqual(code, 0, out + err)
+        self.assertRegex(out, 'tree0t-ic\s+PASS', out)
+        self.assertRegex(out, 'tree0t-im\s+PASS', out)
+        self.assertRegex(err, 'stdout [ -]+\ncontainer ok\n')
+        self.assertRegex(err, 'stdout [ -]+\nmachine ok\n')
 
 
 if __name__ == '__main__':

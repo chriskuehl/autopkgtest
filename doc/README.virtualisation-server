@@ -88,6 +88,17 @@ Protocol
 	The shared downtmp-host directory supports FIFOs between the host and
 	testbed. Only relevant if downtmp-host is set.
 
+    + isolation-container
+	The testbed runs in a Linux cgroup/container (nspawn, LXC, docker,
+	etc.) and thus tests have full control over starting services and
+	opening network ports.
+
+    + isolation-machine
+	The testbed runs in a complete (virtual or real) machine on its own
+	(qemu or bare metal) and thus tests have full control over starting
+	services, opening network ports, interacting with the kernel (e. g.
+	modprobe), rebooting, and accessing hardware.
+
 
 * Command
 	open
