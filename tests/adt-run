@@ -526,7 +526,7 @@ fi
         subprocess.check_call(['sed', '-i', '/^build:/ s/$/\\n\\tsleep 4/',
                                os.path.join(p, 'Makefile')])
 
-        (code, out, err) = self.adt_run(['--timeout-test=1', '--timeout-build=15',
+        (code, out, err) = self.adt_run(['--timeout-test=1', '--timeout-build=30',
                                          '--timeout-install=3', '-B',
                                          '--unbuilt-tree', p])
         # should build package
