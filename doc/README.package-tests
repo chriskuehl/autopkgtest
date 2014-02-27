@@ -1,11 +1,11 @@
-	AUTOPKGTEST - DEFINING TESTS FOR PACKAGES
-	=========================================
+AUTOPKGTEST - DEFINING TESTS FOR PACKAGES
+=========================================
 
 This document describes how the autopkgtest tester core (the program
 `adt-run') interprets and executes tests found in source packages.
 
-
-
+Overview
+--------
 The source package provides a test metadata file
 debian/tests/control. This is a file containing zero or more
 RFC822-style stanzas, along these lines:
@@ -42,7 +42,9 @@ When using the --output-dir option, they will be copied into
 Tests must declare all applicable Restrictions - see below.
 
 
-The fields which may appear in the RFC822-style stanza are:
+Control fields
+--------------
+The fields which may appear in debian/tests/control stanzas are:
 
   Tests: <name-of-test> [<name-of-another-test> ...]
 
@@ -108,9 +110,8 @@ The fields which may appear in the RFC822-style stanza are:
 
 Any unknown fields will cause the whole stanza to be skipped.
 
-
-The defined Restrictions are:
-
+Defined restrictions
+--------------------
   rw-build-tree
 
     The test(s) needs write access to the built source tree (so it may
@@ -166,20 +167,21 @@ The defined Restrictions are:
     virtualization server which does not provide this it will be
     skipped.
 
+Defined features
+----------------
 There are no currently defined Features.
 
 
 Source package header
 ---------------------
-
-To allow test execution environments to discover packages which provide tests,
-their source packages should have a `Testsuite:` header containing
-`autopkgtest` (which is currently the only defined value). Multiple values get
-comma separated, as usual in control files.
+To allow test execution environments to discover packages which provide
+tests, their source packages should have a `Testsuite:` header
+containing `autopkgtest` (which is currently the only defined value).
+Multiple values get comma separated, as usual in control files.
 
 This tag can be set manually in debian/control by adding
 
     XS-Testsuite: autopkgtest
 
-in the `Source:` paragraph. Future versions of dpkg-source might add this
+in the `Source:' paragraph. Future versions of dpkg-source might add this
 automatically when a debian/tests/control file is present.
