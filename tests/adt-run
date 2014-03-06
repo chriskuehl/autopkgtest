@@ -918,9 +918,17 @@ Restrictions: needs-root
     def test_artifacts(self):
         '''tests producing additional artifacts'''
 
-        p = self.build_src('Tests: pass\nDepends:\nRestrictions: needs-root\n',
-                           {'pass': '#!/bin/sh -e\n[ -d "$ADT_ARTIFACTS" ]\n'
-                                    'echo I am fine > $ADT_ARTIFACTS/health.txt\n'})
+        p = self.build_src('Tests: a1 a2 a3 a4\nDepends:\nRestrictions: needs-root\n',
+                           {'a1': '#!/bin/sh -e\n[ -d "$ADT_ARTIFACTS" ]\n'
+                                  'echo old > $ADT_ARTIFACTS/health.txt\n',
+                            'a2': '#!/bin/sh -e\n[ -d "$ADT_ARTIFACTS" ]\n'
+                                  'echo I am fine > $ADT_ARTIFACTS/health.txt\n',
+                            'a3': '#!/bin/sh -e\n[ -d "$ADT_ARTIFACTS" ]\n'
+                                  'mkdir $ADT_ARTIFACTS/logs\n'
+                                  'echo world > $ADT_ARTIFACTS/logs/hello.txt\n',
+                            'a4': '#!/bin/sh -e\n[ -d "$ADT_ARTIFACTS" ]\n'
+                                  'mkdir $ADT_ARTIFACTS/logs\n'
+                                  'echo 42 > $ADT_ARTIFACTS/logs/answer.txt\n'})
 
         outdir = os.path.join(self.workdir, 'out')
 
@@ -931,15 +939,22 @@ Restrictions: needs-root
 
         # test should succeed
         self.assertEqual(code, 0, err)
-        self.assertRegex(out, 'tree0t-pass\s+PASS', out)
+        self.assertRegex(out, 'tree0t-a1\s+PASS', out)
+        self.assertRegex(out, 'tree0t-a2\s+PASS', out)
+        self.assertRegex(out, 'tree0t-a3\s+PASS', out)
+        self.assertRegex(out, 'tree0t-a4\s+PASS', out)
 
         # check for cruft in output dir
         files = [f for f in os.listdir(outdir) if not fnmatch.fnmatch(f, 'ubtree*-std*')]
         self.assertEqual(set(files), set(['log', 'artifacts']))
 
-        # check artifact
+        # check artifact; a2 should overwrite a1's health.txt
         with open(os.path.join(outdir, 'artifacts', 'health.txt')) as f:
             self.assertEqual(f.read(), 'I am fine\n')
+        with open(os.path.join(outdir, 'artifacts', 'logs', 'hello.txt')) as f:
+            self.assertEqual(f.read(), 'world\n')
+        with open(os.path.join(outdir, 'artifacts', 'logs', 'answer.txt')) as f:
+            self.assertEqual(f.read(), '42\n')
 
     def test_slash_in_test_name(self):
         '''test names must not contain /'''
