@@ -1,4 +1,4 @@
-prefix =	/usr/local
+prefix =	/usr
 dest_prefix =	$(DESTDIR)$(prefix)
 share =		$(dest_prefix)/share
 bindir =	$(dest_prefix)/bin
