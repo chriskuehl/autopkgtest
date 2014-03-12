@@ -1127,6 +1127,22 @@ deb-src http://my.distro/ fluffy-proposed main non-free
         self.assertRegex(out, 'im\s+SKIP .*machine', out)
         self.assertNotIn('ok', out)
 
+    def test_tree_garbage(self):
+        '''copied source tree contains only expected files'''
+
+        p = self.build_src('Tests: g\nDepends:\nRestrictions: needs-root\n',
+                           {'g': '#!/bin/sh\npwd\nLC_ALL=C ls .\n'})
+
+        (code, out, err) = self.adt_run(['-B', '--unbuilt-tree=' + p],
+                                        [self.chroot])
+        self.assertEqual(code, 0, err)
+        self.assertRegex(out, 'tree0t-g\s+PASS', out)
+
+        self.assertRegex(out, '^/tmp/adt-run.*/ubtree0-build/real-tree\n'
+                         'Makefile\ndebian\ntest_static\n')
+        # should not have any test stderr
+        self.assertNotIn('stderr', err)
+
 
 @unittest.skipUnless('ADT_TEST_SCHROOT' in os.environ,
                      'Set $ADT_TEST_SCHROOT to an existing schroot')
