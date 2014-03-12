@@ -183,7 +183,7 @@ ubtree0t-bad         FAIL non-zero exit status 1
 
         # should show test stdout/err
         self.assertIn('babble\n', out)
-        self.assertRegex(err, '-+\nI am fine\nadt-run: & tree0t-pass: --')
+        self.assertRegex(err, '-+\nI am fine\nadt-run \[[0-9: -]+\]: & tree0t-pass: --')
         # but not complain about stderr
         self.assertNotIn('stderr', err)
 
