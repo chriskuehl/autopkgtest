@@ -470,9 +470,19 @@ fi
             contents = f.read()
         self.assertEqual(contents, 'testpkg 1\n')
 
+        # check recorded package list
+        for t in ['sP', 'sF', 'bP']:
+            with open(os.path.join(outdir, 'ubtree0t-%s-packages' % t)) as f:
+                lines = f.read().splitlines()
+                self.assertGreater(len(lines), 10)
+                self.assertRegex(lines[0], '^[0-9a-z.-]+\t[0-9a-z.~-]+')
+                self.assertRegex(lines[1], '^[0-9a-z.-]+\t[0-9a-z.~-]+')
+
         # check for cruft in outdir
         # --no-built-binaries, we don't expect any debs
-        files = [i for i in os.listdir(outdir) if not fnmatch.fnmatch(i, 'ubtree*-std*')]
+        files = [i for i in os.listdir(outdir)
+                 if not fnmatch.fnmatch(i, 'ubtree*-std*') and
+                 not fnmatch.fnmatch(i, 'ubtree*-packages')]
         self.assertEqual(set(files), set(['log', 'testpkg-version']))
 
     def test_timeout(self):
@@ -745,7 +755,7 @@ class ChrootRunner(AdtTestCase):
         install_elf('/usr/bin/awk')
 
         # some fakes
-        for cmd in ['dpkg', 'apt-get', 'apt-key', 'apt-cache']:
+        for cmd in ['dpkg', 'dpkg-query', 'apt-get', 'apt-key', 'apt-cache']:
             p = os.path.join(self.chroot, 'usr', 'bin', cmd)
             with open(p, 'w') as f:
                 f.write('#!/bin/sh\necho "fake-%s: $@" >&2\n' % cmd)
@@ -957,7 +967,9 @@ Restrictions: needs-root
         self.assertRegex(out, 'tree0t-a4\s+PASS', out)
 
         # check for cruft in output dir
-        files = [f for f in os.listdir(outdir) if not fnmatch.fnmatch(f, 'ubtree*-std*')]
+        files = [i for i in os.listdir(outdir)
+                 if not fnmatch.fnmatch(i, 'ubtree*-std*') and
+                 not fnmatch.fnmatch(i, 'ubtree*-packages')]
         self.assertEqual(set(files), set(['log', 'artifacts', 'testpkg-version']))
 
         # check artifact; a2 should overwrite a1's health.txt
@@ -1484,6 +1496,14 @@ class SchrootRunner(AdtTestCase):
             contents = f.read()
         self.assertEqual(contents, 'testpkg 1\n')
 
+        # check recorded package list
+        for t in ['ok', 'broken']:
+            with open(os.path.join(outdir, 'ubtree0t-%s-packages' % t)) as f:
+                lines = f.read().splitlines()
+                self.assertGreater(len(lines), 10)
+                self.assertRegex(lines[0], '^[0-9a-z.-]+\t[0-9a-z.~-]+')
+                self.assertRegex(lines[1], '^[0-9a-z.-]+\t[0-9a-z.~-]+')
+
         # check binaries
         bins = os.listdir(os.path.join(outdir, 'binaries'))
         self.assertEqual(set(bins),
@@ -1491,7 +1511,9 @@ class SchrootRunner(AdtTestCase):
                               'Packages.gz', 'Packages', 'testpkg.deb']))
 
         # check for cruft in outdir
-        files = [i for i in os.listdir(outdir) if not fnmatch.fnmatch(i, 'ubtree*-std*')]
+        files = [i for i in os.listdir(outdir)
+                 if not fnmatch.fnmatch(i, 'ubtree*-std*') and
+                 not fnmatch.fnmatch(i, 'ubtree*-packages')]
         self.assertEqual(set(files), set(['log', 'binaries', 'testpkg-version']))
 
     def test_user(self):
