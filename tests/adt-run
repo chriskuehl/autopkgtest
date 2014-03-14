@@ -339,6 +339,9 @@ class NullRunner(AdtTestCase):
         # should not have any test stderr
         self.assertNotIn('stderr', err)
 
+        # should log package version
+        self.assertIn('adt-run: testing package testpkg version 1\n', err)
+
     def test_dsc_build_needed_success(self):
         '''dsc, build-needed restriction, test success'''
 
@@ -460,11 +463,17 @@ fi
         self.assertIn('dh build', contents)
         self.assertRegex(contents, 'ubtree0t-sF\s+FAIL status: 0, stderr: kaputt')
         self.assertIn('@@@@ tests done', contents)
+        self.assertIn('testing package testpkg version 1\n', contents)
+
+        # check test package version
+        with open(os.path.join(outdir, 'testpkg-version')) as f:
+            contents = f.read()
+        self.assertEqual(contents, 'testpkg 1\n')
 
         # check for cruft in outdir
         # --no-built-binaries, we don't expect any debs
         files = [i for i in os.listdir(outdir) if not fnmatch.fnmatch(i, 'ubtree*-std*')]
-        self.assertEqual(set(files), set(['log']))
+        self.assertEqual(set(files), set(['log', 'testpkg-version']))
 
     def test_timeout(self):
         '''handling test timeout'''
@@ -771,6 +780,9 @@ class ChrootRunner(AdtTestCase):
 
         self.assertNotIn('@@@@@@ test bed setup', err)
 
+        # should log package version
+        self.assertIn('adt-run: testing package testpkg version 1\n', err)
+
     def test_tree_norestrictions_nobuild_fail_on_exit(self):
         '''source tree, no build, no restrictions, test fails with non-zero'''
 
@@ -946,7 +958,7 @@ Restrictions: needs-root
 
         # check for cruft in output dir
         files = [f for f in os.listdir(outdir) if not fnmatch.fnmatch(f, 'ubtree*-std*')]
-        self.assertEqual(set(files), set(['log', 'artifacts']))
+        self.assertEqual(set(files), set(['log', 'artifacts', 'testpkg-version']))
 
         # check artifact; a2 should overwrite a1's health.txt
         with open(os.path.join(outdir, 'artifacts', 'health.txt')) as f:
@@ -1467,6 +1479,11 @@ class SchrootRunner(AdtTestCase):
         self.assertRegex(contents, 'ubtree0t-broken\s+FAIL status: 0, stderr: kaputt')
         self.assertIn('@@@@ tests done', contents)
 
+        # check test package version
+        with open(os.path.join(outdir, 'testpkg-version')) as f:
+            contents = f.read()
+        self.assertEqual(contents, 'testpkg 1\n')
+
         # check binaries
         bins = os.listdir(os.path.join(outdir, 'binaries'))
         self.assertEqual(set(bins),
@@ -1475,7 +1492,7 @@ class SchrootRunner(AdtTestCase):
 
         # check for cruft in outdir
         files = [i for i in os.listdir(outdir) if not fnmatch.fnmatch(i, 'ubtree*-std*')]
-        self.assertEqual(set(files), set(['log', 'binaries']))
+        self.assertEqual(set(files), set(['log', 'binaries', 'testpkg-version']))
 
     def test_user(self):
         '''--user option'''
