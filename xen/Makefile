@@ -23,7 +23,7 @@
 include ../settings.make
 
 programs =	cleanup setup on-testbed with-testbed purge
-binprograms =	adt-testreport-onepackage adt-testreport-runloop adt-testreport-cronjob
+binprograms =
 shareprograms =	fixups fixups-inside userv-target
 sharefiles =	readconfig justconfig
 
