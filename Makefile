@@ -44,6 +44,7 @@ install-here:
 		$(INSTALL_PROGRAM) $$f $(bindir); \
 		test ! -f $$f.1 || $(INSTALL_DOC) $$f.1 $(man1dir); \
 		done
+	$(INSTALL_PROGRAM) tools/adt-setup-vm $(share)/$(pkgname)
 	$(INSTALL_DATA) $(pythonfiles) $(pythondir)
 	$(INSTALL_DOC) CREDITS debian/changelog $(docdir)
 	$(INSTALL_DOC) doc/README*[!~] $(docdir)
