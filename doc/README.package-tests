@@ -146,6 +146,15 @@ Defined restrictions
     are NOT entitled to assume that the source package's build
     dependencies will be installed when the test is run.
 
+    Please use this considerately, as for large builds it unnecessarily
+    builds the entire project when you only need a tiny subset (like the
+    tests/ subdirectory).  It is often possible to run "make -C tests"
+    instead, or copy the test code to $ADTTMP and build it there with some
+    custom commands.  This cuts down the load on the Continuous
+    Integration servers and also makes tests more robust as it prevents
+    accidentally running them against the built source tree instead of the
+    installed packages.
+
   allow-stderr
 
     Output to stderr is not considered a failure. This is useful for
