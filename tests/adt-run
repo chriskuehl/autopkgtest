@@ -380,6 +380,7 @@ su -s /bin/sh -c "echo hello > $TMPDIR/world.txt" nobody
 if su -s /bin/sh -c "echo break > $TMPDIR/rootowned.txt" nobody 2>/dev/null; then
     exit 1
 fi
+rm $TMPDIR/rootowned.txt $TMPDIR/world.txt
 '''})
 
         (code, out, err) = self.adt_run(['--no-built-binaries', '--built-tree=' + p])
@@ -399,6 +400,7 @@ fi
                            {'t': '''#!/bin/sh -e
                                     echo world > ${TMPDIR:=/tmp}/hello.txt
                                     cat $TMPDIR/hello.txt
+                                    rm $TMPDIR/hello.txt
                                     stat -c %U .
                                     stat -c %U debian
                                     stat -c %U Makefile
