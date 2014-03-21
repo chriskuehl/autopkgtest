@@ -223,6 +223,14 @@ ubtree0t-bad         FAIL non-zero exit status 1
         self.assertIn('container ok\n', out)
         self.assertIn('machine ok\n', out)
 
+    def test_no_tests_dir(self):
+        '''package without debian/tests/'''
+
+        p = self.build_src(None, None)
+        (code, out, err) = self.adt_run(['--unbuilt-tree=' + p])
+        self.assertEqual(code, 8, err)
+        self.assertRegex(out, 'SKIP no tests in this package', out)
+
 
 @unittest.skipIf(os.getuid() > 0,
                  'null runner tests need to run as root')
@@ -1166,6 +1174,14 @@ deb-src http://my.distro/ fluffy-proposed main non-free
                          'Makefile\ndebian\ntest_static\n')
         # should not have any test stderr
         self.assertNotIn('stderr', err)
+
+    def test_no_tests_dir(self):
+        '''package without debian/tests/'''
+
+        p = self.build_src(None, None)
+        (code, out, err) = self.adt_run(['-B', '--unbuilt-tree=' + p], [self.chroot])
+        self.assertEqual(code, 8, err)
+        self.assertRegex(out, 'SKIP no tests in this package', out)
 
 
 @unittest.skipUnless('ADT_TEST_SCHROOT' in os.environ,
