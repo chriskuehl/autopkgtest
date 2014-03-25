@@ -31,6 +31,8 @@ import unittest
 import tempfile
 import shutil
 import fnmatch
+import fcntl
+import time
 
 test_dir = os.path.dirname(os.path.abspath(__file__))
 root_dir = os.path.dirname(test_dir)

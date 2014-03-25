@@ -260,7 +260,16 @@ Protocol
   and then the regime server exits with status 0, after
   closing the testbed if applicable.
 
+* Command
+	shell
+  response: one of
+	ok
+	not supported by virt server
 
+  Runs a shell in the testbed (as root, if available), while the testbed is
+  open. This is intended for interactively debugging problems with tests. The
+  virt server has to provide a hook_shell() function for this, otherwise this
+  command is not supported.
 
 
 On any error including signals to the regime server or EOF on stdin
