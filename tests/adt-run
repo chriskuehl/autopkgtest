@@ -896,13 +896,15 @@ Restrictions: needs-root
         '''test depends on build dependencies'''
 
         p = self.build_src('''Tests: pass
-Depends: @, testdep1, @builddeps@, testdep2
+Depends: @, testdep1, @builddeps@, testdep2,
+# blabla
+ testdep3
 Restrictions: needs-root
 ''', {'pass': '#!/bin/sh\ntrue'})
 
         # add extra build dependencies to testpkg
-        subprocess.check_call(['sed', '-i', '/^Build-Depends:/ s/:.*/: bdep1 , bdep2\\n'
-                                            'Build-Depends-Indep: bdep3/',
+        subprocess.check_call(['sed', '-i', '/^Build-Depends:/ s/:.*/: bdep1 , bdep2,\\n bdep3, # moo\\n#comment\\n bdep4\\n'
+                                            'Build-Depends-Indep: bdep5/',
                                os.path.join(p, 'debian', 'control')])
 
         (code, out, err) = self.adt_run(['-dB', '--unbuilt-tree=' + p],
@@ -915,8 +917,11 @@ Restrictions: needs-root
         self.assertIn('synthesised dependency bdep1\n', err)
         self.assertIn('synthesised dependency bdep2\n', err)
         self.assertIn('synthesised dependency bdep3\n', err)
+        self.assertIn('synthesised dependency bdep4\n', err)
+        self.assertIn('synthesised dependency bdep5\n', err)
         self.assertIn('processing dependency testdep2\n', err)
-        self.assertRegex(err, 'fake-apt-get: .*install.*testpkg testdep1 bdep1 bdep2 bdep3 make testdep2')
+        self.assertIn('processing dependency testdep3\n', err)
+        self.assertRegex(err, 'fake-apt-get: .*install.*testpkg testdep1 bdep1 bdep2 bdep3 bdep4 bdep5 make testdep2 testdep3')
 
     def test_logfile(self):
         '''--log-file option'''
