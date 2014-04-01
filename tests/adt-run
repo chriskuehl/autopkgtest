@@ -480,20 +480,26 @@ rm $TMPDIR/rootowned.txt $TMPDIR/world.txt
             contents = f.read()
         self.assertEqual(contents, 'testpkg 1\n')
 
-        # check recorded package list
+        # check recorded package lists
+        with open(os.path.join(outdir, 'testbed-packages')) as f:
+            contents = f.read()
+            lines = contents.splitlines()
+            self.assertGreater(len(lines), 10)
+            self.assertRegex(lines[0], '^[0-9a-z.-]+\t[0-9a-z.~-]+')
+            self.assertRegex(lines[1], '^[0-9a-z.-]+\t[0-9a-z.~-]+')
+            self.assertIn('bash\t', contents)
+
+        # test don't pull in any additional dependencies
         for t in ['sP', 'sF', 'bP']:
-            with open(os.path.join(outdir, 'ubtree0t-%s-packages' % t)) as f:
-                lines = f.read().splitlines()
-                self.assertGreater(len(lines), 10)
-                self.assertRegex(lines[0], '^[0-9a-z.-]+\t[0-9a-z.~-]+')
-                self.assertRegex(lines[1], '^[0-9a-z.-]+\t[0-9a-z.~-]+')
+            self.assertEqual(os.path.getsize(os.path.join(
+                outdir, 'ubtree0t-%s-packages' % t)), 0)
 
         # check for cruft in outdir
         # --no-built-binaries, we don't expect any debs
         files = [i for i in os.listdir(outdir)
                  if not fnmatch.fnmatch(i, 'ubtree*-std*') and
                  not fnmatch.fnmatch(i, 'ubtree*-packages')]
-        self.assertEqual(set(files), set(['log', 'testpkg-version']))
+        self.assertEqual(set(files), set(['log', 'testpkg-version', 'testbed-packages']))
 
     def test_timeout(self):
         '''handling test timeout'''
@@ -985,7 +991,7 @@ Restrictions: needs-root
         files = [i for i in os.listdir(outdir)
                  if not fnmatch.fnmatch(i, 'ubtree*-std*') and
                  not fnmatch.fnmatch(i, 'ubtree*-packages')]
-        self.assertEqual(set(files), set(['log', 'artifacts', 'testpkg-version']))
+        self.assertEqual(set(files), set(['log', 'artifacts', 'testpkg-version', 'testbed-packages']))
 
         # check artifact; a2 should overwrite a1's health.txt
         with open(os.path.join(outdir, 'artifacts', 'health.txt')) as f:
@@ -1475,7 +1481,7 @@ class SchrootRunner(AdtTestCase):
     def test_tree_output_dir(self):
         '''source tree, explicit --output-dir'''
 
-        p = self.build_src('Tests: ok broken\n',
+        p = self.build_src('Tests: ok\n\nTests: broken\nDepends: @, aspell-doc',
                            {'ok': '#!/bin/sh\n/usr/bin/test_built',
                             'broken': '#!/bin/sh\necho kaputt >&2'})
 
@@ -1519,13 +1525,24 @@ class SchrootRunner(AdtTestCase):
             contents = f.read()
         self.assertEqual(contents, 'testpkg 1\n')
 
+        # check recorded package lists
+        with open(os.path.join(outdir, 'testbed-packages')) as f:
+            contents = f.read()
+            lines = contents.splitlines()
+            self.assertGreater(len(lines), 10)
+            self.assertRegex(lines[0], '^[0-9a-z.-]+\t[0-9a-z.~-]+')
+            self.assertRegex(lines[1], '^[0-9a-z.-]+\t[0-9a-z.~-]+')
+            self.assertIn('bash\t', contents)
+
         # check recorded package list
         for t in ['ok', 'broken']:
             with open(os.path.join(outdir, 'ubtree0t-%s-packages' % t)) as f:
-                lines = f.read().splitlines()
-                self.assertGreater(len(lines), 10)
-                self.assertRegex(lines[0], '^[0-9a-z.-]+\t[0-9a-z.~-]+')
-                self.assertRegex(lines[1], '^[0-9a-z.-]+\t[0-9a-z.~-]+')
+                contents = f.read()
+                self.assertIn('testpkg\t1\n', contents)
+                if t == 'broken':
+                    self.assertIn('aspell-doc\t', contents)
+                else:
+                    self.assertNotIn('aspell-doc\t', contents)
 
         # check binaries
         bins = os.listdir(os.path.join(outdir, 'binaries'))
@@ -1537,7 +1554,7 @@ class SchrootRunner(AdtTestCase):
         files = [i for i in os.listdir(outdir)
                  if not fnmatch.fnmatch(i, 'ubtree*-std*') and
                  not fnmatch.fnmatch(i, 'ubtree*-packages')]
-        self.assertEqual(set(files), set(['log', 'binaries', 'testpkg-version']))
+        self.assertEqual(set(files), set(['log', 'binaries', 'testpkg-version', 'testbed-packages']))
 
     def test_user(self):
         '''--user option'''
