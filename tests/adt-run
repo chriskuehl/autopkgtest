@@ -756,6 +756,7 @@ class ChrootRunner(AdtTestCase):
         self.chroot = os.path.join(self.workdir, 'chroot')
         self.addCleanup(shutil.rmtree, self.chroot)
         install_file('/dev/null')
+        install_file('/usr/bin/which')
         install_elf('/bin/sh')
         install_elf('/bin/ls')
         install_elf('/bin/cat')
@@ -776,7 +777,7 @@ class ChrootRunner(AdtTestCase):
             with open(p, 'w') as f:
                 f.write('#!/bin/sh\necho "fake-%s: $@" >&2\n' % cmd)
                 if cmd == 'apt-get':
-                    f.write('if [ "$1" = source ]; then cp -r /aptget-src $2-1; fi\n')
+                    f.write('if [ "$1" = source ]; then cp -r /aptget-src $3-1; fi\n')
             os.chmod(p, 0o755)
 
         p = os.path.join(self.chroot, 'tmp')
@@ -1073,7 +1074,7 @@ Restrictions: needs-root
         # should not build package
         self.assertNotIn('dh build', err)
 
-        self.assertRegex(err, 'fake-apt-get: source testpkg')
+        self.assertRegex(err, 'fake-apt-get: source --only-source testpkg')
 
     def test_setup_commands_string(self):
         '''--setup-commands with command string'''
