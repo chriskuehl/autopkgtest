@@ -1628,6 +1628,20 @@ class SchrootRunner(AdtTestCase):
         self.assertRegex(out, 'im\s+SKIP .*machine', out)
         self.assertNotIn('ok', out)
 
+    def test_needs_recommends(self):
+        '''needs-recommends restriction'''
+
+        # check that testpkg's Recommends: cpp-doc gets installed
+        p = self.build_src('Tests: pass\nRestrictions: needs-recommends',
+                           {'pass': '#!/bin/sh -e\n/usr/bin/test_built; '
+                            'test -e /usr/share/doc/cpp-doc/copyright ||'
+                            'echo "cpp-doc not installed!" >&2'})
+
+        (code, out, err) = self.adt_run(['--unbuilt-tree=' + p], [self.schroot_name])
+        self.assertEqual(code, 0, out + err)
+        self.assertIn('Unpacking cpp-doc', err)
+        self.assertIn('built script OK', out)
+
 
 @unittest.skipUnless('ADT_TEST_LXC' in os.environ,
                      'Set $ADT_TEST_LXC to an existing container')

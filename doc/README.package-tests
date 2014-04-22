@@ -178,6 +178,11 @@ Defined restrictions
     virtualization server which does not provide this it will be
     skipped.
 
+  needs-recommends
+
+    Enable installation of recommended packages in apt for the test
+    dependencies. This does not affect build dependencies.
+
 Defined features
 ----------------
 There are no currently defined Features.
