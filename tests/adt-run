@@ -2012,6 +2012,45 @@ class QemuRunner(AdtTestCase):
         whoami = err.split('world\n', 1)[1].split('\n', 1)[0]
         self.assertNotEqual(whoami, 'root')
 
+    def test_adt_run_user(self):
+        '''adt-run --user option'''
+
+        p = self.build_src('Tests: t\nDepends:\n',
+                           {'t': '''#!/bin/sh -e
+                                    echo world > $ADTTMP/hello.txt
+                                    cat $ADTTMP/hello.txt
+                                    stat -c %U .
+                                    stat -c %U debian
+                                    stat -c %U Makefile
+                                    whoami'''})
+
+        (code, out, err) = self.adt_run(['-B', p + '//', '--user=nobody'], [self.image])
+        self.assertEqual(code, 0, err)
+
+        # test should succeed
+        self.assertRegex(out, 'tree0t-t\s+PASS', out)
+
+        # has output from cat and whoami
+        self.assertIn('world\nnobody\nnobody\nnobody\nnobody\n', err)
+
+    def test_virt_user(self):
+        '''adt-virt-qemu --user option'''
+
+        p = self.build_src('Tests: t\nDepends:\n',
+                           {'t': '''#!/bin/sh -e
+                                    echo world > $ADTTMP/hello.txt
+                                    cat $ADTTMP/hello.txt
+                                    whoami'''})
+
+        (code, out, err) = self.adt_run(['-B', p + '//'], ['-u', 'nobody', self.image])
+        self.assertEqual(code, 0, err)
+
+        # test should succeed
+        self.assertRegex(out, 'tree0t-t\s+PASS', out)
+
+        # has output from cat and whoami
+        self.assertRegex(err, 'stdout [ -]+\nworld\nnobody\n')
+
 
 if __name__ == '__main__':
     unittest.main(testRunner=unittest.TextTestRunner(stream=sys.stdout, verbosity=2))
