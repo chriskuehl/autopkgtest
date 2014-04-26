@@ -1898,7 +1898,8 @@ class QemuRunner(AdtTestCase):
         '''source tree, no build, no restrictions, test success'''
 
         p = self.build_src('Tests: pass\nDepends: coreutils\n',
-                           {'pass': '#!/bin/sh\necho I am fine\n'})
+                           {'pass': '#!/bin/sh\necho I am fine\n'
+                            '[ -d "$HOME" ] || echo "HOME not set" >&2\n'})
 
         (code, out, err) = self.adt_run(['--no-built-binaries', '--unbuilt-tree=' + p],
                                         [self.image])
@@ -1941,7 +1942,8 @@ class QemuRunner(AdtTestCase):
         '''breaks-testbed restriction'''
 
         p = self.build_src('Tests: zap boom\nDepends:\nRestrictions: needs-root breaks-testbed',
-                           {'zap': '#!/bin/sh\ntouch /zap\n',
+                           {'zap': '#!/bin/sh\ntouch /zap\n'
+                            '[ -d "$HOME" ] || echo "HOME not set" >&2\n',
                             'boom': '#!/bin/sh\n[ ! -e /zap ]; touch /boom'})
 
         (code, out, err) = self.adt_run(['--no-built-binaries', '--unbuilt-tree=' + p, '-d'],
