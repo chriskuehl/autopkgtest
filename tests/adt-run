@@ -1138,6 +1138,8 @@ deb http://my.distro/ fluffy-updates main non-free
 deb-src http://my.distro/ fluffy-updates main non-free
 deb http://my.distro/ fluffy main non-free
 deb-src http://my.distro/ fluffy main non-free
+deb http://my.distro/ fluffy extras
+deb-src http://my.distro/ fluffy extras
 ''')
 
         (code, out, err) = self.adt_run(['-B', '-d', '--unbuilt-tree=' + p,
@@ -1152,6 +1154,8 @@ deb-src http://my.distro/ fluffy main non-free
         with open(os.path.join(apt_dir, 'sources.list.d', 'proposed.list')) as f:
             self.assertEqual(f.read(), '''deb http://my.distro/ fluffy-proposed main non-free
 deb-src http://my.distro/ fluffy-proposed main non-free
+deb http://my.distro/ fluffy-proposed extras
+deb-src http://my.distro/ fluffy-proposed extras
 ''')
 
     def test_isolation(self):
