@@ -768,6 +768,7 @@ class ChrootRunner(AdtTestCase):
         install_elf('/bin/tar')
         install_elf('/bin/sleep')
         install_elf('/bin/sed')
+        install_elf('/bin/readlink')
         install_elf('/usr/bin/test')
         install_elf('/usr/bin/awk')
 
