@@ -2070,6 +2070,33 @@ class QemuRunner(AdtTestCase):
         # has output from cats and whoami
         self.assertRegex(err, 'stdout [ -]+\nworld\ndeep\nnobody\n')
 
+    def test_copy_timeout(self):
+        '''handling copying timeout'''
+
+
+        p = self.build_src('Tests: to\nDepends:\n',
+                           {'to': '#!/bin/sh\ntruncate -s 10G $ADT_ARTIFACTS/huge\n'})
+
+        outdir = os.path.join(self.workdir, 'out')
+        (code, out, err) = self.adt_run(['--output-dir=' + outdir,
+                                         '--timeout-copy=1',
+                                         '-dB', p + '//'],
+                                        [self.image])
+
+        # test should time out
+        self.assertEqual(code, 16, err)
+        self.assertRegex(out, 'ubtree0t-to\s+PASS', out)
+
+        # should have copied parts of the file
+        huge_size =os.path.getsize(os.path.join(outdir, 'artifacts', 'huge'))
+        self.assertGreater(huge_size, 100000)
+        self.assertLess(huge_size, 10000000000)
+
+        # we don't want the raw exception
+        self.assertNotIn("Timeout", err)
+        self.assertNotIn("Traceback", err)
+        # but a proper error message, with cleanup handlers
+        self.assertIn("got `timeout', expected `ok...'", err)
 
 if __name__ == '__main__':
     unittest.main(testRunner=unittest.TextTestRunner(stream=sys.stdout, verbosity=2))
