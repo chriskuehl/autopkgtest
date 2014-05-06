@@ -771,6 +771,7 @@ class ChrootRunner(AdtTestCase):
         install_elf('/bin/readlink')
         install_elf('/usr/bin/test')
         install_elf('/usr/bin/awk')
+        install_elf('/usr/bin/env')
 
         # some fakes
         for cmd in ['dpkg', 'dpkg-query', 'apt-get', 'apt-key', 'apt-cache']:
@@ -1355,10 +1356,11 @@ class SchrootRunner(AdtTestCase):
         # should build and install package
         self.assertIn('dh build', err)
         self.assertRegex(out, 'ubtree0t-pass\s+PASS', out)
-        self.assertIn('Unpacking testpkg', err)
-        self.assertIn('binaries/./testpkg.deb', err)
-        self.assertIn('Unpacking aspell-doc', err)
+        self.assertIn('Unpacking testpkg', out)
+        self.assertIn('binaries/./testpkg.deb', out)
+        self.assertIn('Unpacking aspell-doc', out)
         # does not install Recommends by default
+        self.assertNotIn('Unpacking cpp-doc', out)
         self.assertNotIn('Unpacking cpp-doc', err)
 
         # test should succeed
@@ -1392,8 +1394,8 @@ class SchrootRunner(AdtTestCase):
 
         # should install package
         self.assertNotIn('dh build', err)
-        self.assertIn('Unpacking testpkg', err)
-        self.assertIn('binaries/./testpkg.deb', err)
+        self.assertIn('Unpacking testpkg', out)
+        self.assertIn('binaries/./testpkg.deb', out)
 
         # test should succeed
         self.assertRegex(out, '-pass\s+PASS', out)
@@ -1431,8 +1433,8 @@ class SchrootRunner(AdtTestCase):
 
         # should install package
         self.assertNotIn('dh build', err)
-        self.assertIn('Unpacking testpkg', err)
-        self.assertIn('binaries/./testpkg.deb', err)
+        self.assertIn('Unpacking testpkg', out)
+        self.assertIn('binaries/./testpkg.deb', out)
 
         # test should succeed
         self.assertRegex(out, '-pass\s+PASS', out + err)
@@ -1574,7 +1576,7 @@ class SchrootRunner(AdtTestCase):
 
         # should install dependencies
         self.assertIn('processing dependency aspell-doc', err)
-        self.assertIn('Unpacking aspell-doc', err)
+        self.assertIn('Unpacking aspell-doc', out)
 
         # test should succeed
         self.assertRegex(out, 'tree0t-t\s+PASS', out)
@@ -1599,7 +1601,7 @@ class SchrootRunner(AdtTestCase):
 
         # should install dependencies
         self.assertIn('processing dependency aspell-doc', err)
-        self.assertIn('Unpacking aspell-doc', err)
+        self.assertIn('Unpacking aspell-doc', out)
 
         # test should succeed
         self.assertRegex(out, 'tree0t-t\s+PASS', out)
@@ -1645,7 +1647,7 @@ class SchrootRunner(AdtTestCase):
 
         (code, out, err) = self.adt_run(['--unbuilt-tree=' + p], [self.schroot_name])
         self.assertEqual(code, 0, out + err)
-        self.assertIn('Unpacking cpp-doc', err)
+        self.assertIn('Unpacking cpp-doc', out)
         self.assertIn('built script OK', out)
 
 
@@ -1806,8 +1808,8 @@ class LxcRunner(AdtTestCase):
         # should build and install package
         self.assertIn('dh build', err)
         self.assertRegex(out, 'ubtree0t-pass\s+PASS', out)
-        self.assertIn('binaries/./testpkg.deb', err)
-        self.assertRegex(err, '\.\.\./aspell-doc_\d.*_all.deb')
+        self.assertIn('binaries/./testpkg.deb', out)
+        self.assertRegex(out, '\.\.\./aspell-doc_\d.*_all.deb')
 
         # test should succeed
         self.assertRegex(out, 'ubtree0t-pass\s+PASS', out)
