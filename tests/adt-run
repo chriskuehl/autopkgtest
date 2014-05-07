@@ -1902,6 +1902,31 @@ class LxcRunner(AdtTestCase):
         self.assertIn('container ok\n', out)
         self.assertNotIn('machine ok', out)
 
+    def test_user(self):
+        '''Run tests as different user'''
+
+        p = self.build_src('Tests: t\nDepends:\n',
+                           {'t': '''#!/bin/sh -e
+                                    echo world > $ADTTMP/hello.txt
+                                    cat $ADTTMP/hello.txt
+                                    mkdir -p $ADTTMP/one/subdir
+                                    echo deep > $ADTTMP/one/subdir/subdir.txt
+                                    cat $ADTTMP/one/subdir/subdir.txt
+                                    rm -r $ADTTMP/one
+                                    echo dir_is_rw > rw_flag
+                                    cat rw_flag
+                                    whoami'''})
+
+        (code, out, err) = self.adt_run(['-B', p + '//', '--user=nobody'],
+                                        self.virt_args)
+        self.assertEqual(code, 0, err)
+
+        # test should succeed
+        self.assertRegex(out, 'tree0t-t\s+PASS', out)
+
+        # has output from cats and whoami
+        self.assertIn('world\ndeep\ndir_is_rw\nnobody\n', out)
+
 
 @unittest.skipUnless('ADT_TEST_QEMU' in os.environ,
                      'Set $ADT_TEST_QEMU to an existing autopkgtest QEMU image')
