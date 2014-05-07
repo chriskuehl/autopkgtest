@@ -2132,5 +2132,34 @@ class QemuRunner(AdtTestCase):
         # but a proper error message, with cleanup handlers
         self.assertIn("got `timeout', expected `ok...'", err)
 
+    def test_copy_performance(self):
+        '''copying files between host and testbed is fast and reliable'''
+
+        p = self.build_src('Tests: t\nDepends:\n',
+                           {'t': '#!/bin/sh\ncp -r . $ADT_ARTIFACTS/tree\n'})
+        # create ~ 100 MB of fake source tree (~ 1000 files with 100 kB each)
+        block = b'0123456789' * 10000
+        for dirnum in range(33):
+            d = os.path.join(p, str(dirnum))
+            os.mkdir(d)
+            for filenum in range(33):
+                with open(os.path.join(d, 'src%i' % filenum), 'wb') as f:
+                    f.write(block)
+
+        # we expect at least 20 MB/s, thus give it 6 seconds
+        outdir = os.path.join(self.workdir, 'out')
+        (code, out, err) = self.adt_run(['--output-dir=' + outdir,
+                                         '--timeout-copy=6',
+                                         '-dB', p + '//'],
+                                        [self.image])
+
+        # test should succeed
+        self.assertEqual(code, 0, out + err)
+        self.assertRegex(out, 'ubtree0t-t\s+PASS', out)
+
+        # check integrity of the copy
+        subprocess.check_call(['diff', '-Nur', p,
+                               os.path.join(outdir, 'artifacts', 'tree')])
+
 if __name__ == '__main__':
     unittest.main(testRunner=unittest.TextTestRunner(stream=sys.stdout, verbosity=2))
