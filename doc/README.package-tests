@@ -86,12 +86,12 @@ The fields which may appear in debian/tests/control stanzas are:
     and without a version restriction).
 
     `@builddeps@' will be replaced by the package's Build-Depends:,
-    Build-Depends-Indep:, and "make". This is useful if you have many build
-    dependencies which are only necessary for running the test suite and
-    you don't want to replicate them in the test Depends:. However, please
-    use this sparingly, as this can easily lead to missing binary package
-    dependencies being overlooked if they get pulled in via build
-    dependencies.
+    Build-Depends-Indep:, and "build-essential". This is useful if you have
+    many build dependencies which are only necessary for running the test
+    suite and you don't want to replicate them in the test Depends:.
+    However, please use this sparingly, as this can easily lead to missing
+    binary package dependencies being overlooked if they get pulled in via
+    build dependencies.
 
     If no Depends field is present, `Depends: @' is assumed.  Note
     that the source tree's Build-Dependencies are _not_ necessarily
