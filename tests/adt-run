@@ -2160,5 +2160,20 @@ class QemuRunner(AdtTestCase):
         subprocess.check_call(['diff', '-Nur', p,
                                os.path.join(outdir, 'artifacts', 'tree')])
 
+    def test_apt_libpng(self):
+        '''apt, libpng'''
+
+        (code, out, err) = self.adt_run(['-d', 'libpng'], [self.image])
+        # test should succeed
+        self.assertEqual(code, 0, err)
+        self.assertRegex(out, 'Unpacking libpng.*-dev')
+        self.assertRegex(out, 'apt0t-build\s+PASS', out)
+
+        # should show test stdout
+        self.assertRegex(err, 'stdout [ -]+\n.*OK\n')
+        # should not have any test stderr
+        self.assertNotIn('stderr', err)
+
+
 if __name__ == '__main__':
     unittest.main(testRunner=unittest.TextTestRunner(stream=sys.stdout, verbosity=2))
