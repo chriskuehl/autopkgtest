@@ -1962,16 +1962,17 @@ class QemuRunner(AdtTestCase):
         '''dsc, build-needed restriction, test success'''
 
         p = self.build_dsc('Tests: pass\nRestrictions: build-needed\n',
-                           {'pass': '#!/bin/sh -e\ntest_built\n./test_built\n'})
+                           {'pass': '#!/bin/sh -e\ntest_built\n./test_built\n'
+                            'grep ^processor /proc/cpuinfo  |wc -l\n'})
 
-        (code, out, err) = self.adt_run([p], [self.image])
+        (code, out, err) = self.adt_run([p], ['-c', '2', self.image])
 
         # test should succeed
         self.assertEqual(code, 0, err)
         self.assertRegex(out, 'dsc0t-pass\s+PASS', out)
 
         # should show test stdout
-        self.assertRegex(err, 'stdout [ -]+\nbuilt script OK\nbuilt script OK\n')
+        self.assertRegex(err, 'stdout [ -]+\nbuilt script OK\nbuilt script OK\n2')
 
         # should not have any test stderr
         self.assertNotIn('stderr', err)
