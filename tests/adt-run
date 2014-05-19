@@ -509,7 +509,7 @@ rm $TMPDIR/rootowned.txt $TMPDIR/world.txt
         (code, out, err) = self.adt_run(['--no-built-binaries', '--timeout-test=3', p])
         # test should time out
         self.assertEqual(code, 16, err)
-        self.assertIn("got `timeout', expected `ok...'", err)
+        self.assertIn("timed out on command", err)
         self.assertNotIn('dsc0t-to', out)
 
         # should show test stdout
@@ -526,7 +526,7 @@ rm $TMPDIR/rootowned.txt $TMPDIR/world.txt
         (code, out, err) = self.adt_run(['--no-built-binaries', '--timeout-test=3', p])
         # test should time out
         self.assertEqual(code, 16, err)
-        self.assertIn("got `timeout', expected `ok...'", err)
+        self.assertIn("timed out on command", err)
         self.assertNotIn('dsc0t-to', out)
 
     def test_timeout_long_test(self):
@@ -754,8 +754,8 @@ class ChrootRunner(AdtTestCase):
         # build a mini-chroot
         self.chroot = os.path.join(self.workdir, 'chroot')
         self.addCleanup(shutil.rmtree, self.chroot)
-        install_file('/dev/null')
         install_file('/usr/bin/which')
+        install_elf('/bin/bash')
         install_elf('/bin/sh')
         install_elf('/bin/ls')
         install_elf('/bin/cat')
@@ -772,6 +772,18 @@ class ChrootRunner(AdtTestCase):
         install_elf('/usr/bin/test')
         install_elf('/usr/bin/awk')
         install_elf('/usr/bin/env')
+        install_elf('/usr/bin/tee')
+        install_elf('/usr/bin/touch')
+
+        # necessary bind mounts
+        dev_dir = os.path.join(self.chroot, 'dev')
+        os.mkdir(dev_dir)
+        subprocess.check_call(['mount', '-o', 'bind', '/dev', dev_dir])
+        self.addCleanup(subprocess.call, ['umount', dev_dir])
+        proc_dir = os.path.join(self.chroot, 'proc')
+        os.mkdir(proc_dir)
+        subprocess.check_call(['mount', '-o', 'bind', '/proc', proc_dir])
+        self.addCleanup(subprocess.call, ['umount', proc_dir])
 
         # some fakes
         for cmd in ['dpkg', 'dpkg-query', 'apt-get', 'apt-key', 'apt-cache']:
@@ -1951,7 +1963,7 @@ class QemuRunner(AdtTestCase):
         self.assertRegex(out, 'tree0t-pass\s+PASS', out)
 
         # should show test stdout
-        self.assertRegex(err, 'stdout [ -]+\nI am fine\n')
+        self.assertIn('I am fine\n', out)
         # should not have any test stderr
         self.assertNotIn('stderr', err)
 
@@ -1972,7 +1984,7 @@ class QemuRunner(AdtTestCase):
         self.assertRegex(out, 'dsc0t-pass\s+PASS', out)
 
         # should show test stdout
-        self.assertRegex(err, 'stdout [ -]+\nbuilt script OK\nbuilt script OK\n2')
+        self.assertIn('built script OK\nbuilt script OK\n2', out)
 
         # should not have any test stderr
         self.assertNotIn('stderr', err)
@@ -2013,8 +2025,8 @@ class QemuRunner(AdtTestCase):
         self.assertRegex(out, 'tree0t-t2\s+PASS', out)
 
         # should show test stdout
-        self.assertRegex(err, 'stdout [ -]+\nsetupok\nt1ok\n')
-        self.assertRegex(err, 'stdout [ -]+\nsetupok\nt2ok\n')
+        self.assertIn('setupok\nt1ok\n', out)
+        self.assertIn('\nsetupok\nt2ok\n', out)
         # should not have any test stderr
         self.assertNotIn('stderr', err)
 
@@ -2032,8 +2044,8 @@ class QemuRunner(AdtTestCase):
         self.assertEqual(code, 0, out + err)
         self.assertRegex(out, 'tree0t-ic\s+PASS', out)
         self.assertRegex(out, 'tree0t-im\s+PASS', out)
-        self.assertRegex(err, 'stdout [ -]+\ncontainer ok\n')
-        self.assertRegex(err, 'stdout [ -]+\nmachine ok\n')
+        self.assertIn('container ok\n', out)
+        self.assertIn('\nmachine ok\n', out)
 
     def test_default_user(self):
         '''test runs as user by default'''
@@ -2055,9 +2067,9 @@ class QemuRunner(AdtTestCase):
         self.assertRegex(out, 'tree0t-t\s+PASS', out)
 
         # has output from cats
-        self.assertRegex(err, 'stdout [ -]+\nworld\ndeep')
+        self.assertIn('world\ndeep', out)
         # check user
-        whoami = err.split('world\n', 1)[1].split('\n', 1)[0]
+        whoami = out.split('world\n', 1)[1].split('\n', 1)[0]
         self.assertNotEqual(whoami, 'root')
 
     def test_adt_run_user(self):
@@ -2082,7 +2094,7 @@ class QemuRunner(AdtTestCase):
         self.assertRegex(out, 'tree0t-t\s+PASS', out)
 
         # has output from cats and whoami
-        self.assertIn('world\ndeep\ndir_is_rw\nnobody\n', err)
+        self.assertIn('world\ndeep\ndir_is_rw\nnobody\n', out)
 
     def test_virt_user(self):
         '''adt-virt-qemu --user option'''
@@ -2104,7 +2116,7 @@ class QemuRunner(AdtTestCase):
         self.assertRegex(out, 'tree0t-t\s+PASS', out)
 
         # has output from cats and whoami
-        self.assertRegex(err, 'stdout [ -]+\nworld\ndeep\nnobody\n')
+        self.assertIn('world\ndeep\nnobody\n', out)
 
     def test_copy_timeout(self):
         '''handling copying timeout'''
@@ -2172,7 +2184,7 @@ class QemuRunner(AdtTestCase):
         self.assertRegex(out, 'apt0t-build\s+PASS', out)
 
         # should show test stdout
-        self.assertRegex(err, 'stdout [ -]+\n.*OK\n')
+        self.assertIn('OK\n', out)
         # should not have any test stderr
         self.assertNotIn('stderr', err)
 
