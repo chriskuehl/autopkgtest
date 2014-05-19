@@ -164,7 +164,7 @@ ubtree0t-bad         FAIL non-zero exit status 1
 
         (code, out, err) = self.adt_run(['--no-built-binaries', '--built-tree=' + p])
         # test should fail
-        self.assertEqual(code, 4)
+        self.assertEqual(code, 4, err)
         self.assertRegex(out, 'tree0t-senz\s+FAIL non-zero exit status 7')
 
         # should show test stderr, but inline
