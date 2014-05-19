@@ -84,10 +84,6 @@ Protocol
 	with the host, this gives the host directory path of the "downtmp"
 	directory as reported by the virt server's hook_downtmp() function.
 
-    + downtmp-shared-fifo
-	The shared downtmp-host directory supports FIFOs between the host and
-	testbed. Only relevant if downtmp-host is set.
-
     + isolation-container
 	The testbed runs in a Linux cgroup/container (nspawn, LXC, docker,
 	etc.) and thus tests have full control over starting services and
