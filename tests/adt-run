@@ -1918,7 +1918,7 @@ class LxcRunner(AdtTestCase):
     def test_user(self):
         '''Run tests as different user'''
 
-        p = self.build_src('Tests: t\nDepends:\n',
+        p = self.build_src('Tests: t\nDepends:\nRestrictions: rw-build-tree\n',
                            {'t': '''#!/bin/sh -e
                                     echo world > $ADTTMP/hello.txt
                                     cat $ADTTMP/hello.txt
@@ -2075,7 +2075,7 @@ class QemuRunner(AdtTestCase):
     def test_adt_run_user(self):
         '''adt-run --user option'''
 
-        p = self.build_src('Tests: t\nDepends:\n',
+        p = self.build_src('Tests: t\nDepends:\nRestrictions: rw-build-tree\n',
                            {'t': '''#!/bin/sh -e
                                     echo world > $ADTTMP/hello.txt
                                     cat $ADTTMP/hello.txt
