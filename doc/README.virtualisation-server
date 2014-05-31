@@ -65,6 +65,10 @@ Protocol
 	feature is not mentioned then changes to the testbed are
 	persistent (so destructive tests should not be performed).
 
+    + reboot
+	The testbed supports (re)booting, to pick up updated kernels and/or
+	init system scripts, e. g. from --setup-commands.
+
     + root-on-testbed
 	Commands specified by `execute' will be run as root on the
 	testbed, and copyup/copydown will have full access to the
@@ -117,6 +121,16 @@ Protocol
   State: Open, remains Open.  Only available if the `revert'
   capability is advertised.  If possible, the testbed's set of running
   processes will also be restored to the initial state.
+
+
+* Command
+	reboot
+  response
+	ok <testbed-scratchspace>
+
+  Reboots the testbed, without reverting any changes to the files.
+  State: Open, remains Open.  Only available if the `reboot'
+  capability is advertised.
 
 
 * Command
