@@ -2217,4 +2217,7 @@ class QemuRunner(AdtTestCase):
 
 
 if __name__ == '__main__':
+    # Force encoding to UTF-8 even in non-UTF-8 locales.
+    import io
+    sys.stdout = io.TextIOWrapper(sys.stdout.detach(), encoding="UTF-8", line_buffering=True)
     unittest.main(testRunner=unittest.TextTestRunner(stream=sys.stdout, verbosity=2))
