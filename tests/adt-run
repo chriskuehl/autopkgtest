@@ -716,7 +716,7 @@ rm $TMPDIR/rootowned.txt $TMPDIR/world.txt
         self.assertIn('built script OK\nstatic patched script OK\n', out)
 
         # should not have any test stderr
-        self.assertNotIn('stderr', err)
+        self.assertNotIn(' stderr ', err)
 
         # should build package
         self.assertIn('dh build', err)
@@ -754,6 +754,7 @@ class ChrootRunner(AdtTestCase):
         # build a mini-chroot
         self.chroot = os.path.join(self.workdir, 'chroot')
         self.addCleanup(shutil.rmtree, self.chroot)
+
         install_file('/usr/bin/which')
         install_elf('/bin/bash')
         install_elf('/bin/sh')
@@ -789,7 +790,7 @@ class ChrootRunner(AdtTestCase):
         for cmd in ['dpkg', 'dpkg-query', 'apt-get', 'apt-key', 'apt-cache']:
             p = os.path.join(self.chroot, 'usr', 'bin', cmd)
             with open(p, 'w') as f:
-                f.write('#!/bin/sh\necho "fake-%s: $@" >&2\n' % cmd)
+                f.write('#!/bin/sh\necho "fake-%s: $@"\n' % cmd)
                 if cmd == 'apt-get':
                     f.write('if [ "$1" = source ]; then cp -r /aptget-src $3-1; fi\n')
             os.chmod(p, 0o755)
@@ -797,6 +798,7 @@ class ChrootRunner(AdtTestCase):
         p = os.path.join(self.chroot, 'tmp')
         os.mkdir(p)
         os.chmod(p, 0o177)
+        os.makedirs(os.path.join(self.chroot, 'etc', 'apt', 'sources.list.d'))
 
     def test_tree_norestrictions_nobuild_success(self):
         '''source tree, no build, no restrictions, test success'''
@@ -1136,7 +1138,7 @@ Restrictions: needs-root
         # should show test stdout
         self.assertRegex(out, '^setup_success\n')
         # should not have any test stderr
-        self.assertNotIn('stderr', err)
+        self.assertNotIn(' stderr ', err)
 
         self.assertIn('@@@@@@ test bed setup', err)
 
@@ -1147,7 +1149,6 @@ Restrictions: needs-root
                            {'pass': '#!/bin/sh -e\ntest -e /etc/apt/sources.list.d/proposed.list'})
 
         apt_dir = os.path.join(self.chroot, 'etc', 'apt')
-        os.makedirs(os.path.join(apt_dir, 'sources.list.d'))
         with open(os.path.join(apt_dir, 'sources.list'), 'w') as f:
             f.write('''# comment
 deb http://my.distro/ fluffy-updates main non-free
@@ -1247,7 +1248,7 @@ class SchrootRunner(AdtTestCase):
         self.assertRegex(out, '(^|\n)I am fine\n')
         self.assertIn('\nI am also fine\n', out)
         # should not have any test stderr
-        self.assertNotIn('stderr', err)
+        self.assertNotIn(' stderr ', err)
 
         # should not build package
         self.assertNotIn('dh build', err)
@@ -1425,7 +1426,7 @@ class SchrootRunner(AdtTestCase):
         # should show test stdout
         self.assertRegex(out, '(^|\n)built script OK\n')
         # should not have any test stderr
-        self.assertNotIn('stderr', err)
+        self.assertNotIn(' stderr ', err)
 
         # our deb should still be there
         self.assertTrue(os.path.exists(deb))
@@ -1464,7 +1465,7 @@ class SchrootRunner(AdtTestCase):
         # should show test stdout
         self.assertRegex(out, '(^|\n)built script OK\nbuilt script OK')
         # should not have any test stderr
-        self.assertNotIn('stderr', err)
+        self.assertNotIn(' stderr ', err)
 
         # our deb should still be there
         self.assertTrue(os.path.exists(deb))
@@ -1484,7 +1485,7 @@ class SchrootRunner(AdtTestCase):
             log = f.read()
 
         # test should fail
-        self.assertEqual(code, 4)
+        self.assertEqual(code, 4, err)
         self.assertRegex(out, 'tree0t-nz\s+FAIL non-zero exit status 7')
         self.assertRegex(log, 'tree0t-nz\s+FAIL non-zero exit status 7')
 
@@ -1826,15 +1827,14 @@ class LxcRunner(AdtTestCase):
         (code, out, err) = self.adt_run(['--unbuilt-tree=' + p],
                                         self.virt_args)
 
+        # test should succeed
+        self.assertEqual(code, 0, err)
+        self.assertRegex(out, 'ubtree0t-pass\s+PASS', out)
+
         # should build and install package
         self.assertIn('dh build', err)
-        self.assertRegex(out, 'ubtree0t-pass\s+PASS', out)
         self.assertIn('binaries/./testpkg.deb', out)
         self.assertRegex(out, '\.\.\./aspell-doc_\d.*_all.deb')
-
-        # test should succeed
-        self.assertRegex(out, 'ubtree0t-pass\s+PASS', out)
-        self.assertEqual(code, 0, err)
 
         # should show test stdout
         self.assertRegex(out, '(^|\n)GOOD\n', out)
@@ -1896,7 +1896,7 @@ class LxcRunner(AdtTestCase):
         self.assertRegex(out, '^setupok\nt1ok\n')
         self.assertIn('\nsetupok\nt2ok\n', out)
         # should not have any test stderr
-        self.assertNotIn('stderr', err)
+        self.assertNotIn(' stderr ', err)
 
         # should not have rebooted for these commands
         self.assertIn('@@@@@@ test bed setup', err)
@@ -2030,7 +2030,7 @@ class QemuRunner(AdtTestCase):
         self.assertIn('setupok\nt1ok\n', out)
         self.assertIn('\nsetupok\nt2ok\n', out)
         # should not have any test stderr
-        self.assertNotIn('stderr', err)
+        self.assertNotIn(' stderr ', err)
 
         # should not have rebooted for these commands
         self.assertIn('@@@@@@ test bed setup', err)
@@ -2053,7 +2053,7 @@ class QemuRunner(AdtTestCase):
         self.assertRegex(out, 'tree0t-r\s+PASS', out)
 
         # should not have any test stderr
-        self.assertNotIn('stderr', err)
+        self.assertNotIn(' stderr ', err)
 
         # should have rebooted for these commands
         self.assertIn('@@@@@@ test bed setup', err)
@@ -2213,7 +2213,7 @@ class QemuRunner(AdtTestCase):
         # should show test stdout
         self.assertIn('OK\n', out)
         # should not have any test stderr
-        self.assertNotIn('stderr', err)
+        self.assertNotIn(' stderr ', err)
 
 
 if __name__ == '__main__':
