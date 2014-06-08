@@ -49,7 +49,7 @@ class AdtTestCase(unittest.TestCase):
         self.virt = 'adt-virt-' + virt
 
     def setUp(self):
-        self.workdir = tempfile.mkdtemp()
+        self.workdir = tempfile.mkdtemp(prefix='test.adt-run.')
         self.addCleanup(shutil.rmtree, self.workdir)
         self.cwd = os.getcwd()
         self.addCleanup(os.chdir, self.cwd)
