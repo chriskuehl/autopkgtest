@@ -70,8 +70,8 @@ Protocol
 	init system scripts, e. g. from --setup-commands.
 
     + root-on-testbed
-	Commands specified by `execute' will be run as root on the
-	testbed, and copyup/copydown will have full access to the
+	Commands run through `print-execute-command' will be run as root
+	on the testbed, and copyup/copydown will have full access to the
 	filesystem.  Unless this capability is advertised, root access
 	is not (or may not be) available.
 
@@ -200,47 +200,6 @@ Protocol
   the next subsequent `close', `revert' or `quit'.  Using it at other
   times has undefined behaviour.
 
-
-* Command
-	execute <program>,<arg>,<arg>... <stdin> <stdout> <stderr> <cwd> \
-		[<keyword-args> ...]
-  response
-	ok <exit-status>
-
-  Executes the command (args separated by commas, everything including
-  filenames and env var names and values url-encoded).  stdin, stdout,
-  stderr are files on the testbed (must be files, not pipes).
-
-  Currently defined keyword arguments:
-
-	env=<var>=<value>
-
-		Sets the environment variable <var> to <value>.
-
-	debug=<tfd>-<hfd>
-
-		Arranges to pass fd <tfd> the testbed command, and
-		send all output to it to the fd <hfd> as passed
-		by the virt server's caller.
-
-		<tfd> may be 1 or 2, in which case no output will
-		be written to the <stdout> or <stderr> files.
-
-		If this feature is available, execute-debug will
-		be advertised.  Only one such plumbing is available.
-
-	timeout=<seconds>
-
-		Ensures that the whole execute command does not take
-		more than <seconds>.  If it does, the response is
-			timeout
-		instead of `ok <exit-status>'.
-
-		An effort will be made to kill the processes on the
-		testbed but this is not guaranteed to be possible or
-		successful.  After an `execute' has timed out, the
-		testbed should probably be reverted with `revert' if
-		that facility is available.
 
 * Commands
 	copydown <host-path> <testbed-path>
