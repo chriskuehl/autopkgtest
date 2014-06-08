@@ -753,7 +753,7 @@ class ChrootRunner(AdtTestCase):
 
         # build a mini-chroot
         self.chroot = os.path.join(self.workdir, 'chroot')
-        self.addCleanup(shutil.rmtree, self.chroot)
+        self.addCleanup(shutil.rmtree, self.chroot, ignore_errors=True)
 
         install_file('/usr/bin/which')
         install_elf('/bin/bash')
@@ -780,11 +780,11 @@ class ChrootRunner(AdtTestCase):
         dev_dir = os.path.join(self.chroot, 'dev')
         os.mkdir(dev_dir)
         subprocess.check_call(['mount', '-o', 'bind', '/dev', dev_dir])
-        self.addCleanup(subprocess.call, ['umount', dev_dir])
+        self.addCleanup(subprocess.call, 'while ! umount %s; do sleep 0.1; done' % dev_dir, shell=True)
         proc_dir = os.path.join(self.chroot, 'proc')
         os.mkdir(proc_dir)
         subprocess.check_call(['mount', '-o', 'bind', '/proc', proc_dir])
-        self.addCleanup(subprocess.call, ['umount', proc_dir])
+        self.addCleanup(subprocess.call, 'while ! umount %s; do sleep 0.1; done' % proc_dir, shell=True)
 
         # some fakes
         for cmd in ['dpkg', 'dpkg-query', 'apt-get', 'apt-key', 'apt-cache']:
