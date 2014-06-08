@@ -594,7 +594,7 @@ rm $TMPDIR/rootowned.txt $TMPDIR/world.txt
 
         # build should time out
         self.assertEqual(code, 16, err)
-        self.assertIn("got `timeout', expected `ok...'", err)
+        self.assertIn('timed out', err)
 
         # should not start tests
         self.assertNotIn('start\n', out)
