@@ -20,7 +20,18 @@
 # See the file CREDITS for a full list of credits information (often
 # installed as /usr/share/doc/autopkgtest/CREDITS).
 
-include settings.make
+prefix =	/usr
+share =		$(DESTDIR)$(prefix)/share
+bindir =	$(DESTDIR)$(prefix)/bin
+man1dir =	$(share)/man/man1
+pkgname =	autopkgtest
+docdir =	$(share)/doc/$(pkgname)
+pythondir = 	$(share)/$(pkgname)/python
+
+INSTALL =	install
+INSTALL_DIRS =	$(INSTALL) -d
+INSTALL_PROG =	$(INSTALL) -m 0755
+INSTALL_DATA =	$(INSTALL) -m 0644
 
 programs =	virt-subproc/adt-virt-chroot \
 		virt-subproc/adt-virt-null \
@@ -37,16 +48,15 @@ all:
 	# nothing to build
 
 install:
-	$(INSTALL_DIRS) -d $(bindir) $(docdir) $(man1dir) \
-		$(pythondir)
+	$(INSTALL_DIRS) $(bindir) $(docdir) $(man1dir) $(pythondir)
 	set -e; for f in $(programs); do \
-		$(INSTALL_PROGRAM) $$f $(bindir); \
-		test ! -f $$f.1 || $(INSTALL_DOC) $$f.1 $(man1dir); \
+		$(INSTALL_PROG) $$f $(bindir); \
+		test ! -f $$f.1 || $(INSTALL_DATA) $$f.1 $(man1dir); \
 		done
-	$(INSTALL_PROGRAM) tools/adt-setup-vm $(share)/$(pkgname)
+	$(INSTALL_PROG) tools/adt-setup-vm $(share)/$(pkgname)
 	$(INSTALL_DATA) $(pythonfiles) $(pythondir)
-	$(INSTALL_DOC) CREDITS debian/changelog $(docdir)
-	$(INSTALL_DOC) doc/README*[!~] $(docdir)
+	$(INSTALL_DATA) CREDITS $(docdir)
+	$(INSTALL_DATA) doc/README*[!~] $(docdir)
 
 clean:
 	rm -f */*.pyc
