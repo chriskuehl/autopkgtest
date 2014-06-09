@@ -6,17 +6,7 @@ mandir =	$(share)/man
 man1dir =	$(mandir)/man1
 pkgname =	autopkgtest
 docdir =	$(share)/doc/$(pkgname)
-examplesdir =	$(share)/doc/$(pkgname)/examples
-sharedir = 	$(share)/autopkgtest/xenlvm
 pythondir = 	$(share)/$(pkgname)/python
-sharedir_lnfrom = $(prefix)/share/autopkgtest/xenlvm
-etcdir =	$(DESTDIR)/etc
-etcconfdir =	$(etcdir)/autopkgtest
-etcinitddir =	$(etcdir)/init.d
-etcuservdir =	$(etcdir)/userv
-uservsvcdir =	$(etcuservdir)/services.d
-xenscripts =	$(etcdir)/xen/scripts
-cfg_suffix =	.dist
 
 INSTALL =		install
 INSTALL_DIRS =		$(INSTALL) -d

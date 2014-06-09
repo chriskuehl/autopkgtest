@@ -23,7 +23,6 @@
 include settings.make
 
 programs =	virt-subproc/adt-virt-chroot \
-		virt-subproc/adt-virt-xenlvm \
 		virt-subproc/adt-virt-null \
 		virt-subproc/adt-virt-schroot \
 		virt-subproc/adt-virt-lxc \
@@ -35,9 +34,9 @@ programs =	virt-subproc/adt-virt-chroot \
 pythonfiles =	lib/VirtSubproc.py
 
 all:
-	cd xen && $(MAKE)
+	# nothing to build
 
-install-here:
+install:
 	$(INSTALL_DIRS) -d $(bindir) $(docdir) $(man1dir) \
 		$(pythondir)
 	set -e; for f in $(programs); do \
@@ -49,9 +48,5 @@ install-here:
 	$(INSTALL_DOC) CREDITS debian/changelog $(docdir)
 	$(INSTALL_DOC) doc/README*[!~] $(docdir)
 
-install: install-here
-	cd xen && $(MAKE) install
-
 clean:
 	rm -f */*.pyc
-	cd xen && $(MAKE) clean

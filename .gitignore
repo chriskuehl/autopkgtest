@@ -4,15 +4,11 @@
 *.pyc
 
 debian/autopkgtest
-debian/autopkgtest-xenlvm
 debian/*.debhelper
 debian/tmp
 debian/files
 
 debian/*.debhelper.log
 debian/*.substvars
-
-xen/sed-readconfig
-xen/readconfig
 
 runner/tmp
