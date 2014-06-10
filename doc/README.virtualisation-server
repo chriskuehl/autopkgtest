@@ -147,19 +147,13 @@ Protocol
   Prints a command that can be executed by the caller to run a command
   on the testbed.
 
-  The command has the following properties (which are, for example,
-  satisfiable when the virt server uses `env' `ssh' or `dchroot'):
+  The command has the following properties:
    - The caller is expected to url-decode <program> and each <arg>,
-     append the command to be run on the testbed, and call exec on the
-     results.
-   - If downkind is of type `auxverb', the supplied additional arguments to
-     the command provided by `print-execute-command' will be interpreted as
-     the command and arguments to be run on the testbed (as env and nice
-     interpret their arguments)
-   - If the type is `shstring', then the command provided by
-     `print-execute-command' should be invoked with exactly one additional
-     argument which should be a legal shell script.  It will be fed to sh -c
-     on the testbed (this is the way ssh interprets its arguments).
+     append the command to be run on the testbed, and call execve on the
+     resulting argv list.
+   - That command might need to convert the argument list into a shell string
+     with appropriate quoting if it implements the execute command with
+     programs that take shell commands instead of argv lists, like ssh.
    - The testbed program's stdin, stdout and stderr will be plumbed
      through to the stdin, stdout and stderr passed to <program>; this
      may involve fd passing, or indirection via pipes or sockets.  The
