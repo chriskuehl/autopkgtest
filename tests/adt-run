@@ -169,7 +169,6 @@ ubtree0t-bad         FAIL non-zero exit status 1
 
         # should show test stderr, but inline
         self.assertRegex(err, 'stderr [ -]+\nI am sick', err)
-        self.assertNotIn('stdout', err)
 
     def test_tree_allow_stderr_nobuild_success(self):
         '''source tree, no build, allow-stderr, test success'''
@@ -185,7 +184,7 @@ ubtree0t-bad         FAIL non-zero exit status 1
         self.assertIn('babble\n', out)
         self.assertRegex(err, '-+\nI am fine\nadt-run \[[0-9: -]+\]: & tree0t-pass: --')
         # but not complain about stderr
-        self.assertNotIn('stderr', err)
+        self.assertNotIn(' stderr ', err)
 
     def test_unicode(self):
         '''Unicode test output'''
@@ -255,7 +254,7 @@ class NullRunner(AdtTestCase):
         # should show test stdout
         self.assertRegex(out, '(^|\n)I am fine\n')
         # should not have any test stderr
-        self.assertNotIn('stderr', err)
+        self.assertNotIn(' stderr ', err)
 
         # should not build package
         self.assertNotIn('dh build', err)
@@ -276,7 +275,7 @@ class NullRunner(AdtTestCase):
         # should show test stdout
         self.assertRegex(out, '(^|\n)I am sick\n')
         # should not have any test stderr
-        self.assertNotIn('stderr', err)
+        self.assertNotIn(' stderr ', err)
 
     def test_tree_norestrictions_nobuild_fail_on_stderr(self):
         '''source tree, no build, no restrictions, test fails with stderr'''
@@ -310,7 +309,7 @@ class NullRunner(AdtTestCase):
         self.assertRegex(out, '(^|\n)babble\n')
         self.assertRegex(err, '---+\nI am fine\nadt-run', err)
         # but not complain about stderr
-        self.assertNotIn('stderr', err)
+        self.assertNotIn(' stderr ', err)
 
     def test_tree_build_needed_success(self):
         '''source tree, build-needed restriction, test success'''
@@ -324,7 +323,7 @@ class NullRunner(AdtTestCase):
         self.assertEqual(code, 0, err)
 
         # should not have any test stdout/stderr
-        self.assertNotIn('stderr', err)
+        self.assertNotIn(' stderr ', err)
 
         # should build package
         self.assertIn('dh build', err)
@@ -345,7 +344,7 @@ class NullRunner(AdtTestCase):
         # should show test stdout
         self.assertRegex(out, '(^|\n)I am fine\n')
         # should not have any test stderr
-        self.assertNotIn('stderr', err)
+        self.assertNotIn(' stderr ', err)
 
         # should log package version
         self.assertIn('adt-run: testing package testpkg version 1\n', err)
@@ -361,9 +360,8 @@ class NullRunner(AdtTestCase):
         self.assertRegex(out, 'dsc0t-pass\s+PASS', out)
         self.assertEqual(code, 0, err)
 
-        # should not have any test stdout/stderr
-        self.assertNotIn('stdout', err)
-        self.assertNotIn('stderr', err)
+        # should not have any test stderr
+        self.assertNotIn(' stderr ', err)
 
         # should build package
         self.assertIn('dh build', err)
@@ -388,9 +386,8 @@ rm $TMPDIR/rootowned.txt $TMPDIR/world.txt
         self.assertRegex(out, 'tree0t-t\s+PASS', out)
         self.assertEqual(code, 0, err)
 
-        # should not have any test stdout/stderr
-        self.assertNotIn('stdout', err)
-        self.assertNotIn('stderr', err)
+        # should not have any test stderr
+        self.assertNotIn(' stderr ', err)
 
     def test_user(self):
         '''--user option'''
@@ -626,8 +623,8 @@ rm $TMPDIR/rootowned.txt $TMPDIR/world.txt
         self.assertRegex(out, '(^|\n)I am fine\n')
         self.assertRegex(log, '(^|\n)I am fine\n')
         # should not have any test stderr
-        self.assertNotIn('stderr', err)
-        self.assertNotIn('stderr', log)
+        self.assertNotIn(' stderr ', err)
+        self.assertNotIn(' stderr ', log)
 
         # should not build package
         self.assertNotIn('dh build', err)
@@ -816,7 +813,7 @@ class ChrootRunner(AdtTestCase):
         # should show test stdout
         self.assertRegex(out, '^I am fine\n')
         # should not have any test stderr
-        self.assertNotIn('stderr', err)
+        self.assertNotIn(' stderr ', err)
 
         # should not build package
         self.assertNotIn('dh build', err)
@@ -840,7 +837,7 @@ class ChrootRunner(AdtTestCase):
         # should show test stdout
         self.assertRegex(out, '(^|\n)I am sick\n')
         # should not have any test stderr
-        self.assertNotIn('stderr', err)
+        self.assertNotIn(' stderr ', err)
 
         self.assertIn('processing dependency fancypkg', err)
 
@@ -860,8 +857,6 @@ class ChrootRunner(AdtTestCase):
 
         # should show test stderr
         self.assertRegex(err, 'stderr [ -]+\nI am sick\n')
-        # should not have any test stdout
-        self.assertNotIn('stdout', err)
 
     def test_tree_norestrictions_nobuild_fail_on_stderr_and_exit(self):
         '''source tree, no build, no restrictions, test fails with stderr+exit'''
@@ -877,7 +872,6 @@ class ChrootRunner(AdtTestCase):
 
         # should show test stderr separately (no real-time output for chroot)
         self.assertRegex(err, 'stderr [ -]+\nI am sick\n')
-        self.assertNotIn('stdout', err)
 
     def test_tree_allow_stderr_nobuild_success(self):
         '''source tree, no build, allow-stderr, test success'''
@@ -1082,7 +1076,7 @@ Restrictions: needs-root
         # should show test stdout
         self.assertRegex(out, '(^|\n)I am fine\n')
         # should not have any test stderr
-        self.assertNotIn('stderr', err)
+        self.assertNotIn(' stderr ', err)
 
         # should not build package
         self.assertNotIn('dh build', err)
@@ -1108,7 +1102,7 @@ Restrictions: needs-root
         # should show test stdout
         self.assertRegex(out, '^setup_success\n')
         # should not have any test stderr
-        self.assertNotIn('stderr', err)
+        self.assertNotIn(' stderr ', err)
 
         self.assertIn('@@@@@@ test bed setup', err)
 
@@ -1203,7 +1197,7 @@ deb-src http://my.distro/ fluffy-proposed extras
         self.assertRegex(out, '^/tmp/adt-run.*/ubtree0-build/real-tree\n'
                          'Makefile\ndebian\ntest_static\n')
         # should not have any test stderr
-        self.assertNotIn('stderr', err)
+        self.assertNotIn(' stderr ', err)
 
     def test_no_tests_dir(self):
         '''package without debian/tests/'''
@@ -1267,7 +1261,7 @@ class SchrootRunner(AdtTestCase):
         # should show test stdout
         self.assertRegex(out, '^I am sick\n')
         # should not have any test stderr
-        self.assertNotIn('stderr', err)
+        self.assertNotIn(' stderr ', err)
 
         # should not build package
         self.assertNotIn('dh build', err)
@@ -1285,8 +1279,6 @@ class SchrootRunner(AdtTestCase):
 
         # should show test stderr
         self.assertRegex(err, 'stderr [ -]+\nI am sick\n')
-        # should not have any test stdout
-        self.assertNotIn('stdout', err)
 
     def test_tree_norestrictions_nobuild_fail_on_stderr_and_exit(self):
         '''source tree, no build, no restrictions, test fails with stderr+exit'''
@@ -1302,7 +1294,6 @@ class SchrootRunner(AdtTestCase):
 
         # should show test stderr separately
         self.assertRegex(err, 'stderr [ -]+\nI am sick\n')
-        self.assertNotIn('stdout', err)
 
     def test_tree_allow_stderr_nobuild_success(self):
         '''source tree, no build, allow-stderr, test success'''
@@ -1319,7 +1310,7 @@ class SchrootRunner(AdtTestCase):
         self.assertRegex(out, '^babble\n')
         self.assertIn('\nI am fine\n', err)
         # stderr test output should be inline
-        self.assertNotIn('stderr', err)
+        self.assertNotIn(' stderr ', err)
 
     def test_tree_build_needed_success(self):
         '''source tree, build-needed restriction, test success'''
@@ -1339,7 +1330,7 @@ class SchrootRunner(AdtTestCase):
         # should show test stdout
         self.assertRegex(out, '(^|\n)GOOD\n')
         # should not have any test stderr
-        self.assertNotIn('stderr', err)
+        self.assertNotIn(' stderr ', err)
 
     def test_dsc_build_needed_success(self):
         '''dsc, build-needed restriction, test success'''
@@ -1353,9 +1344,8 @@ class SchrootRunner(AdtTestCase):
         self.assertRegex(out, 'dsc0t-pass\s+PASS', out)
         self.assertEqual(code, 0, err)
 
-        # should not have any test stdout/stderr
-        self.assertNotIn('stdout', err)
-        self.assertNotIn('stderr', err)
+        # should not have any test stderr
+        self.assertNotIn(' stderr ', err)
 
         # should build package
         self.assertIn('dh build', err)
@@ -1392,7 +1382,7 @@ class SchrootRunner(AdtTestCase):
         # should show test stdout
         self.assertRegex(out, '(^|\n)GOOD\n')
         # should not have any test stderr
-        self.assertNotIn('stderr', err)
+        self.assertNotIn(' stderr ', err)
 
     def test_binary_unbuilt_tree(self):
         '''--binary for test, unbuilt tree'''
@@ -1699,7 +1689,7 @@ class LxcRunner(AdtTestCase):
         # should show test stdout
         self.assertRegex(out, '(^|\n)I am fine\n')
         # should not have any test stderr
-        self.assertNotIn('stderr', err)
+        self.assertNotIn(' stderr ', err)
 
         # should not build package
         self.assertNotIn('dh build', err)
@@ -1718,7 +1708,7 @@ class LxcRunner(AdtTestCase):
         # should show test stdout
         self.assertRegex(out, '^I am sick\n')
         # should not have any test stderr
-        self.assertNotIn('stderr', err)
+        self.assertNotIn(' stderr ', err)
 
         # should not build package
         self.assertNotIn('dh build', err)
@@ -1736,8 +1726,6 @@ class LxcRunner(AdtTestCase):
 
         # should show test stderr
         self.assertRegex(err, 'stderr [ -]+\nI am sick\n')
-        # should not have any test stdout
-        self.assertNotIn('stdout', err)
 
     def test_tree_norestrictions_nobuild_fail_on_stderr_and_exit(self):
         '''source tree, no build, no restrictions, test fails with stderr+exit'''
@@ -1753,7 +1741,6 @@ class LxcRunner(AdtTestCase):
 
         # should show test stderr separately (no real-time output for chroot)
         self.assertRegex(err, 'stderr [ -]+\nI am sick\n')
-        self.assertNotIn('stdout', err)
 
     def test_tree_allow_stderr_nobuild_success(self):
         '''source tree, no build, allow-stderr, test success'''
@@ -1770,7 +1757,7 @@ class LxcRunner(AdtTestCase):
         self.assertRegex(out, '^babble\n')
         # stderr test output should be inline
         self.assertIn('\nI am fine\n', err)
-        self.assertNotIn('stderr', err)
+        self.assertNotIn(' stderr ', err)
 
     def test_tree_build_needed_success(self):
         '''source tree, build-needed restriction, test success'''
@@ -1790,7 +1777,7 @@ class LxcRunner(AdtTestCase):
         # should show test stdout
         self.assertRegex(out, '(^|\n)GOOD\n')
         # should not have any test stderr
-        self.assertNotIn('stderr', err)
+        self.assertNotIn(' stderr ', err)
 
     def test_dsc_build_needed_success(self):
         '''dsc, build-needed restriction, test success'''
@@ -1804,9 +1791,8 @@ class LxcRunner(AdtTestCase):
         self.assertRegex(out, 'dsc0t-pass\s+PASS', out)
         self.assertEqual(code, 0, err)
 
-        # should not have any test stdout/stderr
-        self.assertNotIn('stdout', err)
-        self.assertNotIn('stderr', err)
+        # should not have any test stderr
+        self.assertNotIn(' stderr ', err)
 
         # should build package
         self.assertIn('dh build', err)
@@ -1839,7 +1825,7 @@ class LxcRunner(AdtTestCase):
         # should show test stdout
         self.assertRegex(out, '(^|\n)GOOD\n', out)
         # should not have any test stderr
-        self.assertNotIn('stderr', err)
+        self.assertNotIn(' stderr ', err)
 
     def test_tree_clone(self):
         '''source tree, no --ephemeral option (using clone)'''
@@ -1856,7 +1842,6 @@ class LxcRunner(AdtTestCase):
 
         # should show test stdout inline
         self.assertRegex(out, '^hello\n')
-        self.assertNotIn('stdout', err)
 
         # should show test stderr separately
         self.assertRegex(err, 'stderr [ -]+\nI am sick\n')
@@ -1967,7 +1952,7 @@ class QemuRunner(AdtTestCase):
         # should show test stdout
         self.assertIn('I am fine\n', out)
         # should not have any test stderr
-        self.assertNotIn('stderr', err)
+        self.assertNotIn(' stderr ', err)
 
         # should not build package
         self.assertNotIn('dh build', err)
@@ -1989,7 +1974,7 @@ class QemuRunner(AdtTestCase):
         self.assertIn('built script OK\nbuilt script OK\n2', out)
 
         # should not have any test stderr
-        self.assertNotIn('stderr', err)
+        self.assertNotIn(' stderr ', err)
 
         # should build package
         self.assertIn('dh build', err)
