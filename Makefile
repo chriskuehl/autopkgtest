@@ -42,7 +42,8 @@ programs =	virt-subproc/adt-virt-chroot \
 		tools/adt-build-lxc \
 		runner/adt-run
 
-pythonfiles =	lib/VirtSubproc.py
+pythonfiles =	lib/VirtSubproc.py \
+		lib/adtlog.py
 
 all:
 	# nothing to build

@@ -182,7 +182,7 @@ ubtree0t-bad         FAIL non-zero exit status 1
 
         # should show test stdout/err
         self.assertIn('babble\n', out)
-        self.assertRegex(err, '-+\nI am fine\nadt-run \[[0-9: -]+\]: & tree0t-pass: --')
+        self.assertRegex(err, '-+\nI am fine\nadt-run \[[0-9: -]+\]: test tree0t-pass: --')
         # but not complain about stderr
         self.assertNotIn(' stderr ', err)
 
@@ -347,7 +347,7 @@ class NullRunner(AdtTestCase):
         self.assertNotIn(' stderr ', err)
 
         # should log package version
-        self.assertIn('adt-run: testing package testpkg version 1\n', err)
+        self.assertIn('testing package testpkg version 1\n', err)
 
     def test_dsc_build_needed_success(self):
         '''dsc, build-needed restriction, test success'''
@@ -821,7 +821,7 @@ class ChrootRunner(AdtTestCase):
         self.assertNotIn('@@@@@@ test bed setup', err)
 
         # should log package version
-        self.assertIn('adt-run: testing package testpkg version 1\n', err)
+        self.assertIn('testing package testpkg version 1\n', err)
 
     def test_tree_norestrictions_nobuild_fail_on_exit(self):
         '''source tree, no build, no restrictions, test fails with non-zero'''
