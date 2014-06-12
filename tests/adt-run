@@ -126,7 +126,7 @@ class NullRunnerNoRoot(AdtTestCase):
 
         (code, out, err) = self.adt_run(['--no-built-binaries', '--built-tree=' + p])
         self.assertEqual(code, 0, err)
-        self.assertRegex(out, 'tree0t-pass\s+PASS', out)
+        self.assertRegex(out, 'pass\s+PASS', out)
 
         # should show test stdout/err
         self.assertIn('I am fine\n', out)
@@ -148,13 +148,13 @@ class NullRunnerNoRoot(AdtTestCase):
 
         # test results
         self.assertEqual(code, 4, err)
-        self.assertRegex(out, 'ubtree0t-good\s+PASS', out)
-        self.assertRegex(out, 'ubtree0t-bad\s+FAIL non-zero exit status 1', out)
+        self.assertRegex(out, 'good\s+PASS', out)
+        self.assertRegex(out, 'bad\s+FAIL non-zero exit status 1', out)
 
         # check summary file
         with open(summary) as f:
-            self.assertEqual(f.read(), '''ubtree0t-good        PASS
-ubtree0t-bad         FAIL non-zero exit status 1
+            self.assertEqual(f.read(), '''good                 PASS
+bad                  FAIL non-zero exit status 1
 ''')
 
     def test_tree_norestrictions_nobuild_fail_on_stderr_and_exit(self):
@@ -166,7 +166,7 @@ ubtree0t-bad         FAIL non-zero exit status 1
         (code, out, err) = self.adt_run(['--no-built-binaries', '--built-tree=' + p])
         # test should fail
         self.assertEqual(code, 4, err)
-        self.assertRegex(out, 'tree0t-senz\s+FAIL non-zero exit status 7')
+        self.assertRegex(out, 'senz\s+FAIL non-zero exit status 7')
 
         # should show test stderr, but inline
         self.assertRegex(err, 'stderr [ -]+\nI am sick', err)
@@ -179,11 +179,11 @@ ubtree0t-bad         FAIL non-zero exit status 1
 
         (code, out, err) = self.adt_run(['--no-built-binaries', '--built-tree=' + p])
         self.assertEqual(code, 0, err)
-        self.assertRegex(out, 'tree0t-pass\s+PASS', out)
+        self.assertRegex(out, 'pass\s+PASS', out)
 
         # should show test stdout/err
         self.assertIn('babble\n', out)
-        self.assertRegex(err, '-+\nI am fine\nadt-run \[[0-9: -]+\]: test tree0t-pass: --')
+        self.assertRegex(err, '-+\nI am fine\nadt-run \[[0-9: -]+\]: test pass: --')
         # but not complain about stderr
         self.assertNotIn(' stderr ', err)
 
@@ -199,14 +199,14 @@ ubtree0t-bad         FAIL non-zero exit status 1
                                          '--unbuilt-tree=' + p,
                                          '--summary=' + summary])
         self.assertEqual(code, 4, err)
-        self.assertRegex(out, 'ubtree0t-se\s+FAIL status: 0, stderr: fancy ‴ʎɔuɐɟ″!\n')
+        self.assertRegex(out, 'se\s+FAIL stderr: fancy ‴ʎɔuɐɟ″!\n')
 
         # should show test stdout/stderr
         self.assertIn('‘a♩’\n', out)
         self.assertRegex(err, 'stderr [ -]+\nfancy ‴ʎɔuɐɟ″!\n')
 
         with open(summary, encoding='UTF-8') as f:
-            self.assertEqual(f.read(), 'ubtree0t-se          FAIL status: 0, stderr: fancy ‴ʎɔuɐɟ″!\n')
+            self.assertEqual(f.read(), 'se                   FAIL stderr: fancy ‴ʎɔuɐɟ″!\n')
 
     def test_isolation(self):
         '''isolation restrictions'''
@@ -218,8 +218,8 @@ ubtree0t-bad         FAIL non-zero exit status 1
 
         (code, out, err) = self.adt_run(['-B', '--built-tree=' + p])
         self.assertEqual(code, 0, out + err)
-        self.assertRegex(out, 'tree0t-ic\s+PASS', out)
-        self.assertRegex(out, 'tree0t-im\s+PASS', out)
+        self.assertRegex(out, 'ic\s+PASS', out)
+        self.assertRegex(out, 'im\s+PASS', out)
         self.assertIn('container ok\n', out)
         self.assertIn('machine ok\n', out)
 
@@ -244,12 +244,11 @@ class NullRunner(AdtTestCase):
         p = self.build_src('Tests: pass\nDepends: coreutils\n',
                            {'pass': '#!/bin/sh\necho I am fine\n'})
 
-        (code, out, err) = self.adt_run(['-B', '--unbuilt-tree=' + p])
+        (code, out, err) = self.adt_run(['-dB', '--unbuilt-tree=' + p])
         #print('----- out ----\n%s\n----- err ----\n%s\n----' % (out, err))
         # test should succeed
         self.assertEqual(code, 0, err)
-        self.assertIn('coreutils', err)
-        self.assertRegex(out, 'tree0t-pass\s+PASS', out)
+        self.assertRegex(out, 'pass\s+PASS', out)
 
         self.assertIn('processing dependency coreutils', err)
         # should show test stdout
@@ -269,10 +268,8 @@ class NullRunner(AdtTestCase):
         (code, out, err) = self.adt_run(['--no-built-binaries', '--built-tree=' + p])
         # test should fail
         self.assertEqual(code, 4)
-        self.assertIn('coreutils', err)
-        self.assertRegex(out, 'tree0t-nz\s+FAIL non-zero exit status 7')
+        self.assertRegex(out, 'nz\s+FAIL non-zero exit status 7')
 
-        self.assertIn('processing dependency coreutils', err)
         # should show test stdout
         self.assertRegex(out, '(^|\n)I am sick\n')
         # should not have any test stderr
@@ -287,10 +284,8 @@ class NullRunner(AdtTestCase):
         (code, out, err) = self.adt_run(['--no-built-binaries', '--built-tree=' + p])
         # test should fail
         self.assertEqual(code, 4)
-        self.assertIn('coreutils', err)
-        self.assertRegex(out, '(^|\n)tree0t-se\s+FAIL status: 0, stderr: I am sick\n')
+        self.assertRegex(out, '(^|\n)se\s+FAIL stderr: I am sick\n')
 
-        self.assertIn('processing dependency coreutils', err)
         # should show test stderr
         self.assertRegex(err, 'stderr [ -]+\nI am sick', err)
 
@@ -303,8 +298,7 @@ class NullRunner(AdtTestCase):
         (code, out, err) = self.adt_run(['--no-built-binaries', '--built-tree=' + p])
         # test should fail
         self.assertEqual(code, 4)
-        self.assertIn('coreutils', err)
-        self.assertRegex(out, 'tree0t-nz\s+FAIL non-zero exit status 7')
+        self.assertRegex(out, 'nz\s+FAIL non-zero exit status 7')
 
         # should show test stdout/err inline
         self.assertRegex(out, '(^|\n)babble\n')
@@ -320,7 +314,7 @@ class NullRunner(AdtTestCase):
 
         (code, out, err) = self.adt_run(['--no-built-binaries', '--unbuilt-tree=' + p])
         # test should succeed
-        self.assertRegex(out, 'tree0t-pass\s+PASS', out)
+        self.assertRegex(out, 'pass\s+PASS', out)
         self.assertEqual(code, 0, err)
 
         # should not have any test stdout/stderr
@@ -335,11 +329,11 @@ class NullRunner(AdtTestCase):
         p = self.build_dsc('Tests: pass\nDepends: coreutils\n',
                            {'pass': '#!/bin/sh\necho I am fine\n'})
 
-        (code, out, err) = self.adt_run(['--no-built-binaries', p])
+        (code, out, err) = self.adt_run(['-d', '--no-built-binaries', p])
         # test should succeed
         self.assertEqual(code, 0, err)
         self.assertIn('coreutils', err)
-        self.assertRegex(out, 'dsc0t-pass\s+PASS', out)
+        self.assertRegex(out, 'pass\s+PASS', out)
 
         self.assertIn('processing dependency coreutils', err)
         # should show test stdout
@@ -358,7 +352,7 @@ class NullRunner(AdtTestCase):
 
         (code, out, err) = self.adt_run(['--no-built-binaries', p])
         # test should succeed
-        self.assertRegex(out, 'dsc0t-pass\s+PASS', out)
+        self.assertRegex(out, 'pass\s+PASS', out)
         self.assertEqual(code, 0, err)
 
         # should not have any test stderr
@@ -384,7 +378,7 @@ rm $TMPDIR/rootowned.txt $TMPDIR/world.txt
 
         (code, out, err) = self.adt_run(['--no-built-binaries', '--built-tree=' + p])
         # test should succeed
-        self.assertRegex(out, 'tree0t-t\s+PASS', out)
+        self.assertRegex(out, 't\s+PASS', out)
         self.assertEqual(code, 0, err)
 
         # should not have any test stderr
@@ -409,7 +403,7 @@ rm $TMPDIR/rootowned.txt $TMPDIR/world.txt
         self.assertEqual(code, 0, err)
 
         # test should succeed
-        self.assertRegex(out, 'tree0t-t\s+PASS', out)
+        self.assertRegex(out, 't\s+PASS', out)
 
         # has output from cat and whoami
         self.assertIn('world\nnobody\nnobody\nnobody\nnobody\n', out)
@@ -437,9 +431,9 @@ rm $TMPDIR/rootowned.txt $TMPDIR/world.txt
 
         # test results
         self.assertEqual(code, 4, err)
-        self.assertRegex(out, 'ubtree0t-sP\s+PASS', out)
-        self.assertRegex(out, 'ubtree0t-sF\s+FAIL status: 0, stderr: kaputt', out)
-        self.assertRegex(out, 'ubtree0t-bP\s+PASS', out)
+        self.assertRegex(out, 'sP\s+PASS', out)
+        self.assertRegex(out, 'sF\s+FAIL stderr: kaputt', out)
+        self.assertRegex(out, 'bP\s+PASS', out)
 
         # should show test stdout and stderr
         self.assertRegex(out, '(^|\n)static script OK\n')
@@ -450,25 +444,25 @@ rm $TMPDIR/rootowned.txt $TMPDIR/world.txt
         self.assertIn('dh build', err)
 
         # check outdir test stdout/err
-        with open(os.path.join(outdir, 'ubtree0t-sP-stdout')) as f:
+        with open(os.path.join(outdir, 'sP-stdout')) as f:
             self.assertEqual(f.read(), 'static script OK\n')
         self.assertFalse(os.path.exists(
-            os.path.join(outdir, 'ubtree0t-sP-stderr')))
-        with open(os.path.join(outdir, 'ubtree0t-bP-stdout')) as f:
+            os.path.join(outdir, 'sP-stderr')))
+        with open(os.path.join(outdir, 'bP-stdout')) as f:
             self.assertEqual(f.read(), 'built script OK\n')
         self.assertFalse(os.path.exists(
-            os.path.join(outdir, 'ubtree0t-bP-stderr')))
+            os.path.join(outdir, 'bP-stderr')))
         self.assertFalse(os.path.exists(
-            os.path.join(outdir, 'ubtree0t-sF-stdout')))
-        with open(os.path.join(outdir, 'ubtree0t-sF-stderr')) as f:
+            os.path.join(outdir, 'sF-stdout')))
+        with open(os.path.join(outdir, 'sF-stderr')) as f:
             self.assertEqual(f.read(), 'kaputt\n')
 
         # check outdir log
         with open(os.path.join(outdir, 'log')) as f:
             contents = f.read()
-        self.assertIn('build needed for test bP', contents)
+        self.assertIn('build needed for tests', contents)
         self.assertIn('dh build', contents)
-        self.assertRegex(contents, 'ubtree0t-sF\s+FAIL status: 0, stderr: kaputt')
+        self.assertRegex(contents, 'sF\s+FAIL stderr: kaputt')
         self.assertIn('@@@@ tests done', contents)
         self.assertIn('testing package testpkg version 1\n', contents)
 
@@ -489,26 +483,26 @@ rm $TMPDIR/rootowned.txt $TMPDIR/world.txt
         # test don't pull in any additional dependencies
         for t in ['sP', 'sF', 'bP']:
             self.assertEqual(os.path.getsize(os.path.join(
-                outdir, 'ubtree0t-%s-packages' % t)), 0)
+                outdir, '%s-packages' % t)), 0)
 
         # check for cruft in outdir
         # --no-built-binaries, we don't expect any debs
         files = [i for i in os.listdir(outdir)
-                 if not fnmatch.fnmatch(i, 'ubtree*-std*') and
-                 not fnmatch.fnmatch(i, 'ubtree*-packages')]
+                 if not fnmatch.fnmatch(i, '[sb]*-std*') and
+                 not fnmatch.fnmatch(i, '[sb]*-packages')]
         self.assertEqual(set(files), set(['log', 'testpkg-version', 'testbed-packages']))
 
     def test_timeout(self):
         '''handling test timeout'''
 
-        p = self.build_dsc('Tests: to\nDepends:\n',
-                           {'to': '#!/bin/sh\necho start\nsleep 10\necho after_sleep\n'})
+        p = self.build_dsc('Tests: totest\nDepends:\n',
+                           {'totest': '#!/bin/sh\necho start\nsleep 10\necho after_sleep\n'})
 
         (code, out, err) = self.adt_run(['--no-built-binaries', '--timeout-test=3', p])
         # test should time out
         self.assertEqual(code, 16, err)
         self.assertIn("timed out on command", err)
-        self.assertNotIn('dsc0t-to', out)
+        self.assertNotIn('totest', out)
 
         # should show test stdout
         self.assertIn('start', out)
@@ -518,14 +512,14 @@ rm $TMPDIR/rootowned.txt $TMPDIR/world.txt
     def test_timeout_no_output(self):
         '''handling test timeout for test without any output'''
 
-        p = self.build_dsc('Tests: to\nDepends:\n',
-                           {'to': '#!/bin/sh\nsleep 10\n'})
+        p = self.build_dsc('Tests: totest\nDepends:\n',
+                           {'totest': '#!/bin/sh\nsleep 10\n'})
 
         (code, out, err) = self.adt_run(['--no-built-binaries', '--timeout-test=3', p])
         # test should time out
         self.assertEqual(code, 16, err)
         self.assertIn("timed out on command", err)
-        self.assertNotIn('dsc0t-to', out)
+        self.assertNotIn('totest', out)
 
     def test_timeout_long_test(self):
         '''long-running test with custom timeouts
@@ -604,7 +598,7 @@ rm $TMPDIR/rootowned.txt $TMPDIR/world.txt
                            {'pass': '#!/bin/sh\necho I am fine\n'})
 
         logfile = os.path.join(self.workdir, 'adt.log')
-        (code, out, err) = self.adt_run(['--no-built-binaries',
+        (code, out, err) = self.adt_run(['-d', '--no-built-binaries',
                                          '--unbuilt-tree=' + p,
                                          '--log-file=' + logfile])
         #print('----- out ----\n%s\n----- err ----\n%s\n----' % (out, err))
@@ -615,8 +609,8 @@ rm $TMPDIR/rootowned.txt $TMPDIR/world.txt
             log = f.read()
         self.assertIn('coreutils', err)
         self.assertIn('coreutils', log)
-        self.assertRegex(out, 'tree0t-pass\s+PASS')
-        self.assertRegex(log, 'tree0t-pass\s+PASS')
+        self.assertRegex(out, 'pass\s+PASS')
+        self.assertRegex(log, 'pass\s+PASS')
 
         self.assertIn('processing dependency coreutils', err)
         self.assertIn('processing dependency coreutils', log)
@@ -637,7 +631,7 @@ rm $TMPDIR/rootowned.txt $TMPDIR/world.txt
                            {'nz': '#!/bin/sh\n./test_built\necho I am sick >&2\nexit 7'})
 
         logfile = os.path.join(self.workdir, 'adt.log')
-        (code, out, err) = self.adt_run(['--no-built-binaries',
+        (code, out, err) = self.adt_run(['-d', '--no-built-binaries',
                                          '--unbuilt-tree=' + p,
                                          '--log-file=' + logfile])
         with open(logfile) as f:
@@ -645,8 +639,8 @@ rm $TMPDIR/rootowned.txt $TMPDIR/world.txt
 
         # test should fail
         self.assertEqual(code, 4)
-        self.assertRegex(out, 'tree0t-nz\s+FAIL non-zero exit status 7')
-        self.assertRegex(log, 'tree0t-nz\s+FAIL non-zero exit status 7')
+        self.assertRegex(out, 'nz\s+FAIL non-zero exit status 7')
+        self.assertRegex(log, 'nz\s+FAIL non-zero exit status 7')
 
         self.assertIn('processing dependency coreutils', err)
         self.assertIn('processing dependency coreutils', log)
@@ -706,7 +700,7 @@ rm $TMPDIR/rootowned.txt $TMPDIR/world.txt
         (code, out, err) = self.adt_run(['-B', '-d', '--unbuilt-tree=' + p])
 
         # test should succeed
-        self.assertRegex(out, 'tree0t-pass\s+PASS', out)
+        self.assertRegex(out, 'pass\s+PASS', out)
         self.assertEqual(code, 0, err)
 
         # should have patched source
@@ -768,6 +762,7 @@ class ChrootRunner(AdtTestCase):
         install_elf('/bin/sleep')
         install_elf('/bin/sed')
         install_elf('/bin/readlink')
+        install_elf('/bin/grep')
         install_elf('/usr/bin/test')
         install_elf('/usr/bin/awk')
         install_elf('/usr/bin/env')
@@ -788,7 +783,10 @@ class ChrootRunner(AdtTestCase):
         for cmd in ['dpkg', 'dpkg-query', 'apt-get', 'apt-key', 'apt-cache']:
             p = os.path.join(self.chroot, 'usr', 'bin', cmd)
             with open(p, 'w') as f:
-                f.write('#!/bin/sh\necho "fake-%s: $@"\n' % cmd)
+                f.write('#!/bin/sh\n')
+                if cmd == 'dpkg':
+                    f.write('if [ "$1" = "--print-architecture" ]; then echo megacpu; exit; fi\n')
+                f.write('echo "fake-%s: $@"\n' % cmd)
                 if cmd == 'apt-get':
                     f.write('if [ "$1" = source ]; then cp -r /aptget-src $3-1; fi\n')
             os.chmod(p, 0o755)
@@ -809,7 +807,7 @@ class ChrootRunner(AdtTestCase):
         #print('----- out ----\n%s\n----- err ----\n%s\n----' % (out, err))
         # test should succeed
         self.assertEqual(code, 0, err)
-        self.assertRegex(out, 'tree0t-pass\s+PASS', out)
+        self.assertRegex(out, 'pass\s+PASS', out)
 
         # should show test stdout
         self.assertRegex(out, '^I am fine\n')
@@ -830,10 +828,10 @@ class ChrootRunner(AdtTestCase):
         p = self.build_src('Tests: nz\nDepends: fancypkg\nRestrictions: needs-root\n',
                            {'nz': '#!/bin/sh\necho I am sick\nexit 7'})
 
-        (code, out, err) = self.adt_run(['--no-built-binaries', '--unbuilt-tree=' + p],
+        (code, out, err) = self.adt_run(['-d', '--no-built-binaries', '--unbuilt-tree=' + p],
                                         [self.chroot])
         self.assertEqual(code, 4, err)
-        self.assertRegex(out, 'tree0t-nz\s+FAIL non-zero exit status 7')
+        self.assertRegex(out, 'nz\s+FAIL non-zero exit status 7')
 
         # should show test stdout
         self.assertRegex(out, '(^|\n)I am sick\n')
@@ -854,7 +852,7 @@ class ChrootRunner(AdtTestCase):
         (code, out, err) = self.adt_run(['--no-built-binaries', '--unbuilt-tree=' + p],
                                         [self.chroot])
         self.assertEqual(code, 4, err)
-        self.assertRegex(out, 'ubtree0t-se\s+FAIL status: 0, stderr: I am sick\n')
+        self.assertRegex(out, 'se\s+FAIL stderr: I am sick\n')
 
         # should show test stderr
         self.assertRegex(err, 'stderr [ -]+\nI am sick\n')
@@ -868,8 +866,8 @@ class ChrootRunner(AdtTestCase):
         (code, out, err) = self.adt_run(['--no-built-binaries', '--built-tree=' + p],
                                         [self.chroot])
         # test should fail
-        self.assertEqual(code, 4)
-        self.assertRegex(out, 'tree0t-senz\s+FAIL non-zero exit status 7')
+        self.assertEqual(code, 4, err)
+        self.assertRegex(out, 'senz\s+FAIL non-zero exit status 7')
 
         # should show test stderr separately (no real-time output for chroot)
         self.assertRegex(err, 'stderr [ -]+\nI am sick\n')
@@ -883,7 +881,7 @@ class ChrootRunner(AdtTestCase):
         (code, out, err) = self.adt_run(['--no-built-binaries', '--built-tree=' + p],
                                         [self.chroot])
         self.assertEqual(code, 0, err)
-        self.assertRegex(out, 'tree0t-pass\s+PASS')
+        self.assertRegex(out, 'pass\s+PASS')
 
         # should show test stdout/err
         self.assertRegex(out, '^babble\n')
@@ -899,10 +897,10 @@ Depends: fancypkg,
 Restrictions: needs-root
 ''', {'pass': '#!/bin/sh\ntrue'})
 
-        (code, out, err) = self.adt_run(['--no-built-binaries', '--unbuilt-tree=' + p],
+        (code, out, err) = self.adt_run(['-dB', '--unbuilt-tree=' + p],
                                         [self.chroot])
         self.assertEqual(code, 0, err)
-        self.assertRegex(out, 'tree0t-pass\s+PASS')
+        self.assertRegex(out, 'pass\s+PASS')
 
         self.assertIn('processing dependency fancypkg\n', err)
         self.assertIn('processing dependency coreutils | vanilla (>= 10)\n', err)
@@ -928,7 +926,7 @@ Restrictions: needs-root
         (code, out, err) = self.adt_run(['-dB', '--unbuilt-tree=' + p],
                                         [self.chroot], env={'LC_ALL': 'C'})
         self.assertEqual(code, 0, err)
-        self.assertRegex(out, 'tree0t-pass\s+PASS')
+        self.assertRegex(out, 'pass\s+PASS')
 
         self.assertIn('synthesised dependency testpkg\n', err)
         self.assertIn('processing dependency testdep1\n', err)
@@ -947,7 +945,7 @@ Restrictions: needs-root
                            {'nz': '#!/bin/sh\n./test_static\necho I am sick >&2\nexit 7'})
 
         logfile = os.path.join(self.workdir, 'adt.log')
-        (code, out, err) = self.adt_run(['--no-built-binaries',
+        (code, out, err) = self.adt_run(['--no-built-binaries', '-d',
                                          '--unbuilt-tree=' + p,
                                          '--log-file=' + logfile],
                                         [self.chroot])
@@ -956,8 +954,8 @@ Restrictions: needs-root
 
         # test should fail
         self.assertEqual(code, 4, err)
-        self.assertRegex(out, 'tree0t-nz\s+FAIL non-zero exit status 7')
-        self.assertRegex(log, 'tree0t-nz\s+FAIL non-zero exit status 7')
+        self.assertRegex(out, 'nz\s+FAIL non-zero exit status 7')
+        self.assertRegex(log, 'nz\s+FAIL non-zero exit status 7')
 
         self.assertIn('processing dependency coreutils', err)
         self.assertIn('processing dependency coreutils', log)
@@ -993,15 +991,15 @@ Restrictions: needs-root
 
         # test should succeed
         self.assertEqual(code, 0, err)
-        self.assertRegex(out, 'tree0t-a1\s+PASS', out)
-        self.assertRegex(out, 'tree0t-a2\s+PASS', out)
-        self.assertRegex(out, 'tree0t-a3\s+PASS', out)
-        self.assertRegex(out, 'tree0t-a4\s+PASS', out)
+        self.assertRegex(out, 'a1\s+PASS', out)
+        self.assertRegex(out, 'a2\s+PASS', out)
+        self.assertRegex(out, 'a3\s+PASS', out)
+        self.assertRegex(out, 'a4\s+PASS', out)
 
         # check for cruft in output dir
         files = [i for i in os.listdir(outdir)
-                 if not fnmatch.fnmatch(i, 'ubtree*-std*') and
-                 not fnmatch.fnmatch(i, 'ubtree*-packages')]
+                 if not fnmatch.fnmatch(i, 'a*-std*') and
+                 not fnmatch.fnmatch(i, 'a*-packages')]
         self.assertEqual(set(files), set(['log', 'artifacts', 'testpkg-version', 'testbed-packages']))
 
         # check artifact; a2 should overwrite a1's health.txt
@@ -1022,11 +1020,11 @@ Restrictions: needs-root
                                         [self.chroot])
         # invalid test gets skipped
         self.assertEqual(code, 2, err)
-        self.assertRegex(out, 'subdir/p\s+SKIP test name may not contain /.* line 1')
+        self.assertRegex(out, 'subdir/p\s+SKIP test name may not contain /.*')
 
         # valid test still gets run
         self.assertFalse(re.match('pass\s+SKIP', out), out)
-        self.assertRegex(out, 'ubtree0t-pass\s+PASS', out)
+        self.assertRegex(out, 'pass\s+PASS', out)
 
     def test_breaks_testbed(self):
         '''breaks-testbed restriction'''
@@ -1054,14 +1052,14 @@ Restrictions: needs-root
                                          '--summary=' + summary],
                                         [self.chroot])
         self.assertEqual(code, 4, err)
-        self.assertRegex(out, 'ubtree0t-se\s+FAIL status: 0, stderr: fancy ‴ʎɔuɐɟ″!\n')
+        self.assertRegex(out, 'se\s+FAIL stderr: fancy ‴ʎɔuɐɟ″!\n')
 
         # should show test stdout/stderr
         self.assertRegex(out, '‘a♩’\n')
         self.assertRegex(err, '\nfancy ‴ʎɔuɐɟ″!\n')
 
         with open(summary, encoding='UTF-8') as f:
-            self.assertEqual(f.read(), 'ubtree0t-se          FAIL status: 0, stderr: fancy ‴ʎɔuɐɟ″!\n')
+            self.assertRegex(f.read(), 'se\s+FAIL stderr: fancy ‴ʎɔuɐɟ″!\n')
 
     def test_apt_source_no_restrictions(self):
         '''apt source, no build, no restrictions'''
@@ -1074,7 +1072,7 @@ Restrictions: needs-root
         (code, out, err) = self.adt_run(['testpkg'], [self.chroot])
         # test should succeed
         self.assertEqual(code, 0, err)
-        self.assertRegex(out, 'apt0t-pass\s+PASS', out)
+        self.assertRegex(out, 'pass\s+PASS', out)
 
         # should show test stdout
         self.assertRegex(out, '(^|\n)I am fine\n')
@@ -1100,7 +1098,7 @@ Restrictions: needs-root
                                         [self.chroot])
         # test should succeed
         self.assertEqual(code, 0, err)
-        self.assertRegex(out, 'tree0t-pass\s+PASS', out)
+        self.assertRegex(out, 'pass\s+PASS', out)
 
         # should show test stdout
         self.assertRegex(out, '^setup_success\n')
@@ -1130,7 +1128,7 @@ Restrictions: needs-root
                                         [self.chroot])
         # test should succeed
         self.assertEqual(code, 0, err)
-        self.assertRegex(out, 'tree0t-pass\s+PASS', out)
+        self.assertRegex(out, 'pass\s+PASS', out)
 
         # should show test stdout
         self.assertRegex(out, '^setup_success\n')
@@ -1162,7 +1160,7 @@ deb-src http://my.distro/ fluffy extras
 
         # test should succeed
         self.assertEqual(code, 0, err)
-        self.assertRegex(out, 'tree0t-pass\s+PASS', out)
+        self.assertRegex(out, 'pass\s+PASS', out)
 
         # verify proposed.list
         with open(os.path.join(apt_dir, 'sources.list.d', 'proposed.list')) as f:
@@ -1195,7 +1193,7 @@ deb-src http://my.distro/ fluffy-proposed extras
         (code, out, err) = self.adt_run(['-B', '--unbuilt-tree=' + p],
                                         [self.chroot])
         self.assertEqual(code, 0, err)
-        self.assertRegex(out, 'tree0t-g\s+PASS', out)
+        self.assertRegex(out, 'g\s+PASS', out)
 
         self.assertRegex(out, '^/tmp/adt-run.*/ubtree0-build/real-tree\n'
                          'Makefile\ndebian\ntest_static\n')
@@ -1232,11 +1230,11 @@ class SchrootRunner(AdtTestCase):
                                         [self.schroot_name])
         # test should succeed
         self.assertEqual(code, 0, err)
-        self.assertRegex(out, 'tree0t-p1\s+PASS', out)
-        self.assertRegex(out, 'tree0t-p2\s+PASS', out)
+        self.assertRegex(out, 'p1\s+PASS', out)
+        self.assertRegex(out, 'p2\s+PASS', out)
 
         # handles expected packages
-        self.assertIn('coreutils', err)
+        self.assertIn('processing dependency coreutils', err)
         self.assertIn('Unpacking aspell-doc', out)
         self.assertIn('Unpacking cpp-doc', out)
         self.assertNotIn('unknown', out)
@@ -1259,7 +1257,7 @@ class SchrootRunner(AdtTestCase):
         (code, out, err) = self.adt_run(['--no-built-binaries', '--unbuilt-tree=' + p],
                                         [self.schroot_name])
         self.assertEqual(code, 4, err)
-        self.assertRegex(out, 'tree0t-nz\s+FAIL non-zero exit status 7')
+        self.assertRegex(out, 'nz\s+FAIL non-zero exit status 7')
 
         # should show test stdout
         self.assertRegex(out, '^I am sick\n')
@@ -1278,7 +1276,7 @@ class SchrootRunner(AdtTestCase):
         (code, out, err) = self.adt_run(['--no-built-binaries', '--unbuilt-tree=' + p],
                                         [self.schroot_name])
         self.assertEqual(code, 4, err)
-        self.assertRegex(out, 'ubtree0t-se\s+FAIL status: 0, stderr: I am sick\n')
+        self.assertRegex(out, 'se\s+FAIL stderr: I am sick\n')
 
         # should show test stderr
         self.assertRegex(err, 'stderr [ -]+\nI am sick\n')
@@ -1293,7 +1291,7 @@ class SchrootRunner(AdtTestCase):
                                         [self.schroot_name])
         # test should fail
         self.assertEqual(code, 4)
-        self.assertRegex(out, 'tree0t-senz\s+FAIL non-zero exit status 7')
+        self.assertRegex(out, 'senz\s+FAIL non-zero exit status 7')
 
         # should show test stderr separately
         self.assertRegex(err, 'stderr [ -]+\nI am sick\n')
@@ -1307,7 +1305,7 @@ class SchrootRunner(AdtTestCase):
         (code, out, err) = self.adt_run(['--no-built-binaries', '--built-tree=' + p],
                                         [self.schroot_name])
         self.assertEqual(code, 0, err)
-        self.assertRegex(out, 'tree0t-pass\s+PASS', out)
+        self.assertRegex(out, 'pass\s+PASS', out)
 
         # should show test stdout/err
         self.assertRegex(out, '^babble\n')
@@ -1324,7 +1322,7 @@ class SchrootRunner(AdtTestCase):
         (code, out, err) = self.adt_run(['--no-built-binaries', '--unbuilt-tree=' + p],
                                         [self.schroot_name])
         # test should succeed
-        self.assertRegex(out, 'tree0t-pass\s+PASS', out)
+        self.assertRegex(out, 'pass\s+PASS', out)
         self.assertEqual(code, 0, out + err)
 
         # should build package
@@ -1344,7 +1342,7 @@ class SchrootRunner(AdtTestCase):
         (code, out, err) = self.adt_run(['--no-built-binaries', p],
                                         [self.schroot_name])
         # test should succeed
-        self.assertRegex(out, 'dsc0t-pass\s+PASS', out)
+        self.assertRegex(out, 'pass\s+PASS', out)
         self.assertEqual(code, 0, err)
 
         # should not have any test stderr
@@ -1370,7 +1368,7 @@ class SchrootRunner(AdtTestCase):
 
         # should build and install package
         self.assertIn('dh build', err)
-        self.assertRegex(out, 'ubtree0t-pass\s+PASS', out)
+        self.assertRegex(out, '\npass\s+PASS', out)
         self.assertIn('Unpacking testpkg', out)
         self.assertIn('binaries/./testpkg.deb', out)
         self.assertIn('Unpacking aspell-doc', out)
@@ -1379,7 +1377,7 @@ class SchrootRunner(AdtTestCase):
         self.assertNotIn('Unpacking cpp-doc', err)
 
         # test should succeed
-        self.assertRegex(out, 'ubtree0t-pass\s+PASS', out)
+        self.assertRegex(out, 'pass\s+PASS', out)
         self.assertEqual(code, 0, err)
 
         # should show test stdout
@@ -1413,7 +1411,7 @@ class SchrootRunner(AdtTestCase):
         self.assertIn('binaries/./testpkg.deb', out)
 
         # test should succeed
-        self.assertRegex(out, '-pass\s+PASS', out)
+        self.assertRegex(out, 'pass\s+PASS', out)
         self.assertEqual(code, 0, err)
 
         # should show test stdout
@@ -1452,7 +1450,7 @@ class SchrootRunner(AdtTestCase):
         self.assertIn('binaries/./testpkg.deb', out)
 
         # test should succeed
-        self.assertRegex(out, '-pass\s+PASS', out + err)
+        self.assertRegex(out, 'pass\s+PASS', out + err)
         self.assertEqual(code, 0, out + err)
 
         # should show test stdout
@@ -1470,7 +1468,7 @@ class SchrootRunner(AdtTestCase):
                            {'nz': '#!/bin/sh\n./test_built\necho I am sick >&2\nexit 7'})
 
         logfile = os.path.join(self.workdir, 'adt.log')
-        (code, out, err) = self.adt_run(['--no-built-binaries',
+        (code, out, err) = self.adt_run(['-d', '--no-built-binaries',
                                          '--unbuilt-tree=' + p,
                                          '--log-file=' + logfile],
                                         [self.schroot_name])
@@ -1479,8 +1477,8 @@ class SchrootRunner(AdtTestCase):
 
         # test should fail
         self.assertEqual(code, 4, err)
-        self.assertRegex(out, 'tree0t-nz\s+FAIL non-zero exit status 7')
-        self.assertRegex(log, 'tree0t-nz\s+FAIL non-zero exit status 7')
+        self.assertRegex(out, 'nz\s+FAIL non-zero exit status 7')
+        self.assertRegex(log, 'nz\s+FAIL non-zero exit status 7')
 
         self.assertIn('processing dependency coreutils', err)
         self.assertIn('processing dependency coreutils', log)
@@ -1511,8 +1509,8 @@ class SchrootRunner(AdtTestCase):
 
         # test results
         self.assertEqual(code, 4, err)
-        self.assertRegex(out, 'ubtree0t-ok\s+PASS', out)
-        self.assertRegex(out, 'ubtree0t-broken\s+FAIL status: 0, stderr: kaputt', out)
+        self.assertRegex(out, 'ok\s+PASS', out)
+        self.assertRegex(out, 'broken\s+FAIL stderr: kaputt', out)
 
         # should show test stdout and stderr
         self.assertRegex(out, '(^|\n)built script OK\n')
@@ -1522,20 +1520,20 @@ class SchrootRunner(AdtTestCase):
         self.assertIn('dh build', err)
 
         # check outdir test stdout/err
-        with open(os.path.join(outdir, 'ubtree0t-ok-stdout')) as f:
+        with open(os.path.join(outdir, 'ok-stdout')) as f:
             self.assertEqual(f.read(), 'built script OK\n')
         self.assertFalse(os.path.exists(
-            os.path.join(outdir, 'ubtree0t-ok-stderr')))
+            os.path.join(outdir, 'ok-stderr')))
         self.assertFalse(os.path.exists(
-            os.path.join(outdir, 'ubtree0t-broken-stdout')))
-        with open(os.path.join(outdir, 'ubtree0t-broken-stderr')) as f:
+            os.path.join(outdir, 'broken-stdout')))
+        with open(os.path.join(outdir, 'broken-stderr')) as f:
             self.assertEqual(f.read(), 'kaputt\n')
 
         # check outdir log
         with open(os.path.join(outdir, 'log')) as f:
             contents = f.read()
         self.assertIn('dh build', contents)
-        self.assertRegex(contents, 'ubtree0t-broken\s+FAIL status: 0, stderr: kaputt')
+        self.assertRegex(contents, 'broken\s+FAIL stderr: kaputt')
         self.assertIn('@@@@ tests done', contents)
 
         # check test package version
@@ -1554,7 +1552,7 @@ class SchrootRunner(AdtTestCase):
 
         # check recorded package list
         for t in ['ok', 'broken']:
-            with open(os.path.join(outdir, 'ubtree0t-%s-packages' % t)) as f:
+            with open(os.path.join(outdir, '%s-packages' % t)) as f:
                 contents = f.read()
                 self.assertIn('testpkg\t1\n', contents)
                 if t == 'broken':
@@ -1569,10 +1567,10 @@ class SchrootRunner(AdtTestCase):
                               'Packages.gz', 'Packages', 'testpkg.deb']))
 
         # check for cruft in outdir
-        files = [i for i in os.listdir(outdir)
-                 if not fnmatch.fnmatch(i, 'ubtree*-std*') and
-                 not fnmatch.fnmatch(i, 'ubtree*-packages')]
-        self.assertEqual(set(files), set(['log', 'binaries', 'testpkg-version', 'testbed-packages']))
+        self.assertEqual(set(os.listdir(outdir)),
+                         set(['log', 'binaries', 'testpkg-version',
+                              'testbed-packages', 'ok-packages', 'ok-stdout',
+                              'broken-packages', 'broken-stderr']))
 
     def test_user(self):
         '''--user option'''
@@ -1590,11 +1588,10 @@ class SchrootRunner(AdtTestCase):
         self.assertEqual(code, 0, err)
 
         # should install dependencies
-        self.assertIn('processing dependency aspell-doc', err)
         self.assertIn('Unpacking aspell-doc', out)
 
         # test should succeed
-        self.assertRegex(out, 'tree0t-t\s+PASS', out)
+        self.assertRegex(out, 't\s+PASS', out)
 
         # has output from cat and whoami
         self.assertRegex(out, '(^|\n)world\nnobody\n')
@@ -1615,11 +1612,10 @@ class SchrootRunner(AdtTestCase):
         self.assertEqual(code, 0, err)
 
         # should install dependencies
-        self.assertIn('processing dependency aspell-doc', err)
         self.assertIn('Unpacking aspell-doc', out)
 
         # test should succeed
-        self.assertRegex(out, 'tree0t-t\s+PASS', out)
+        self.assertRegex(out, 't\s+PASS', out)
 
         # has output from cat and whoami
         self.assertRegex(out, '(^|\n)world\nroot\n')
@@ -1686,8 +1682,7 @@ class LxcRunner(AdtTestCase):
                                         self.virt_args)
         # test should succeed
         self.assertEqual(code, 0, err)
-        self.assertIn('coreutils', err)
-        self.assertRegex(out, 'tree0t-pass\s+PASS', out)
+        self.assertRegex(out, 'pass\s+PASS', out)
 
         # should show test stdout
         self.assertRegex(out, '(^|\n)I am fine\n')
@@ -1706,7 +1701,7 @@ class LxcRunner(AdtTestCase):
         (code, out, err) = self.adt_run(['--no-built-binaries', '--unbuilt-tree=' + p],
                                         self.virt_args)
         self.assertEqual(code, 4, err)
-        self.assertRegex(out, 'tree0t-nz\s+FAIL non-zero exit status 7')
+        self.assertRegex(out, 'nz\s+FAIL non-zero exit status 7')
 
         # should show test stdout
         self.assertRegex(out, '^I am sick\n')
@@ -1725,7 +1720,7 @@ class LxcRunner(AdtTestCase):
         (code, out, err) = self.adt_run(['--no-built-binaries', '--unbuilt-tree=' + p],
                                         self.virt_args)
         self.assertEqual(code, 4, err)
-        self.assertRegex(out, 'ubtree0t-se\s+FAIL status: 0, stderr: I am sick\n')
+        self.assertRegex(out, 'se\s+FAIL stderr: I am sick\n')
 
         # should show test stderr
         self.assertRegex(err, 'stderr [ -]+\nI am sick\n')
@@ -1740,7 +1735,7 @@ class LxcRunner(AdtTestCase):
                                         self.virt_args)
         # test should fail
         self.assertEqual(code, 4, err)
-        self.assertRegex(out, 'tree0t-senz\s+FAIL non-zero exit status 7')
+        self.assertRegex(out, 'senz\s+FAIL non-zero exit status 7')
 
         # should show test stderr separately (no real-time output for chroot)
         self.assertRegex(err, 'stderr [ -]+\nI am sick\n')
@@ -1754,7 +1749,7 @@ class LxcRunner(AdtTestCase):
         (code, out, err) = self.adt_run(['--no-built-binaries', '--built-tree=' + p],
                                         self.virt_args)
         self.assertEqual(code, 0, err)
-        self.assertRegex(out, 'tree0t-pass\s+PASS', out)
+        self.assertRegex(out, 'pass\s+PASS', out)
 
         # should show test stdout/err
         self.assertRegex(out, '^babble\n')
@@ -1771,7 +1766,7 @@ class LxcRunner(AdtTestCase):
         (code, out, err) = self.adt_run(['--no-built-binaries', '--unbuilt-tree=' + p],
                                         self.virt_args)
         # test should succeed
-        self.assertRegex(out, 'tree0t-pass\s+PASS', out)
+        self.assertRegex(out, 'pass\s+PASS', out)
         self.assertEqual(code, 0, err)
 
         # should build package
@@ -1791,7 +1786,7 @@ class LxcRunner(AdtTestCase):
         (code, out, err) = self.adt_run(['--no-built-binaries', p],
                                         self.virt_args)
         # test should succeed
-        self.assertRegex(out, 'dsc0t-pass\s+PASS', out)
+        self.assertRegex(out, 'pass\s+PASS', out)
         self.assertEqual(code, 0, err)
 
         # should not have any test stderr
@@ -1818,7 +1813,7 @@ class LxcRunner(AdtTestCase):
 
         # test should succeed
         self.assertEqual(code, 0, err)
-        self.assertRegex(out, 'ubtree0t-pass\s+PASS', out)
+        self.assertRegex(out, 'pass\s+PASS', out)
 
         # should build and install package
         self.assertIn('dh build', err)
@@ -1841,7 +1836,7 @@ class LxcRunner(AdtTestCase):
                                         virt_args)
         # test should fail
         self.assertEqual(code, 4, err)
-        self.assertRegex(out, 'tree0t-senz\s+FAIL non-zero exit status 7')
+        self.assertRegex(out, 'senz\s+FAIL non-zero exit status 7')
 
         # should show test stdout inline
         self.assertRegex(out, '^hello\n')
@@ -1861,8 +1856,8 @@ class LxcRunner(AdtTestCase):
         # both tests should run; the second one (boom) should not see the
         # effect of the first one (/zap existing)
         self.assertEqual(code, 0, err)
-        self.assertRegex(out, 'ubtree0t-zap\s+PASS')
-        self.assertRegex(out, 'ubtree0t-boom\s+PASS')
+        self.assertRegex(out, 'zap\s+PASS')
+        self.assertRegex(out, 'boom\s+PASS')
 
     def test_setup_commands(self):
         '''--setup-commands'''
@@ -1877,8 +1872,8 @@ class LxcRunner(AdtTestCase):
 
         # test should succeed
         self.assertEqual(code, 0, err)
-        self.assertRegex(out, 'tree0t-t1\s+PASS', out)
-        self.assertRegex(out, 'tree0t-t2\s+PASS', out)
+        self.assertRegex(out, 't1\s+PASS', out)
+        self.assertRegex(out, 't2\s+PASS', out)
 
         # should show test stdout
         self.assertRegex(out, '^setupok\nt1ok\n')
@@ -1900,7 +1895,7 @@ class LxcRunner(AdtTestCase):
 
         (code, out, err) = self.adt_run(['-B', '--built-tree=' + p], self.virt_args)
         self.assertEqual(code, 2, out + err)
-        self.assertRegex(out, 'tree0t-ic\s+PASS', out)
+        self.assertRegex(out, 'ic\s+PASS', out)
         self.assertRegex(out, 'im\s+SKIP .*machine', out)
         self.assertIn('container ok\n', out)
         self.assertNotIn('machine ok', out)
@@ -1925,7 +1920,7 @@ class LxcRunner(AdtTestCase):
         self.assertEqual(code, 0, err)
 
         # test should succeed
-        self.assertRegex(out, 'tree0t-t\s+PASS', out)
+        self.assertRegex(out, 't\s+PASS', out)
 
         # has output from cats and whoami
         self.assertIn('world\ndeep\ndir_is_rw\nnobody\n', out)
@@ -1941,7 +1936,7 @@ class QemuRunner(AdtTestCase):
     def test_tree_norestrictions_nobuild_success(self):
         '''source tree, no build, no restrictions, test success'''
 
-        p = self.build_src('Tests: pass\nDepends: coreutils\n',
+        p = self.build_src('Tests: pass\nDepends: aspell-doc\n',
                            {'pass': '#!/bin/sh\necho I am fine\n'
                             '[ -d "$HOME" ] || echo "HOME not set" >&2\n'})
 
@@ -1949,8 +1944,8 @@ class QemuRunner(AdtTestCase):
                                         [self.image])
         # test should succeed
         self.assertEqual(code, 0, err)
-        self.assertIn('coreutils', err)
-        self.assertRegex(out, 'tree0t-pass\s+PASS', out)
+        self.assertIn('Unpacking aspell-doc', out)
+        self.assertRegex(out, 'pass\s+PASS', out)
 
         # should show test stdout
         self.assertIn('I am fine\n', out)
@@ -1971,7 +1966,7 @@ class QemuRunner(AdtTestCase):
 
         # test should succeed
         self.assertEqual(code, 0, err)
-        self.assertRegex(out, 'dsc0t-pass\s+PASS', out)
+        self.assertRegex(out, 'pass\s+PASS', out)
 
         # should show test stdout
         self.assertIn('built script OK\nbuilt script OK\n2', out)
@@ -1995,8 +1990,8 @@ class QemuRunner(AdtTestCase):
         # both tests should run; the second one (boom) should not see the
         # effect of the first one (/zap existing)
         self.assertEqual(code, 0, err)
-        self.assertRegex(out, 'ubtree0t-zap\s+PASS')
-        self.assertRegex(out, 'ubtree0t-boom\s+PASS')
+        self.assertRegex(out, 'zap\s+PASS')
+        self.assertRegex(out, 'boom\s+PASS')
 
     def test_setup_commands(self):
         '''--setup-commands'''
@@ -2011,8 +2006,8 @@ class QemuRunner(AdtTestCase):
 
         # test should succeed
         self.assertEqual(code, 0, err)
-        self.assertRegex(out, 'tree0t-t1\s+PASS', out)
-        self.assertRegex(out, 'tree0t-t2\s+PASS', out)
+        self.assertRegex(out, 't1\s+PASS', out)
+        self.assertRegex(out, 't2\s+PASS', out)
 
         # should show test stdout
         self.assertIn('setupok\nt1ok\n', out)
@@ -2037,8 +2032,8 @@ class QemuRunner(AdtTestCase):
 
         # test should succeed
         self.assertEqual(code, 0, err)
-        self.assertRegex(out, 'tree0t-t\s+PASS', out)
-        self.assertRegex(out, 'tree0t-r\s+PASS', out)
+        self.assertRegex(out, 't\s+PASS', out)
+        self.assertRegex(out, 'r\s+PASS', out)
 
         # should not have any test stderr
         self.assertNotIn(' stderr ', err)
@@ -2057,8 +2052,8 @@ class QemuRunner(AdtTestCase):
 
         (code, out, err) = self.adt_run(['-B', '--built-tree=' + p], [self.image])
         self.assertEqual(code, 0, out + err)
-        self.assertRegex(out, 'tree0t-ic\s+PASS', out)
-        self.assertRegex(out, 'tree0t-im\s+PASS', out)
+        self.assertRegex(out, 'ic\s+PASS', out)
+        self.assertRegex(out, 'im\s+PASS', out)
         self.assertIn('container ok\n', out)
         self.assertIn('\nmachine ok\n', out)
 
@@ -2079,7 +2074,7 @@ class QemuRunner(AdtTestCase):
         self.assertEqual(code, 0, err)
 
         # test should succeed
-        self.assertRegex(out, 'tree0t-t\s+PASS', out)
+        self.assertRegex(out, 't\s+PASS', out)
 
         # has output from cats
         self.assertIn('world\ndeep', out)
@@ -2106,7 +2101,7 @@ class QemuRunner(AdtTestCase):
         self.assertEqual(code, 0, err)
 
         # test should succeed
-        self.assertRegex(out, 'tree0t-t\s+PASS', out)
+        self.assertRegex(out, 't\s+PASS', out)
 
         # has output from cats and whoami
         self.assertIn('world\ndeep\ndir_is_rw\nnobody\n', out)
@@ -2128,7 +2123,7 @@ class QemuRunner(AdtTestCase):
         self.assertEqual(code, 0, err)
 
         # test should succeed
-        self.assertRegex(out, 'tree0t-t\s+PASS', out)
+        self.assertRegex(out, 't\s+PASS', out)
 
         # has output from cats and whoami
         self.assertIn('world\ndeep\nnobody\n', out)
@@ -2147,7 +2142,7 @@ class QemuRunner(AdtTestCase):
 
         # test should time out
         self.assertEqual(code, 16, err)
-        self.assertRegex(out, 'ubtree0t-to\s+PASS', out)
+        self.assertRegex(out, 'to\s+PASS', out)
 
         # should have copied parts of the file
         huge_size = os.path.getsize(os.path.join(outdir, 'artifacts', 'huge'))
@@ -2183,7 +2178,7 @@ class QemuRunner(AdtTestCase):
 
         # test should succeed
         self.assertEqual(code, 0, out + err)
-        self.assertRegex(out, 'ubtree0t-t\s+PASS', out)
+        self.assertRegex(out, 't\s+PASS', out)
 
         # check integrity of the copy
         subprocess.check_call(['diff', '-Nur', p,
@@ -2196,7 +2191,7 @@ class QemuRunner(AdtTestCase):
         # test should succeed
         self.assertEqual(code, 0, err)
         self.assertRegex(out, 'Unpacking libpng.*-dev')
-        self.assertRegex(out, 'apt0t-build\s+PASS', out)
+        self.assertRegex(out, 'build\s+PASS', out)
 
         # should show test stdout
         self.assertIn('OK\n', out)

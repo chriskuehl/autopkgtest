@@ -1,0 +1,227 @@
+#!/usr/bin/python3
+
+import os
+import sys
+import unittest
+import tempfile
+import shutil
+import io
+
+try:
+    # Python >= 3.3
+    from unittest.mock import patch
+except ImportError:
+    # fall back to separate package
+    from mock import patch
+
+test_dir = os.path.dirname(os.path.abspath(__file__))
+root_dir = os.path.dirname(test_dir)
+
+if os.path.exists(os.path.join(root_dir, 'lib', 'testdesc.py')):
+    our_base = os.path.join(root_dir, 'lib')
+else:
+    our_base = '/usr/share/autopkgtest/python'
+sys.path.insert(1, our_base)
+
+import adtlog
+import testdesc
+
+
+class Test(unittest.TestCase):
+    def test_valid(self):
+        '''valid Test instantiation'''
+
+        t = testdesc.Test('foo', 'tests/do_foo', ['needs-root'],
+                          ['unknown_feature'], ['coreutils >= 7'])
+        self.assertEqual(t.name, 'foo')
+        self.assertEqual(t.result, None)
+
+    def test_invalid_name(self):
+        '''Test with invalid name'''
+
+        with self.assertRaises(testdesc.Unsupported) as cm:
+            testdesc.Test('foo/bar', 'tests/do_foo', [], [], [])
+        self.assertIn('may not contain /', str(cm.exception))
+
+    def test_unknown_restriction(self):
+        '''Test with unknown restriction'''
+
+        with self.assertRaises(testdesc.Unsupported) as cm:
+            testdesc.Test('foo', 'tests/do_foo', ['needs-red'], [], [])
+        self.assertIn('unknown restriction needs-red', str(cm.exception))
+
+    def test_capabilities_compat(self):
+        '''Test compatibility with testbed capabilities'''
+
+        t = testdesc.Test('foo', 'tests/do_foo',
+                          ['needs-root', 'isolation-container'], [], [])
+
+        self.assertRaises(testdesc.Unsupported,
+                          t.check_testbed_compat, ['isolation-container'])
+        self.assertRaises(testdesc.Unsupported,
+                          t.check_testbed_compat, ['root-on-testbed'])
+        t.check_testbed_compat(['isolation-container', 'root-on-testbed'])
+
+
+class Debian(unittest.TestCase):
+    def setUp(self):
+        self.pkgdir = tempfile.mkdtemp(prefix='testdesc.')
+        os.makedirs(os.path.join(self.pkgdir, 'debian', 'tests'))
+        self.addCleanup(shutil.rmtree, self.pkgdir)
+
+    def call_parse(self, testcontrol, pkgcontrol=None, caps=[]):
+        with open(os.path.join(self.pkgdir, 'debian', 'tests', 'control'), 'w', encoding='UTF-8') as f:
+            f.write(testcontrol)
+        if pkgcontrol:
+            with open(os.path.join(self.pkgdir, 'debian', 'control'), 'w', encoding='UTF-8') as f:
+                f.write(pkgcontrol)
+        return testdesc.parse_debian_source(self.pkgdir, caps)
+
+    def test_single(self):
+        '''single test, simplest possible'''
+
+        (ts, skipped) = self.call_parse('Tests: one\nDepends:')
+        self.assertEqual(len(ts), 1)
+        t = ts[0]
+        self.assertEqual(t.name, 'one')
+        self.assertEqual(t.path, 'debian/tests/one')
+        self.assertEqual(t.restrictions, [])
+        self.assertEqual(t.features, [])
+        self.assertEqual(t.depends, [])
+        self.assertFalse(skipped)
+
+    def test_default_depends(self):
+        '''default Depends: is @'''
+
+        (ts, skipped) = self.call_parse(
+            'Tests: t1 t2',
+            'Source: nums\n\nPackage: one\nArchitecture: any\n\n'
+            'Package: two\nArchitecture: all\n\n'
+            'Package: two-udeb\nXC-Package-Type: udeb\nArchitecture: any')
+        self.assertEqual(len(ts), 2)
+        self.assertEqual(ts[0].name, 't1')
+        self.assertEqual(ts[0].path, 'debian/tests/t1')
+        self.assertEqual(ts[1].name, 't2')
+        self.assertEqual(ts[1].path, 'debian/tests/t2')
+        for t in ts:
+            self.assertEqual(t.restrictions, [])
+            self.assertEqual(t.features, [])
+            self.assertEqual(t.depends, ['one', 'two'])
+        self.assertFalse(skipped)
+
+    def test_known_restrictions(self):
+        '''known restrictions'''
+
+        (ts, skipped) = self.call_parse(
+            'Tests: t1 t2\nDepends: foo\nRestrictions: build-needed allow-stderr\nFeatures: blue\n\n'
+            'Tests: three\nDepends:\nRestrictions: needs-recommends')
+        self.assertEqual(len(ts), 3)
+
+        self.assertEqual(ts[0].name, 't1')
+        self.assertEqual(ts[0].restrictions, ['build-needed', 'allow-stderr'])
+        self.assertEqual(ts[0].features, ['blue'])
+        self.assertEqual(ts[0].depends, ['foo'])
+
+        self.assertEqual(ts[1].name, 't2')
+        self.assertEqual(ts[1].restrictions, ['build-needed', 'allow-stderr'])
+        self.assertEqual(ts[1].features, ['blue'])
+        self.assertEqual(ts[1].depends, ['foo'])
+
+        self.assertEqual(ts[2].name, 'three')
+        self.assertEqual(ts[2].path, 'debian/tests/three')
+        self.assertEqual(ts[2].restrictions, ['needs-recommends'])
+        self.assertEqual(ts[2].features, [])
+        self.assertEqual(ts[2].depends, [])
+
+        self.assertFalse(skipped)
+
+    @patch('adtlog.report')
+    def test_unknown_restriction(self, *args):
+        '''unknown restriction'''
+
+        (ts, skipped) = self.call_parse('Tests: t\nDepends:\nRestrictions: explodes-spontaneously')
+        self.assertEqual(ts, [])
+        self.assertTrue(skipped)
+        adtlog.report.assert_called_once_with('t', 'SKIP unknown restriction explodes-spontaneously')
+
+    def test_invalid_control(self):
+        '''invalid control file'''
+
+        # no tests field
+        with self.assertRaises(testdesc.InvalidControl) as cm:
+            self.call_parse('Depends:')
+        self.assertIn('missing "Tests"', str(cm.exception))
+
+    def test_tests_dir(self):
+        '''non-standard Tests-Directory'''
+
+        (ts, skipped) = self.call_parse(
+            'Tests: t1\nDepends:\nTests-Directory: src/checks\n\n'
+            'Tests: t2 t3\nDepends:\nTests-Directory: lib/t')
+
+        self.assertEqual(len(ts), 3)
+        self.assertEqual(ts[0].path, 'src/checks/t1')
+        self.assertEqual(ts[1].path, 'lib/t/t2')
+        self.assertEqual(ts[2].path, 'lib/t/t3')
+        self.assertFalse(skipped)
+
+    def test_builddeps(self):
+        '''@builddeps@ expansion'''
+
+        (ts, skipped) = self.call_parse(
+            'Tests: t\nDepends: @, @builddeps@, foo (>= 7)',
+            'Source: nums\nBuild-Depends: bd1, bd2 [armhf], bd3:native (>= 7) | bd4 [linux-any]\n'
+            'Build-Depends-Indep: bdi1\n'
+            '\n'
+            'Package: one\nArchitecture: any')
+        self.assertEqual(ts[0].depends, ['one', 'bd1', 'bd2 [armhf]',
+                                         'bd3:native (>= 7) | bd4 [linux-any]',
+                                         'bdi1', 'build-essential', 'foo (>= 7)'])
+        self.assertFalse(skipped)
+
+    def test_complex_deps(self):
+        '''complex test dependencies'''
+
+        (ts, skipped) = self.call_parse(
+            'Tests: t\nDepends: @,\n foo (>= 7) [linux-any],\n'
+            ' bd3:native (>= 4) | bd4 [armhf megacpu],\n',
+            'Source: nums\n\nPackage: one\nArchitecture: any')
+        self.assertEqual(ts[0].depends, ['one', 'foo (>= 7) [linux-any]',
+                                         'bd3:native (>= 4) | bd4 [armhf megacpu]'])
+        self.assertFalse(skipped)
+
+    def test_invalid_test_deps(self):
+        '''invalid test dependencies'''
+
+        with self.assertRaises(testdesc.InvalidControl) as cm:
+            self.call_parse('Tests: t\nDepends: blah foo:something')
+        self.assertIn('Depends field contains an invalid dependency', str(cm.exception))
+        self.assertIn('blah foo:something', str(cm.exception))
+
+    def test_comments(self):
+        '''comments in control files with Unicode'''
+
+        (ts, skipped) = self.call_parse(
+            'Tests: t\n# ♪ ï\nDepends: @, @builddeps@',
+            'Source: nums\nMaintainer: Üñïcøδ€ <u@x.com>\nBuild-Depends: bd1 # moo\n'
+            '# more c☺ mments\n'
+            '\n'
+            'Package: one\nArchitecture: any')
+        self.assertEqual(ts[0].depends, ['one', 'bd1', 'build-essential'])
+        self.assertFalse(skipped)
+
+    @patch('adtlog.report')
+    def test_testbed_compat(self, *args):
+        '''restrictions incompatible with testbed'''
+
+        (ts, skipped) = self.call_parse('Tests: t\nDepends:\nRestrictions: needs-root')
+        self.assertEqual(ts, [])
+        self.assertTrue(skipped)
+        adtlog.report.assert_called_once_with(
+            't', 'SKIP Test needs root on testbed which is not available')
+
+
+if __name__ == '__main__':
+    # Force encoding to UTF-8 even in non-UTF-8 locales.
+    sys.stdout = io.TextIOWrapper(sys.stdout.detach(), encoding="UTF-8", line_buffering=True)
+    unittest.main(testRunner=unittest.TextTestRunner(stream=sys.stdout, verbosity=2))

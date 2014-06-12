@@ -43,7 +43,9 @@ programs =	virt-subproc/adt-virt-chroot \
 		runner/adt-run
 
 pythonfiles =	lib/VirtSubproc.py \
-		lib/adtlog.py
+		lib/adtlog.py \
+		lib/testdesc.py \
+		$(NULL)
 
 all:
 	# nothing to build
