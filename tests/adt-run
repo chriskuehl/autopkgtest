@@ -187,6 +187,9 @@ bad                  FAIL non-zero exit status 1
         # but not complain about stderr
         self.assertNotIn(' stderr ', err)
 
+        # should log package version
+        self.assertIn('testing package testpkg version 1\n', err)
+
     def test_unicode(self):
         '''Unicode test output'''
 
