@@ -1,5 +1,5 @@
 Source: testpkg
-Maintainer: Autopkgtest team <autopkgtest-devel@lists.alioth.debian.org>
+Maintainer: Autopkgtest team <autopkgtest-devel@lists.alioth.debian.org>, Üñïcøδ€ <unicode@example.com>
 Section: oldlibs
 Priority: extra
 Standards-Version: 3.9.4

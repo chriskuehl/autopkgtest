@@ -71,7 +71,7 @@ class AdtTestCase(unittest.TestCase):
         if test_control:
             dtdir = os.path.join(srcdir, 'debian', 'tests')
             os.mkdir(dtdir)
-            with open(os.path.join(dtdir, 'control'), 'w') as f:
+            with open(os.path.join(dtdir, 'control'), 'w', encoding='UTF-8') as f:
                 f.write(test_control)
             for name, contents in test_scripts.items():
                 with open(os.path.join(dtdir, name), 'w', encoding='UTF-8') as f:
@@ -95,7 +95,7 @@ class AdtTestCase(unittest.TestCase):
         self.assertEqual(dbp.returncode, 0, err)
         return os.path.join(os.path.dirname(srcdir), 'testpkg_1.dsc')
 
-    def adt_run(self, args, virt_args=[]):
+    def adt_run(self, args, virt_args=[], env=None):
         '''Run adt-run with given arguments with configured virt runner.
 
          @args: command line args of adt-run, excluding "adt-run" itself; "---
@@ -107,7 +107,8 @@ class AdtTestCase(unittest.TestCase):
         # run adt command
         adt = subprocess.Popen([self.adt_run_path] + args +
                                ['---', self.virt] + virt_args,
-                               stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                               stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                               env=env)
         (out, err) = adt.communicate()
         return (adt.returncode, out.decode('UTF-8'), err.decode('UTF-8'))
 
@@ -912,7 +913,7 @@ Restrictions: needs-root
 
         p = self.build_src('''Tests: pass
 Depends: @, testdep1, @builddeps@, testdep2,
-# blabla
+# blabla ☺
  testdep3
 Restrictions: needs-root
 ''', {'pass': '#!/bin/sh\ntrue'})
@@ -922,8 +923,10 @@ Restrictions: needs-root
                                             'Build-Depends-Indep: bdep5/',
                                os.path.join(p, 'debian', 'control')])
 
+        # run this under C locale to test that UTF-8 debian/control is still
+        # handled correctly
         (code, out, err) = self.adt_run(['-dB', '--unbuilt-tree=' + p],
-                                        [self.chroot])
+                                        [self.chroot], env={'LC_ALL': 'C'})
         self.assertEqual(code, 0, err)
         self.assertRegex(out, 'tree0t-pass\s+PASS')
 
