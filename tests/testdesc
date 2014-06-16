@@ -53,7 +53,7 @@ XS-Testsuite: autopkgtest
     def test_dsc(self):
         '''Parse a signed dsc file'''
 
-        control = tempfile.NamedTemporaryFile(prefix='control.')
+        control = tempfile.NamedTemporaryFile(prefix='dsc.')
         control.write('''-----BEGIN PGP SIGNED MESSAGE-----
 Hash: SHA256
 
@@ -87,6 +87,17 @@ BloB11
                          ' foo-doc deb doc extra arch=all')
         self.assertEqual(r['Files'], ' deadbeef 10000 foo_1.orig.tar.gz'
                          ' 11111111 1000 foo_1-1.debian.tar.xz')
+
+    def test_invalid(self):
+        '''Parse an invalid file'''
+
+        control = tempfile.NamedTemporaryFile(prefix='bogus.')
+        control.write('''Bo Gus: something
+muhaha'''.encode())
+        control.flush()
+        parser = testdesc.parse_rfc822(control.name)
+        self.assertRaises(StopIteration, parser.__next__)
+        control.close()
 
 
 class Test(unittest.TestCase):
