@@ -92,6 +92,11 @@ specifying tests and packages, so it is merely abbreviated as
 
      adt-run -B packages/*.deb packages/mysrc_*.dsc --- <virt-server>
 
+ - The previous case can be simplified if you have a binary .changes from a
+   previous build:
+
+     adt-run packages/*.changes --- <virt-server>
+
 
 Output
 ------
