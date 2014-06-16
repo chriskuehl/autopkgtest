@@ -27,6 +27,68 @@ import adtlog
 import testdesc
 
 
+class Rfc822(unittest.TestCase):
+    def test_control(self):
+        '''Parse a debian/control like file'''
+
+        control = tempfile.NamedTemporaryFile(prefix='control.')
+        control.write('''Source: foo
+Maintainer: Üñïcøδ€ <u@x.com>
+Build-Depends: bd1, # moo
+  bd2,
+  bd3,
+XS-Testsuite: autopkgtest
+'''.encode())
+        control.flush()
+        parser = testdesc.parse_rfc822(control.name)
+        r = parser.__next__()
+        self.assertRaises(StopIteration, parser.__next__)
+        control.close()
+
+        self.assertEqual(r['Source'], 'foo')
+        self.assertEqual(r['Xs-testsuite'], 'autopkgtest')
+        self.assertEqual(r['Maintainer'], 'Üñïcøδ€ <u@x.com>')
+        self.assertEqual(r['Build-depends'], 'bd1, bd2, bd3,')
+
+    def test_dsc(self):
+        '''Parse a signed dsc file'''
+
+        control = tempfile.NamedTemporaryFile(prefix='control.')
+        control.write('''-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA256
+
+Format: 3.0 (quilt)
+Source: foo
+Binary: foo-bin, foo-doc
+Package-List:
+ foo-bin deb utils optional arch=any
+ foo-doc deb doc extra arch=all
+Files:
+ deadbeef 10000 foo_1.orig.tar.gz
+ 11111111 1000 foo_1-1.debian.tar.xz
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1
+
+BloB11
+-----END PGP SIGNATURE-----
+
+'''.encode())
+        control.flush()
+        parser = testdesc.parse_rfc822(control.name)
+        r = parser.__next__()
+        self.assertRaises(StopIteration, parser.__next__)
+        control.close()
+
+        self.assertEqual(r['Format'], '3.0 (quilt)')
+        self.assertEqual(r['Source'], 'foo')
+        self.assertEqual(r['Binary'], 'foo-bin, foo-doc')
+        self.assertEqual(r['Package-list'], ' foo-bin deb utils optional arch=any'
+                         ' foo-doc deb doc extra arch=all')
+        self.assertEqual(r['Files'], ' deadbeef 10000 foo_1.orig.tar.gz'
+                         ' 11111111 1000 foo_1-1.debian.tar.xz')
+
+
 class Test(unittest.TestCase):
     def test_valid(self):
         '''valid Test instantiation'''
