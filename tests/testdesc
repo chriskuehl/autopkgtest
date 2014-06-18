@@ -101,32 +101,58 @@ muhaha'''.encode())
 
 
 class Test(unittest.TestCase):
-    def test_valid(self):
-        '''valid Test instantiation'''
+    def test_valid_path(self):
+        '''valid Test instantiation with path'''
 
-        t = testdesc.Test('foo', 'tests/do_foo', ['needs-root'],
+        t = testdesc.Test('foo', 'tests/do_foo', None, ['needs-root'],
                           ['unknown_feature'], ['coreutils >= 7'])
         self.assertEqual(t.name, 'foo')
+        self.assertEqual(t.path, 'tests/do_foo')
+        self.assertEqual(t.command, None)
+        self.assertEqual(t.result, None)
+
+    def test_valid_command(self):
+        '''valid Test instantiation with command'''
+
+        t = testdesc.Test('foo', None, 'echo hi', ['needs-root'],
+                          ['unknown_feature'], ['coreutils >= 7'])
+        self.assertEqual(t.name, 'foo')
+        self.assertEqual(t.path, None)
+        self.assertEqual(t.command, 'echo hi')
         self.assertEqual(t.result, None)
 
     def test_invalid_name(self):
         '''Test with invalid name'''
 
         with self.assertRaises(testdesc.Unsupported) as cm:
-            testdesc.Test('foo/bar', 'tests/do_foo', [], [], [])
+            testdesc.Test('foo/bar', 'do_foo', None, [], [], [])
         self.assertIn('may not contain /', str(cm.exception))
 
     def test_unknown_restriction(self):
         '''Test with unknown restriction'''
 
         with self.assertRaises(testdesc.Unsupported) as cm:
-            testdesc.Test('foo', 'tests/do_foo', ['needs-red'], [], [])
+            testdesc.Test('foo', 'tests/do_foo', None, ['needs-red'], [], [])
         self.assertIn('unknown restriction needs-red', str(cm.exception))
+
+    def test_neither_path_nor_command(self):
+        '''Test without path nor command'''
+
+        with self.assertRaises(ValueError) as cm:
+            testdesc.Test('foo', None, None, [], [], [])
+        self.assertIn('either path or command', str(cm.exception))
+
+    def test_both_path_and_command(self):
+        '''Test with path and command'''
+
+        with self.assertRaises(ValueError) as cm:
+            testdesc.Test('foo', 'do_foo', 'echo hi', [], [], [])
+        self.assertIn('either path or command', str(cm.exception))
 
     def test_capabilities_compat(self):
         '''Test compatibility with testbed capabilities'''
 
-        t = testdesc.Test('foo', 'tests/do_foo',
+        t = testdesc.Test('foo', 'tests/do_foo', None,
                           ['needs-root', 'isolation-container'], [], [])
 
         self.assertRaises(testdesc.Unsupported,
