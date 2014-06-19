@@ -105,7 +105,7 @@ class Test(unittest.TestCase):
         '''valid Test instantiation with path'''
 
         t = testdesc.Test('foo', 'tests/do_foo', None, ['needs-root'],
-                          ['unknown_feature'], ['coreutils >= 7'])
+                          ['unknown_feature'], ['coreutils >= 7'], [])
         self.assertEqual(t.name, 'foo')
         self.assertEqual(t.path, 'tests/do_foo')
         self.assertEqual(t.command, None)
@@ -115,7 +115,7 @@ class Test(unittest.TestCase):
         '''valid Test instantiation with command'''
 
         t = testdesc.Test('foo', None, 'echo hi', ['needs-root'],
-                          ['unknown_feature'], ['coreutils >= 7'])
+                          ['unknown_feature'], ['coreutils >= 7'], [])
         self.assertEqual(t.name, 'foo')
         self.assertEqual(t.path, None)
         self.assertEqual(t.command, 'echo hi')
@@ -125,35 +125,36 @@ class Test(unittest.TestCase):
         '''Test with invalid name'''
 
         with self.assertRaises(testdesc.Unsupported) as cm:
-            testdesc.Test('foo/bar', 'do_foo', None, [], [], [])
+            testdesc.Test('foo/bar', 'do_foo', None, [], [], [], [])
         self.assertIn('may not contain /', str(cm.exception))
 
     def test_unknown_restriction(self):
         '''Test with unknown restriction'''
 
         with self.assertRaises(testdesc.Unsupported) as cm:
-            testdesc.Test('foo', 'tests/do_foo', None, ['needs-red'], [], [])
+            testdesc.Test('foo', 'tests/do_foo', None, ['needs-red'], [], [],
+                          [])
         self.assertIn('unknown restriction needs-red', str(cm.exception))
 
     def test_neither_path_nor_command(self):
         '''Test without path nor command'''
 
-        with self.assertRaises(ValueError) as cm:
-            testdesc.Test('foo', None, None, [], [], [])
+        with self.assertRaises(testdesc.InvalidControl) as cm:
+            testdesc.Test('foo', None, None, [], [], [], [])
         self.assertIn('either path or command', str(cm.exception))
 
     def test_both_path_and_command(self):
         '''Test with path and command'''
 
-        with self.assertRaises(ValueError) as cm:
-            testdesc.Test('foo', 'do_foo', 'echo hi', [], [], [])
+        with self.assertRaises(testdesc.InvalidControl) as cm:
+            testdesc.Test('foo', 'do_foo', 'echo hi', [], [], [], [])
         self.assertIn('either path or command', str(cm.exception))
 
     def test_capabilities_compat(self):
         '''Test compatibility with testbed capabilities'''
 
         t = testdesc.Test('foo', 'tests/do_foo', None,
-                          ['needs-root', 'isolation-container'], [], [])
+                          ['needs-root', 'isolation-container'], [], [], [])
 
         self.assertRaises(testdesc.Unsupported,
                           t.check_testbed_compat, ['isolation-container'])
@@ -318,6 +319,172 @@ class Debian(unittest.TestCase):
         self.assertTrue(skipped)
         adtlog.report.assert_called_once_with(
             't', 'SKIP Test needs root on testbed which is not available')
+
+
+class Click(unittest.TestCase):
+    def setUp(self):
+        self.click = os.path.join(test_dir, 'testclick_0.1_all.click')
+        self.click_src = os.path.join(test_dir, 'testclick')
+
+    def test_all_fields(self):
+        '''parsing manifest test with all possible fields'''
+
+        (ts, skipped) = testdesc.parse_click_manifest('''{
+  "name": "foo",
+  "x-test": {
+    "t": {
+      "path": "tests/do_t",
+      "depends": ["foo (>= 1)", "bar | baz"],
+      "restrictions": ["allow-stderr", "needs-recommends"],
+      "features": ["turns-blue", "bites-back"]
+    }
+  }
+}''', [], ['/foo/myapp.click'])
+        self.assertEqual(len(ts), 1)
+        self.assertEqual(ts[0].name, "t")
+        self.assertEqual(ts[0].path, 'tests/do_t')
+        self.assertEqual(ts[0].command, None)
+        self.assertEqual(ts[0].depends, ['foo (>= 1)', 'bar | baz'])
+        self.assertEqual(ts[0].clicks, ['/foo/myapp.click'])
+        self.assertEqual(ts[0].restrictions, ['allow-stderr', 'needs-recommends'])
+        self.assertEqual(ts[0].features, ['turns-blue', 'bites-back'])
+
+        self.assertFalse(skipped)
+
+    def test_no_tests(self):
+        '''parsing manifest without tests'''
+
+        self.assertEqual(
+            testdesc.parse_click_manifest('{"name":"foo"}', [], []),
+            ([], False))
+
+    def test_path_only(self):
+        '''test description is a single path'''
+
+        (ts, skipped) = testdesc.parse_click_manifest('''{
+  "name": "foo",
+  "x-test": {
+      "t1": "tests/do_t",
+      "t2": "runtests"
+  }
+}''', [], ['/foo/myapp.click'])
+        self.assertEqual(len(ts), 2)
+        self.assertEqual(ts[0].name, "t1")
+        self.assertEqual(ts[0].path, 'tests/do_t')
+        self.assertEqual(ts[1].name, "t2")
+        self.assertEqual(ts[1].path, 'runtests')
+        for i in [0, 1]:
+            self.assertEqual(ts[i].command, None)
+            self.assertEqual(ts[i].depends, [])
+            self.assertEqual(ts[i].clicks, ['/foo/myapp.click'])
+            self.assertEqual(ts[i].restrictions, [])
+            self.assertEqual(ts[i].features, [])
+
+        self.assertFalse(skipped)
+
+    def test_invalid_json_syntax(self):
+        '''parsing manifest with invalid JSON syntax'''
+
+        with self.assertRaises(testdesc.InvalidControl) as cm:
+            testdesc.parse_click_manifest('''{
+  "x-test": {
+    "t": { "depends": ["foo (>= 1)", }
+  }}''', [], [])
+
+        self.assertIn('not valid JSON', str(cm.exception))
+
+    def test_invalid_json_type(self):
+        '''parsing manifest with invalid JSON type'''
+
+        with self.assertRaises(testdesc.InvalidControl) as cm:
+            testdesc.parse_click_manifest('{"x-test": ["tests/foo"]}', [], [])
+        self.assertIn('must be a dict', str(cm.exception))
+
+        with self.assertRaises(testdesc.InvalidControl) as cm:
+            testdesc.parse_click_manifest('{"x-test": {"t": ["tests/foo"]}}', [], [])
+        self.assertIn('must be strings or dicts', str(cm.exception))
+
+    @patch('adtlog.report')
+    def test_skip_caps(self, *args):
+        '''skipped test due to insufficient testbed capabilities'''
+
+        (ts, skipped) = testdesc.parse_click_manifest('''{
+  "x-test": {
+    "t": {
+      "path": "tests/do_t",
+      "restrictions": ["needs-root"]
+    }
+  }
+}''', ['isolation-container'], [])
+        self.assertEqual(len(ts), 0)
+        self.assertTrue(skipped)
+        adtlog.report.assert_called_once_with(
+            't', 'SKIP Test needs root on testbed which is not available')
+
+    @patch('adtlog.report')
+    def test_skip_command_and_path(self, *args):
+        '''skipped test due to specifying command and path'''
+
+        with self.assertRaises(testdesc.InvalidControl) as cm:
+            testdesc.parse_click_manifest('''{
+  "x-test": {
+    "t": {
+      "path": "tests/do_t",
+      "command": "echo ok"
+    }
+  }
+}''', [], [])
+        self.assertIn('must have either path or command', str(cm.exception))
+
+    def test_click_with_srcdir(self):
+        '''parsing click with explicit source dir'''
+
+        (srcdir, ts, skipped) = testdesc.parse_click(self.click, [],
+                                                     srcdir=self.click_src)
+        self.assertEqual(srcdir, self.click_src)
+        self.assertEqual(len(ts), 5)
+        self.assertFalse(skipped)
+
+        # tests should be sorted alphabetically
+        self.assertEqual(ts[0].name, "broken")
+        self.assertEqual(ts[0].path, 'tests/printerr')
+        self.assertEqual(ts[0].command, None)
+        self.assertEqual(ts[0].depends, [])
+        self.assertEqual(ts[0].clicks, [self.click])
+        self.assertEqual(ts[0].restrictions, [])
+        self.assertEqual(ts[0].features, [])
+
+        self.assertEqual(ts[1].name, "inst")
+        self.assertEqual(ts[1].path, "tests/inst")
+        self.assertEqual(ts[1].command, None)
+        self.assertEqual(ts[1].depends, ['python3-evdev'])
+        self.assertEqual(ts[1].clicks, [self.click])
+        self.assertEqual(ts[1].restrictions, [])
+        self.assertEqual(ts[1].features, [])
+
+        self.assertEqual(ts[2].name, "serr")
+        self.assertEqual(ts[2].path, "tests/printerr")
+        self.assertEqual(ts[2].command, None)
+        self.assertEqual(ts[2].depends, [])
+        self.assertEqual(ts[2].clicks, [self.click])
+        self.assertEqual(ts[2].restrictions, ['allow-stderr'])
+        self.assertEqual(ts[2].features, [])
+
+        self.assertEqual(ts[3].name, "shell")
+        self.assertEqual(ts[3].path, None)
+        self.assertEqual(ts[3].command, 'grep ^root /etc/passwd')
+        self.assertEqual(ts[3].depends, [])
+        self.assertEqual(ts[3].clicks, [self.click])
+        self.assertEqual(ts[3].restrictions, [])
+        self.assertEqual(ts[3].features, ['bites-back'])
+
+        self.assertEqual(ts[4].name, "simple")
+        self.assertEqual(ts[4].path, "tests/simple")
+        self.assertEqual(ts[4].command, None)
+        self.assertEqual(ts[4].depends, [])
+        self.assertEqual(ts[4].clicks, [self.click])
+        self.assertEqual(ts[4].restrictions, [])
+        self.assertEqual(ts[4].features, [])
 
 
 if __name__ == '__main__':
