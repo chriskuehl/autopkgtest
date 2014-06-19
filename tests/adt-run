@@ -1600,6 +1600,7 @@ class SchrootRunner(AdtTestCase):
                     self.assertIn('aspell-doc\t', contents)
                 else:
                     self.assertNotIn('aspell-doc\t', contents)
+                self.assertNotIn('adt-satdep', contents)
 
         # check binaries
         bins = os.listdir(os.path.join(outdir, 'binaries'))
