@@ -1,4 +1,4 @@
-AUTOPKGTEST - RUNNING TESTS
+Autopkgtest - Running tests
 ===========================
 
 This document gives an overview how to run tests with autopkgtest. It
@@ -9,13 +9,13 @@ Ingredients
 -----------
 To run a test you need the following:
 
- - A source package which defines tests in debian/tests/. See
+ - A source package which defines tests in `debian/tests/`. See
    README.package-tests for how to define them. There are plenty of
    existing package tests in Debian/Ubuntu which you can use as examples
-   and inspiration, just look for a source package with a "Testsuite:
-   autopkgtest" header, or the automatic test running services in Debian
-   (http://ci.debian.net/) and Ubuntu (e. g. for Ubuntu 14.04 LTS:
-   https://jenkins.qa.ubuntu.com/view/Trusty/view/AutoPkgTest/)
+   and inspiration, just look for a source package with a
+   `Testsuite: autopkgtest` header, or the automatic test running
+   services [in Debian](http://ci.debian.net/) and Ubuntu (e. g. for
+   [Ubuntu 14.04 LTS](https://jenkins.qa.ubuntu.com/view/Trusty/view/AutoPkgTest/)).
 
  - A location for the source/tests: This can be a local source tree, a
    local .dsc, or "download with apt-get source".
@@ -33,7 +33,7 @@ These are described in detail below.
 The "adt-run" program is the main program to run tests which gets all
 these ingredients as arguments, in the following form:
 
-  adt-run [options] <source package> --- <virt-server> [<virt-server options>]
+    adt-run [options] <source package> --- <virt-server> [<virt-server options>]
 
 Specifying tests and packages
 -----------------------------
@@ -42,60 +42,60 @@ section shows the most common scenarios, with using "mysrc" as source
 package name. Note that specifying the virtualization server and its
 options is handled in the following section, and it is independent of
 specifying tests and packages, so it is merely abbreviated as
-<virt-server> here.
+_virt-server_ here.
 
  - Run tests from the source package in the distribution. This calls
-   "apt-get source mysrc" in the virt-server, thus will use whichever
+   `apt-get source mysrc` in the virt-server, thus will use whichever
    distribution/release that /etc/apt/sources.list configures:
 
-     adt-run mysrc --- <virt-server>
+       `adt-run mysrc ---` _virt-server_
 
  - Run tests from a local unbuilt source tree, using the binary packages
    from the distribution. This is useful if you are creating or fixing
    tests, but the actual binary packages are fine:
 
-     adt-run -B --unbuilt-tree=packages/mysrc --- <virt-server>
+     `adt-run -B --unbuilt-tree=packages/mysrc ---` _virt-server_
 
-   Note that you can abbreviate --unbuilt-tree= with just the directory
+       Note that you can abbreviate `--unbuilt-tree=` with just the directory
    with two(!) trailing slashes, i. e.
 
-     adt-run -B packages/mysrc// --- <virt-server>
+     `adt-run -B packages/mysrc// ---` _virt-server_
 
  - Run tests from a local built source tree, using the binary packages
    from the distribution:
 
-     adt-run -B --built-tree=packages/mysrc --- <virt-server>
+     `adt-run -B --built-tree=packages/mysrc ---` _virt-server_
 
-   Note that you can abbreviate --built-tree= with just the directory
-   with one(!) trailing slash, i. e.
+       Note that you can abbreviate `--built-tree=` with just the
+    directory with one(!) trailing slash, i. e.
 
-     adt-run -B packages/mysrc/ --- <virt-server>
+     `adt-run -B packages/mysrc/ ---` _virt-server_
 
-   Built vs. unbuilt only makes a difference for tests which declare the
-   "build-needed" restriction (see README.package-tests), in which case
-   --built-tree avoids having to re-build the source in the virt-server.
+       Built vs. unbuilt only makes a difference for tests which declare the
+   `build-needed` restriction (see README.package-tests), in which case
+   `--built-tree` avoids having to re-build the source in the virt-server.
 
  - Build a local source package in the virt-server, then run its tests
    against the built binaries. This is useful if you need to fix a bug
    in the actual packages to make the tests succeed:
 
-     adt-run packages/mysrc// --- <virt-server>
+     `adt-run packages/mysrc// ---` _virt-server_
 
  - Same as above, but with specifying a built source package instead of
    a source tree:
 
-     adt-run packages/mysrc_*.dsc --- <virt-server>
+     `adt-run packages/mysrc_*.dsc ---` _virt-server_
 
  - Test new built binaries with a new source and avoid rebuilding them
    in virt-server. This is useful if you e. g. update a package to a new
    version and now want to check whether its tests still succeed:
 
-     adt-run -B packages/*.deb packages/mysrc_*.dsc --- <virt-server>
+     `adt-run -B packages/*.deb packages/mysrc_*.dsc ---` _virt-server_
 
  - The previous case can be simplified if you have a binary .changes from a
    previous build:
 
-     adt-run packages/*.changes --- <virt-server>
+     `adt-run packages/*.changes ---` _virt-server_
 
 
 Output
@@ -108,85 +108,97 @@ problems with the virt-server. (See adt-run(1) for defined codes).
 For getting output files you have three choices:
 
  - If you just want the "testname: PASS/FAIL" results, use
-   --summary-file=/path/to/summary.txt.
+
+       `--summary-file=/path/to/summary.txt`.
 
  - If you want the complete output of adt-run in a file, use
-   -l /path/to/test.log (or the long option --log-file)
+
+       `-l /path/to/test.log` (or the long option `--log-file`)
 
  - If you want the log file, the individual test stdout and stderr
    output, and built binaries (if any) in a directory, use
-   -o /path/to/test-output/ (or the long option --output-dir).
+
+       `-o /path/to/test-output/` (or the long option `--output-dir`).
 
 You can also combine these.
 
 Virtualization server
 ---------------------
-These virtualization servers are available:
 
- - adt-run ... --- schroot schroot-name
+### schroot ###
 
-   Run tests in the specified schroot. You can use mk-sbuild(1) to
-   conveniently create schroots, and run this as normal user if you
-   configured schroot accordingly.
+    adt-run ... --- schroot schroot-name
 
-   This server is the fastest available that provides "proper" file
-   system isolation and revert, but it does not provide enough isolation
-   for tests that need to start services, reconfigure the network, or
-   open TCP ports which are already open at the host. If your test does
-   not need to do these things this is the recommended server, as
-   schroots are also useful for other tasks like building packages with
-   sbuild.
+Run tests in the specified schroot. You can use mk-sbuild(1) to
+conveniently create schroots, and run this as normal user if you
+configured schroot accordingly.
 
-   See adt-virt-schroot(1) manpage.
+This server is the fastest available that provides "proper" file system
+isolation and revert, but it does not provide enough isolation for tests
+that need to start services, reconfigure the network, or open TCP ports
+which are already open at the host. If your test does not need to do
+these things this is the recommended server, as schroots are also useful
+for other tasks like building packages with sbuild.
 
- - adt-run ... --- lxc container-name
+See adt-virt-schroot(1) manpage.
 
-   Run tests in the specified LXC container. Containers provide full
-   service and network isolation, but tests or packages cannot change
-   the kernel or hardware configuration. If your test does not need
-   that, this is the recommended server as it is faster than QEMU and
-   works on all Linux architectures.
+### LXC ###
 
-   container-name will be cloned or be called with a temporary overlay
-   file system if you specify the -e (--ephemeral) option, thus it will
-   never be modified and you can run several tests in parallel safely.
-   Unless your test or architecture or RAM availability doesn't work
-   with overlayfs, using -e is highly recommended for better
-   performance.
+    adt-run ... --- lxc container-name
 
-   If your user can get root privileges with sudo, you can call adt-run
-   as your normal user and specify -s (--sudo) so that the container can
-   be started as root.
+Run tests in the specified LXC container. Containers provide full
+service and network isolation, but tests or packages cannot change
+the kernel or hardware configuration. If your test does not need
+that, this is the recommended server as it is faster than QEMU and
+works on all Linux architectures.
 
-   See adt-virt-lxc(1) manpage. This also explains how to build
-   containers.
+`container-name` will be cloned or be called with a temporary overlay
+file system if you specify the `-e` (`--ephemeral`) option, thus it will
+never be modified and you can run several tests in parallel safely.
+Unless your test or architecture or RAM availability doesn't work with
+overlayfs, using -e is highly recommended for better performance.
 
- - adt-run ... --- qemu path/to/image
+If your user can get root privileges with sudo, you can call adt-run as
+your normal user and specify `-s` (`--sudo`) so that the container can
+be started as root.
 
-   Run tests with QEMU/KVM using the specified image. The image will be
-   run with a temporary overlay file system, thus it will never be
-   modified and you can run several tests in parallel safely.
+See adt-virt-lxc(1) manpage. This also explains how to build
+containers.
 
-   If your test needs a full machine including kernel/hardware access,
-   this is the recommended runner; it provides complete system
-   isolation, revert and breaks-testbed capabilities. But it is also the
-   one with the biggest overhead and only works well on architectures
-   with KVM acceleration (i. e. mostly x86).
+### QEMU ###
 
-   See adt-virt-qemu(1) manpage. This also explains how to build
-   suitable images, and the requirements of the guest.
+    adt-run ... --- qemu path/to/image
 
- - adt-run ... --- null
+Run tests with QEMU/KVM using the specified image. The image will be run
+with a temporary overlay file system, thus it will never be modified and
+you can run several tests in parallel safely.
 
-   This does not do any virtualization, but runs tests straight on the
-   host. Beware that this will leave some clutter on your system
-   (installed test or build dependency packages, configuration changes
-   that the tests might make, etc.). It is not able to run tests with
-   the "breaks-testbed" restriction. See adt-virt-null(1) manpage.
+If your test needs a full machine including kernel/hardware access, this
+is the recommended runner; it provides complete system isolation, revert
+and breaks-testbed capabilities. But it is also the one with the biggest
+overhead and only works well on architectures with KVM acceleration (i.
+e. mostly x86).
 
- - adt-run ... --- chroot /path/to/chroot
+See adt-virt-qemu(1) manpage. This also explains how to build
+suitable images, and the requirements of the guest.
 
-   Run tests in the specified chroot. You need to call adt-run as root
-   for this. There is no automatic cleanup or revert for the chroot, so
-   unless you can provide this by some other means, don't use this.
 
+### null ###
+    adt-run ... --- null
+
+This does not do any virtualization, but runs tests straight on the
+host. Beware that this will leave some clutter on your system
+(installed test or build dependency packages, configuration changes
+that the tests might make, etc.). It is not able to run tests with
+the "breaks-testbed" restriction. See adt-virt-null(1) manpage.
+
+
+### chroot ###
+    adt-run ... --- chroot /path/to/chroot
+
+Run tests in the specified chroot. You need to call adt-run as root
+for this. There is no automatic cleanup or revert for the chroot, so
+unless you can provide this by some other means, don't use this.
+
+<!--- vim: ft=markdown tw=72
+-->
