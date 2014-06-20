@@ -5,33 +5,39 @@ This document gives an overview how to run tests with autopkgtest. It
 does not cover each detail, please consult the individual manpages like
 adt-run(1), adt-virt-schroot(1), etc. for all available options.
 
-Ingredients
------------
-
-To run a test you need the following:
+Ingredients for Debian packages:
 
 -  A source package which defines tests in ``debian/tests/``. See
-   README.package-tests for how to define them. There are plenty of
-   existing package tests in Debian/Ubuntu which you can use as examples
-   and inspiration, just look for a source package with a
-   ``Testsuite: autopkgtest`` header, or the automatic test running
-   services `in Debian <http://ci.debian.net/>`_ and Ubuntu (e. g. for
-   `14.04 LTS <https://jenkins.qa.ubuntu.com/view/Trusty/view/AutoPkgTest/>`_).
+   README.package-tests for how to define them.
+
+   There are plenty of existing package tests in Debian/Ubuntu which you
+   can use as examples and inspiration, just look for a source package
+   with a ``Testsuite: autopkgtest`` header, or the automatic test
+   running services `in Debian <http://ci.debian.net/>`_ and Ubuntu (e.
+   g. for `14.04 LTS <https://jenkins.qa.ubuntu.com/view/Trusty/view/AutoPkgTest/>`_).
 
 -  A location for the source/tests: This can be a local source tree, a
    local .dsc, or "download with apt-get source".
 
 -  Optionally some pre-built binary packages which should be tested.
 
--  A virtualization server: this creates the environment in which the
-   test runs. Depending on how intrusive the test is this can provide
-   various degrees of isolation, from "run on my local system" (fastest,
-   but unsafe) to "run in a temporary virtual machine" (slowest, but
-   highest possible isolation).
+Ingredients for Click packages:
 
-These are described in detail below.
+- A binary .click package whose manifest specifies tests and their
+  metadata. See README.click-tests.rst for details.
 
-The "adt-run" program is the main program to run tests which gets all
+- The corresponding click source package which contains the tests
+  defined in the manifest.
+
+Finally you need a virtualization server, which creates the environment
+in which the test runs.  Depending on how intrusive the test is this can
+provide various degrees of isolation, from "run on my local system"
+(fastest, but unsafe) to "run in a temporary virtual machine" (slowest,
+but highest possible isolation). These are described in detail below.
+
+adt-run
+-------
+The ``adt-run`` program is the main program to run tests which gets all
 these ingredients as arguments, in the following form:
 
 ::
@@ -48,9 +54,10 @@ options is handled in the following section, and it is independent of
 specifying tests and packages, so it is merely abbreviated as
 *virt-server* here.
 
--  Run tests from the source package in the distribution. This calls
-   ``apt-get source mysrc`` in the virt-server, thus will use whichever
-   distribution/release that /etc/apt/sources.list configures:
+-  Run tests from the Debian source package in the distribution. This
+   calls ``apt-get source mysrc`` in the virt-server, thus will use
+   whichever distribution/release that ``/etc/apt/sources.list``
+   configures:
 
    ``adt-run mysrc ---`` *virt-server*
 
@@ -100,7 +107,16 @@ specifying tests and packages, so it is merely abbreviated as
 -  The previous case can be simplified if you have a binary .changes
    from a previous build:
 
+
    ``adt-run packages/*.changes ---`` *virt-server*
+
+-  Run tests for a click package:
+
+   ``adt-run myclickapp/ myclickapp_0.1_all.click ---`` *virt-server*
+
+   Note that for this you need to specify a virt-server which has
+   "click" itself and the click app's required framework already
+   installed.
 
 Output
 ------
