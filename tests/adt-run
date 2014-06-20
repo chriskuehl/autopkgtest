@@ -2309,6 +2309,69 @@ class QemuRunner(AdtTestCase):
         self.assertNotIn(' stderr ', err)
 
 
+@unittest.skipUnless('ADT_TEST_SCHROOT_CLICK' in os.environ,
+                     'Set $ADT_TEST_SCHROOT_CLICK to an existing schroot')
+class SchrootClickRunner(AdtTestCase):
+    def __init__(self, *args, **kwargs):
+        super(SchrootClickRunner, self).__init__('schroot', *args, **kwargs)
+        self.schroot_name = os.environ.get('ADT_TEST_SCHROOT_CLICK')
+        self.click = os.path.join(test_dir, 'testclick_0.1_all.click')
+        self.click_src = os.path.join(test_dir, 'testclick')
+
+    def test_click_local_source_implicit(self):
+        '''click package with local source, implicit arg type'''
+
+        outdir = os.path.join(self.workdir, 'out')
+        os.mkdir(outdir)
+        sumfile = os.path.join(self.workdir, 'summary')
+
+        (code, out, err) = self.adt_run(
+            ['-d', '-o', outdir, '--summary-file', sumfile,
+             self.click_src, self.click],
+            [self.schroot_name])
+
+        # one test (broken) should fail, the others succeed
+        with open(sumfile) as f:
+            summary = f.read()
+        self.assertEqual(summary, '''broken               FAIL stderr: Bad Things!
+inst                 PASS
+serr                 PASS
+shell                PASS
+simple               PASS
+''')
+
+        # shell test should give expected output
+        with open(os.path.join(outdir, 'shell-stdout')) as f:
+            self.assertIn('root:x:0', f.read())
+        with open(os.path.join(outdir, 'broken-stderr')) as f:
+            self.assertEqual(f.read(), 'Bad Things!\n')
+
+        # inst test has additional dependency
+        with open(os.path.join(outdir, 'inst-packages')) as f:
+            contents = f.read()
+        self.assertTrue(contents.startswith('python3-evdev'), contents)
+
+    def test_click_local_source_explicit(self):
+        '''click package with local source, explicit arg type'''
+
+        sumfile = os.path.join(self.workdir, 'summary')
+
+        (code, out, err) = self.adt_run(
+            ['-d', '--summary-file', sumfile,
+             '--click-source', self.click_src, '--click', self.click],
+            [self.schroot_name])
+
+        # one test (broken) should fail, the others succeed
+        with open(sumfile) as f:
+            summary = f.read()
+        self.assertEqual(summary, '''broken               FAIL stderr: Bad Things!
+inst                 PASS
+serr                 PASS
+shell                PASS
+simple               PASS
+''')
+
+
 if __name__ == '__main__':
     # Force encoding to UTF-8 even in non-UTF-8 locales.
     import io
