@@ -757,7 +757,6 @@ rm $TMPDIR/rootowned.txt $TMPDIR/world.txt
         self.assertIn('user ab_CD.UTF-8\n', out)
 
 
-
 @unittest.skipIf('cowdancer' in os.environ.get('LD_PRELOAD', ''),
                  'chroot tests do not work under cowdancer')
 @unittest.skipIf(os.getuid() > 0,
@@ -1134,8 +1133,10 @@ Restrictions: needs-root
         p = self.build_src('Tests: pass\nDepends:\nRestrictions: needs-root\n',
                            {'pass': '#!/bin/sh -e\n[ -x /bin/cp_cp ]; cat /setup.log\n'})
 
+        # not expecting a normal user for chroot
         (code, out, err) = self.adt_run(['-B', '--unbuilt-tree=' + p,
-                                         '--setup-commands', 'sleep 3; cp /bin/cp /bin/cp_cp; '
+                                         '--setup-commands', '[ -z $ADT_NORMAL_USER ];'
+                                         'sleep 3; cp /bin/cp /bin/cp_cp; '
                                          'echo setup_success > /setup.log',
                                          '--setup-commands', 'cp /bin/cp /bin/cp_cp',
                                          '--timeout-short=1', '--timeout-copy=1'],
@@ -1948,8 +1949,10 @@ class LxcRunner(AdtTestCase):
                            {'t1': '#!/bin/sh -e\ncat /setup.log; echo t1ok\n',
                             't2': '#!/bin/sh -e\ncat /setup.log; echo t2ok\n'})
 
-        (code, out, err) = self.adt_run(['-B', '-d', p + '//',
-                                         '--setup-commands', 'echo setupok >> /setup.log'],
+        # we expect a normal user for LXC
+        (code, out, err) = self.adt_run(['-B', '-d', p + '//', '--setup-commands',
+                                         '[ -n "$ADT_NORMAL_USER" ]; getent passwd $ADT_NORMAL_USER;'
+                                         'echo setupok >> /setup.log'],
                                         self.virt_args)
 
         # test should succeed
@@ -1958,7 +1961,7 @@ class LxcRunner(AdtTestCase):
         self.assertRegex(out, 't2\s+PASS', out)
 
         # should show test stdout
-        self.assertRegex(out, '^setupok\nt1ok\n')
+        self.assertRegex(out, '^\w+:x:.*\nsetupok\nt1ok\n')
         self.assertIn('\nsetupok\nt2ok\n', out)
         # should not have any test stderr
         self.assertNotIn(' stderr ', err)
