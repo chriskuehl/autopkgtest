@@ -2127,6 +2127,27 @@ class QemuRunner(AdtTestCase):
         self.assertIn('@@@@@@ test bed setup', err)
         self.assertIn('rebooting testbed', err)
 
+    def test_setup_commands_suppress_reboot(self):
+        '''--setup-commands with suppressed reboot'''
+
+        p = self.build_src('Tests: t\nDepends:\n',
+                           {'t': '#!/bin/sh -e\ntest -e /run/autopkgtest_no_reboot.stamp'})
+
+        (code, out, err) = self.adt_run(['-B', '-d', p + '//', '--setup-commands',
+                                         'apt-get install --reinstall -y cron; touch /run/autopkgtest_no_reboot.stamp'],
+                                        [self.image])
+
+        # test should succeed
+        self.assertEqual(code, 0, err)
+        self.assertRegex(out, 't\s+PASS', out)
+
+        # should not have any test stderr
+        self.assertNotIn(' stderr ', err)
+
+        # should not have rebooted
+        self.assertIn('@@@@@@ test bed setup', err)
+        self.assertNotIn('rebooting testbed', err)
+
     def test_isolation(self):
         '''isolation restrictions'''
 
