@@ -717,6 +717,46 @@ rm $TMPDIR/rootowned.txt $TMPDIR/world.txt
         # should build package
         self.assertIn('dh build', err)
 
+    def test_default_locale(self):
+        '''tests have default locale C'''
+
+        p = self.build_src('Tests: r\nDepends:\nRestrictions: needs-root\n\n'
+                           'Tests: u\nDepends:\n',
+                           {'r': '#!/bin/sh -e\necho root $LANG',
+                            'u': '#!/bin/sh -e\necho user $LANG'})
+
+        (code, out, err) = self.adt_run(['-dB', '--unbuilt-tree=' + p])
+        self.assertEqual(code, 0, err)
+
+        # test should succeed
+        self.assertRegex(out, 'r\s+PASS', out)
+        self.assertRegex(out, 'u\s+PASS', out)
+
+        # has expected locales
+        self.assertIn('root C\n', out)
+        self.assertIn('user C\n', out)
+
+    def test_specify_locale(self):
+        '''tests have specified locale'''
+
+        p = self.build_src('Tests: r\nDepends:\nRestrictions: needs-root\n\n'
+                           'Tests: u\nDepends:\n',
+                           {'r': '#!/bin/sh -e\necho root $LANG',
+                            'u': '#!/bin/sh -e\necho user $LANG'})
+
+        (code, out, err) = self.adt_run(['-dB', '--unbuilt-tree=' + p,
+                                         '--set-lang=ab_CD.UTF-8'])
+        self.assertEqual(code, 0, err)
+
+        # test should succeed
+        self.assertRegex(out, 'r\s+PASS', out)
+        self.assertRegex(out, 'u\s+PASS', out)
+
+        # has expected locales
+        self.assertIn('root ab_CD.UTF-8\n', out)
+        self.assertIn('user ab_CD.UTF-8\n', out)
+
+
 
 @unittest.skipIf('cowdancer' in os.environ.get('LD_PRELOAD', ''),
                  'chroot tests do not work under cowdancer')
