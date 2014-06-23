@@ -118,6 +118,18 @@ specifying tests and packages, so it is merely abbreviated as
    "click" itself and the click app's required framework already
    installed.
 
+   If you aren't running the test on an Ubuntu touch device, you can
+   approximate the environment in a normal schroot/LXC/QEMU testbed with
+   the ``--setup-commands`` scripts that autopkgtest provides:
+
+   ::
+
+     adt-run --setup-commands /usr/share/autopkgtest/setup-commands/ubuntu-touch-session \
+             --setup-commands /usr/share/autopkgtest/setup-commands/apt-ro \
+             myclickapp/ myclickapp_0.1_all.click --- lxc adt-utopic
+
+   See the comments in the setup-commands scripts for details.
+
 Output
 ------
 

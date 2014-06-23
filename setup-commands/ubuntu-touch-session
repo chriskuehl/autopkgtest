@@ -1,0 +1,47 @@
+# This script is is part of autopkgtest
+# Copyright (C) 2006-2014 Canonical Ltd.
+# Author: Martin Pitt <martin.pitt@ubuntu.com>
+#
+# --setup-commands script for installing click, the Ubuntu SDK, some extra
+# packages for autopilot, and launching Xvfb and an user upstart session.
+# This approximates the environment of an Ubuntu touch device. You can also run
+# setup-commands/ro-apt afterwards.
+#
+# Use this in schroot, lxc, or qemu runner. Everything that's required will be
+# installed, but as that's a lot of packages it is advisable to run this on a
+# testbed which has at least ubuntu-sdk-libs already pre-installed.
+
+# click and the SDK
+apt-get install -y --no-install-recommends click ubuntu-sdk-libs ubuntu-app-launch-tools
+# Xvfb and additional packages that autopilot needs to run on X instead of Mir
+apt-get install -y --no-install-recommends dbus-x11 xvfb python3-xlib gir1.2-glib-2.0 gir1.2-gtk-3.0
+
+# avoid tripping over AppArmor restrictions in container in click hook
+rm /sbin/apparmor_parser
+
+# start X server
+su -c 'Xvfb :5 -screen 0 1024x768x24 >/tmp/Xvfb-5.log 2>&1 &' $ADT_NORMAL_USER
+cat <<EOF >> /etc/environment
+DISPLAY=:5
+XAUTHORITY=/dev/null
+EOF
+sleep 1
+
+# start user upstart session
+cat <<EOF | su $ADT_NORMAL_USER >> /etc/environment
+set -e
+export LANG=$LANG
+export XDG_RUNTIME_DIR=\$(mktemp -d)
+echo XDG_RUNTIME_DIR=\$XDG_RUNTIME_DIR
+init -q --user &
+PID=\$!
+sleep 1
+. \$XDG_RUNTIME_DIR/upstart/sessions/\$PID.session
+export UPSTART_SESSION
+echo "UPSTART_SESSION=\$UPSTART_SESSION"
+echo DBUS_SESSION_BUS_ADDRESS=\$(initctl --user get-env DBUS_SESSION_BUS_ADDRESS)
+EOF
+
+# avoid rebooting in QEMU after installing the packages, as the above upstart
+# session won't survive reboot
+touch /run/autopkgtest_no_reboot.stamp

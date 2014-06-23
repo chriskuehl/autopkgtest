@@ -2371,6 +2371,26 @@ shell                PASS
 simple               PASS
 ''')
 
+    def test_setup_ubuntu_touch_session(self):
+        '''setup-commands/ubuntu-touch-session'''
+
+        p = self.build_src(
+            'Tests: t\nDepends: x11-utils',
+            {'t': '#!/bin/sh -e\nOUT=$(xprop -root); echo "$OUT" | grep -q _XKB_RULES\n'
+                  'JOBS=$(/sbin/initctl  --user list)\n'
+                  'echo "$JOBS" | grep -q "dbus start/running"\n'
+                  'echo "$JOBS" | grep -q "click-user-hooks"\n'
+                  # FIXME: in schroot this spits out "Error opening shm /lttng-ust-wait-*"
+                  'ubuntu-app-list 2>/dev/null\n'
+             })
+
+        (code, out, err) = self.adt_run(
+            ['-B', p + '//', '--setup-commands',
+             os.path.join(root_dir, 'setup-commands', 'ubuntu-touch-session')],
+            [self.schroot_name])
+        self.assertEqual(code, 0, err)
+        self.assertRegex(out, 't\s+PASS', out)
+
 
 if __name__ == '__main__':
     # Force encoding to UTF-8 even in non-UTF-8 locales.

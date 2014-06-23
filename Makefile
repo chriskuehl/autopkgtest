@@ -26,7 +26,8 @@ bindir =	$(DESTDIR)$(prefix)/bin
 man1dir =	$(share)/man/man1
 pkgname =	autopkgtest
 docdir =	$(share)/doc/$(pkgname)
-pythondir = 	$(share)/$(pkgname)/python
+datadir =	$(share)/$(pkgname)
+pythondir = 	$(datadir)/python
 
 INSTALL =	install
 INSTALL_DIRS =	$(INSTALL) -d
@@ -56,7 +57,7 @@ htmlfiles =	$(patsubst %.rst,%.html,$(rstfiles))
 all: $(htmlfiles)
 
 install:
-	$(INSTALL_DIRS) $(bindir) $(docdir) $(man1dir) $(pythondir)
+	$(INSTALL_DIRS) $(bindir) $(docdir) $(man1dir) $(pythondir) $(datadir)/setup-commands
 	set -e; for f in $(programs); do \
 		$(INSTALL_PROG) $$f $(bindir); \
 		test ! -f $$f.1 || $(INSTALL_DATA) $$f.1 $(man1dir); \
@@ -65,6 +66,7 @@ install:
 	$(INSTALL_DATA) $(pythonfiles) $(pythondir)
 	$(INSTALL_DATA) CREDITS $(docdir)
 	$(INSTALL_DATA) $(rstfiles) $(htmlfiles) $(docdir)
+	$(INSTALL_DATA) setup-commands/*[!~] $(datadir)/setup-commands
 
 clean:
 	rm -f */*.pyc
