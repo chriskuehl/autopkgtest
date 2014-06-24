@@ -708,7 +708,7 @@ rm $TMPDIR/rootowned.txt $TMPDIR/world.txt
         self.assertEqual(code, 0, err)
 
         # should have patched source
-        self.assertIn('01_hack.patch\n', err)
+        self.assertRegex(err, 'dpkg-source:.*01_hack.patch')
         self.assertIn('built script OK\nstatic patched script OK\n', out)
 
         # should not have any test stderr
@@ -718,7 +718,7 @@ rm $TMPDIR/rootowned.txt $TMPDIR/world.txt
         self.assertIn('dh build', err)
 
     def test_default_locale(self):
-        '''tests have default locale C'''
+        '''tests have default locale C.UTF-8'''
 
         p = self.build_src('Tests: r\nDepends:\nRestrictions: needs-root\n\n'
                            'Tests: u\nDepends:\n',
@@ -733,8 +733,8 @@ rm $TMPDIR/rootowned.txt $TMPDIR/world.txt
         self.assertRegex(out, 'u\s+PASS', out)
 
         # has expected locales
-        self.assertIn('root C\n', out)
-        self.assertIn('user C\n', out)
+        self.assertIn('root C.UTF-8\n', out)
+        self.assertIn('user C.UTF-8\n', out)
 
     def test_specify_locale(self):
         '''tests have specified locale'''
