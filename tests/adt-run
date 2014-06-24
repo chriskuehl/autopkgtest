@@ -175,7 +175,7 @@ bad                  FAIL non-zero exit status 1
     def test_tree_allow_stderr_nobuild_success(self):
         '''source tree, no build, allow-stderr, test success'''
 
-        p = self.build_src('Tests: pass\nDepends:\nRestrictions: allow-stderr',
+        p = self.build_src('Tests: pass\nDepends: coreutils\nRestrictions: allow-stderr',
                            {'pass': '#!/bin/sh\necho I am fine >&2\necho babble'})
 
         (code, out, err) = self.adt_run(['--no-built-binaries', '--built-tree=' + p])
@@ -190,6 +190,9 @@ bad                  FAIL non-zero exit status 1
 
         # should log package version
         self.assertIn('testing package testpkg version 1\n', err)
+
+        # no restricted dependencies functionality as they are already installed
+        self.assertNotIn('will only work for some packages', err)
 
     def test_unicode(self):
         '''Unicode test output'''
@@ -234,6 +237,60 @@ bad                  FAIL non-zero exit status 1
         (code, out, err) = self.adt_run(['--unbuilt-tree=' + p])
         self.assertEqual(code, 8, err)
         self.assertRegex(out, 'SKIP no tests in this package', out)
+
+    @unittest.skipIf(os.getuid() == 0, 'needs to run as user')
+    @unittest.skipIf(os.path.exists('/usr/bin/dotty'),
+                     'needs graphviz uninstalled')
+    def test_tmp_install(self):
+        '''temp dir unpack of test dependencies'''
+
+        p = self.build_src('Tests: t\nDepends: graphviz, gir1.2-json-1.0 (>= 0.14), python3-gi, a|b,',
+                           {'t': '#!/bin/sh\ndotty -V 2>&1 || true\npython3 -c "from gi.repository import Json; print(Json)"'})
+
+        (code, out, err) = self.adt_run(['-B', p + '//'])
+        self.assertEqual(code, 0, err)
+        self.assertRegex(out, 't\s+PASS', out)
+
+        # should show test stdout
+        self.assertIn('dotty version ', out)
+        self.assertRegex(out, 'DynamicModule.*Json.* from .*/tmp/adt-run.*/deps/usr/lib')
+        # no stderr
+        self.assertNotIn(' stderr ', err)
+
+        # downloads dependencies
+        self.assertIn('libcgraph', err)
+        self.assertIn('libcgraph', err)
+
+        # warn about restricted functionality
+        self.assertRegex(err, 'WARNING.*cannot be handled.* a | b')
+        self.assertRegex(err, 'WARNING.*will only work for some packages')
+
+    @unittest.skipIf(os.getuid() == 0, 'needs to run as user')
+    def test_tmp_install_nonexisting_pkg(self):
+        '''temp dir unpack of nonexisting test dependency'''
+
+        p = self.build_src('Tests: t\nDepends: nosuchpackage',
+                           {'t': '#!/bin/sh\nfalse'})
+
+        (code, out, err) = self.adt_run(['-B', p + '//'])
+        self.assertEqual(code, 20, err)
+
+        self.assertRegex(err, 'E: .*nosuchpackage')
+        self.assertIn('test dependencies are unsatisfiable', err)
+
+    @unittest.skipIf(os.getuid() == 0, 'needs to run as user')
+    @unittest.skipIf(os.path.exists('/usr/bin/dotty'),
+                     'needs graphviz uninstalled')
+    def test_tmp_install_no_such_version(self):
+        '''temp dir unpack of test dependency with unsatisfiable version'''
+
+        p = self.build_src('Tests: t\nDepends: graphviz (>= 4:999)',
+                           {'t': '#!/bin/sh\nfalse'})
+
+        (code, out, err) = self.adt_run(['-B', p + '//'])
+        self.assertEqual(code, 20, err)
+
+        self.assertIn('test dependency graphviz (>= 4:999) is unsatisfiable: available version ', err)
 
 
 @unittest.skipIf(os.getuid() > 0,
@@ -2329,6 +2386,7 @@ class SchrootClickRunner(AdtTestCase):
             ['-d', '-o', outdir, '--summary-file', sumfile,
              self.click_src, self.click],
             [self.schroot_name])
+        self.assertEqual(code, 4, err)
 
         # one test (broken) should fail, the others succeed
         with open(sumfile) as f:
@@ -2360,6 +2418,7 @@ simple               PASS
             ['-d', '--summary-file', sumfile,
              '--click-source', self.click_src, '--click', self.click],
             [self.schroot_name])
+        self.assertEqual(code, 4, err)
 
         # one test (broken) should fail, the others succeed
         with open(sumfile) as f:
@@ -2370,6 +2429,33 @@ serr                 PASS
 shell                PASS
 simple               PASS
 ''')
+
+    def test_click_local_source_tmp_install(self):
+        '''click package with local source, temp dir deps'''
+
+        sumfile = os.path.join(self.workdir, 'summary')
+
+        (code, out, err) = self.adt_run(
+            ['-d', '--summary-file', sumfile, '--setup-commands',
+             os.path.join(root_dir, 'setup-commands', 'ro-apt'),
+             self.click_src, self.click],
+            [self.schroot_name])
+        self.assertEqual(code, 4, err)
+
+        # one test (broken) should fail, the others succeed
+        with open(sumfile) as f:
+            summary = f.read()
+        self.assertEqual(summary, '''broken               FAIL stderr: Bad Things!
+inst                 PASS
+serr                 PASS
+shell                PASS
+simple               PASS
+''')
+
+        self.assertIn('python3-evdev', err)
+
+        # warn about restricted functionality
+        self.assertIn('will only work for some packages', err)
 
     def test_setup_ubuntu_touch_session(self):
         '''setup-commands/ubuntu-touch-session'''
