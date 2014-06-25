@@ -249,7 +249,7 @@ class NullRunner(AdtTestCase):
                            {'pass': '#!/bin/sh\necho I am fine\n'})
 
         (code, out, err) = self.adt_run(['-dB', '--unbuilt-tree=' + p])
-        #print('----- out ----\n%s\n----- err ----\n%s\n----' % (out, err))
+        # print('----- out ----\n%s\n----- err ----\n%s\n----' % (out, err))
         # test should succeed
         self.assertEqual(code, 0, err)
         self.assertRegex(out, 'pass\s+PASS', out)
@@ -605,7 +605,6 @@ rm $TMPDIR/rootowned.txt $TMPDIR/world.txt
         (code, out, err) = self.adt_run(['-d', '--no-built-binaries',
                                          '--unbuilt-tree=' + p,
                                          '--log-file=' + logfile])
-        #print('----- out ----\n%s\n----- err ----\n%s\n----' % (out, err))
         # test should succeed
         self.assertEqual(code, 0, err)
 
@@ -847,7 +846,6 @@ class ChrootRunner(AdtTestCase):
 
         (code, out, err) = self.adt_run(['--no-built-binaries', '--unbuilt-tree=' + p],
                                         [self.chroot])
-        #print('----- out ----\n%s\n----- err ----\n%s\n----' % (out, err))
         # test should succeed
         self.assertEqual(code, 0, err)
         self.assertRegex(out, 'pass\s+PASS', out)
