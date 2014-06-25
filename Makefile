@@ -47,8 +47,13 @@ pythonfiles =	lib/VirtSubproc.py \
 		lib/testdesc.py \
 		$(NULL)
 
-all:
-	# nothing to build
+rstfiles =	$(wildcard doc/*.rst)
+htmlfiles =	$(patsubst %.rst,%.html,$(rstfiles))
+
+%.html: %.rst
+	rst2html -v $< > $@
+
+all: $(htmlfiles)
 
 install:
 	$(INSTALL_DIRS) $(bindir) $(docdir) $(man1dir) $(pythondir)
@@ -59,7 +64,8 @@ install:
 	$(INSTALL_PROG) tools/adt-setup-vm $(share)/$(pkgname)
 	$(INSTALL_DATA) $(pythonfiles) $(pythondir)
 	$(INSTALL_DATA) CREDITS $(docdir)
-	$(INSTALL_DATA) doc/README*[!~] $(docdir)
+	$(INSTALL_DATA) $(rstfiles) $(htmlfiles) $(docdir)
 
 clean:
 	rm -f */*.pyc
+	rm -f $(htmlfiles)
