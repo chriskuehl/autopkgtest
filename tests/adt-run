@@ -1757,10 +1757,12 @@ class LxcRunner(AdtTestCase):
         '''source tree, no build, no restrictions, test success'''
 
         p = self.build_src('Tests: pass\nDepends: coreutils\n',
-                           {'pass': '#!/bin/sh\necho I am fine\n'})
+                           {'pass': '#!/bin/sh\necho I am fine; echo "SOMEVAR: >$SOMEVAR<"; echo "PATH: $PATH"\n'})
 
         (code, out, err) = self.adt_run(['--no-built-binaries', '--unbuilt-tree=' + p],
-                                        self.virt_args)
+                                        self.virt_args,
+                                        env={'SOMEVAR': 'junk',
+                                             'PATH': '/something/broken:' + os.environ.get('PATH', '')})
         # test should succeed
         self.assertEqual(code, 0, err)
         self.assertRegex(out, 'pass\s+PASS', out)
@@ -1769,6 +1771,10 @@ class LxcRunner(AdtTestCase):
         self.assertRegex(out, '(^|\n)I am fine\n')
         # should not have any test stderr
         self.assertNotIn(' stderr ', err)
+        # $SOMEVAR does not leak into container
+        self.assertIn('\nSOMEVAR: ><\n', out)
+        # modified $PATH does not leak into container
+        self.assertNotIn('/something/broken', out)
 
         # should not build package
         self.assertNotIn('dh build', err)
