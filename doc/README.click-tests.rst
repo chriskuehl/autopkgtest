@@ -113,4 +113,22 @@ which is equivalent to
         "path": "tests/testscript"
     }
 
+As a special case, if the test name is "autopilot" and the value is a single
+identifier, this must be a Python test module name in
+``tests/autopilot/``. Then the specification
+
+::
+
+    "autopilot": "foo_tests"
+
+expands to
+
+::
+
+    "autopilot": {
+        "command": "PYTHONPATH=tests/autopilot:$PYTHONPATH python3 -m autopilot.run run foo_tests",
+        "depends": ["ubuntu-ui-toolkit-autopilot", "autopilot-touch"]
+     }
+
+
 ..  vim: ft=rst tw=72
