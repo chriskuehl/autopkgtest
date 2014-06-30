@@ -456,6 +456,7 @@ rm $TMPDIR/rootowned.txt $TMPDIR/world.txt
                                     stat -c %U .
                                     stat -c %U debian
                                     stat -c %U Makefile
+                                    echo "USER: $USER"
                                     whoami'''})
 
         (code, out, err) = self.adt_run(['--no-built-binaries',
@@ -467,7 +468,7 @@ rm $TMPDIR/rootowned.txt $TMPDIR/world.txt
         self.assertRegex(out, 't\s+PASS', out)
 
         # has output from cat and whoami
-        self.assertIn('world\nnobody\nnobody\nnobody\nnobody\n', out)
+        self.assertIn('world\nnobody\nnobody\nnobody\nUSER: nobody\nnobody\n', out)
 
     def test_tree_output_dir(self):
         '''source tree, explicit --output-dir
