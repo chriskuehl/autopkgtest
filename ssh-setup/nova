@@ -1,0 +1,263 @@
+#!/bin/sh
+#
+# This script is part of autopkgtest
+# autopkgtest is a tool for testing Debian binary packages
+#
+# This script sets up a nova instance to use as an autopkgtest testbed. It
+# assumes that the host system is already prepared to run nova commands.
+# WARNING: This is mostly a proof of concept and not very robust.
+
+# Options:
+#
+# -f flavor | --flavor=flavor
+#        Name or ID of flavor (see 'nova flavor-list'), mandatory
+# -i image | --image=image
+#        Name or ID of image (see 'nova image-list'), mandatory
+# -k keyname | --keyname=keyname
+#        Key name of keypair that should be created earlier with  the  command
+#        'nova keypair-add', mandatory
+# -a | --associate-ip
+#        If the internal instance IP is not accessible to you, this option will
+#        request and associate a floating IP to the instance.
+# -l username | --login=username
+#        User name to log in as. Defaults to "ubuntu" if not specified.
+# -n name | --name=name
+#        Name for the new server. A name will be generated if not specified.
+#
+#
+# Author: Jean-Baptiste Lallement <jean-baptiste.lallement@canonical.com>
+#
+# autopkgtest is Copyright (C) 2006-2014 Canonical Ltd.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+#
+# See the file CREDITS for a full list of credits information (often
+# installed as /usr/share/doc/autopkgtest/CREDITS).
+set -eu
+
+CAPABILITIES='isolation-machine,reboot'
+
+SUDO_PASSWORD=''
+SSH_USER=ubuntu
+
+FLAVOR=""
+IMAGE=""
+KEYNAME=""
+SRVNAME=""
+ASSOCIATE_IP=""
+FLOATING_IP=""
+
+DEBUG=""
+
+debug() {
+    [ -z "$DEBUG" ] && return
+    echo "$@">&2
+}
+
+warning() {
+    echo "$@">&2
+}
+
+error() {
+    echo "$@">&2
+}
+
+parse_args() {
+    # Parse command line argument and populate environment
+
+    SHORTOPTS="f:,i:,k:,l:,n:,a,d"
+    LONGOPTS="flavor:,image:,keyname:,login:,name:,associate-ip,floating-ip:,debug"
+
+    TEMP=$(getopt -o $SHORTOPTS --long $LONGOPTS -- "$@")
+    eval set -- "$TEMP"
+
+    while true; do
+        case "$1" in
+            -f|--flavor)
+                FLAVOR=$2
+                shift 2;;
+            -i|--image)
+                IMAGE=$2
+                shift 2;;
+            -k|--keyname)
+                KEYNAME=$2
+                shift 2;;
+            -l|--login)
+                SSH_USER=$2
+                shift 2;;
+            -n|--name)
+                SRVNAME=$2
+                shift 2;;
+            -a|--associate-ip)
+                ASSOCIATE_IP=1; shift;;
+            --floating-ip)
+                FLOATING_IP="$2"; shift 2;;
+            -d|--debug)
+                DEBUG=1; shift;;
+            --)
+                shift;
+                break;;
+            *)
+                error "E: $(basename $0): Unsupported option $1"
+                exit 1;;
+        esac
+    done
+
+    if [ -z "$FLAVOR" ]; then
+        error "Argument 'flavor' is mandatory. Run 'nova flavor-list' to "\
+            "print a list of available flavors."
+        exit 1
+    fi
+    if [ -z "$IMAGE" ]; then
+        error "Argument 'image' is mandatory. Run 'nova image-list' to "\
+            "print a list of available images to boot from."
+        exit 1
+    fi
+    if [ -z "$KEYNAME" ]; then
+        error "Argument 'keyname' is mandatory. Run 'nova keypair-list' to "\
+            "print a list of keypairs for a user."
+        exit 1
+    fi
+}
+
+# create a testbed (if necessary), configure ssh, copy ssh key into it,
+# configure sudo, etc.; print a list of "key=value" parameters to stdout on
+# success
+# required: login, hostname, and one of identity or password
+# optional: port, options, capabilities
+open() {
+    # Boot a nova instance and returns its connection parameters
+    [ -n "$SRVNAME" ] || SRVNAME=`mktemp -u adt-nova-XXXXXX`
+    debug "Creating nova instance $SRVNAME ..."
+
+    # cloud-init config to fix broken hostname resolution
+    local cfg=`mktemp`
+    echo "manage_etc_hosts: true" > $cfg
+
+    # Boot the instance
+    OUT=$(nova boot --flavor $FLAVOR --key_name $KEYNAME \
+        --file /etc/cloud/cloud.cfg.d/01manage_hosts.cfg=$cfg \
+        --image $IMAGE --poll $SRVNAME 2>&1) || {
+        error "nova boot failed:"
+        error "$OUT"
+        exit 1
+    }
+    debug "Nova boot succeeded"
+    rm $cfg
+
+    if [ -n "$ASSOCIATE_IP" ]; then
+        OUT=$(nova floating-ip-create)
+        debug "requested floating IP:"
+        debug "$OUT"
+        FLOATING_IP=$(echo "$OUT" | grep -Eo '([0-9]+\.){3}[0-9]+')
+        ipaddr="$FLOATING_IP"
+        debug "got IP: $ipaddr"
+
+        nova floating-ip-associate $SRVNAME $ipaddr || {
+            error "failed to associate IP, deleting instance"
+            cleanup
+            exit 1
+        }
+        EXTRAOPTS="--floating-ip $ipaddr"
+    else
+        # Find IP address
+        ipaddr=""
+        retry=6
+        while [ -z "$ipaddr" ]; do
+            OUT=$(nova show --minimal $SRVNAME)
+            ipaddr=$(echo "$OUT" | gawk 'BEGIN {FS="|"} /network/ {n=split($3,i,/,\s*/); gsub(" ", "", i[n]); print i[n]}')
+            retry=$(( retry - 1 ))
+            if [ $retry -le 0 ]; then
+                error "Failed to acquire an IP address. Aborting!"
+                error "$OUT"
+                cleanup
+                exit 1
+            fi
+            sleep 3
+        done
+        debug "Finding IP address succeeded: $ipaddr"
+        EXTRAOPTS=""
+    fi
+
+    # purge the device host key so that SSH doesn't print a scary warning
+    ssh-keygen -f ~/.ssh/known_hosts -R $ipaddr >/dev/null 2>&1
+
+    cat<<EOF
+login=$SSH_USER
+hostname=$ipaddr
+capabilities=$CAPABILITIES
+extraopts=-n $SRVNAME $EXTRAOPTS
+EOF
+    if [ -n "$SUDO_PASSWORD" ]; then
+        echo "password=$SUDO_PASSWORD"
+    fi
+}
+
+cleanup() {
+    if [ -z "$SRVNAME" ]; then
+        error "Cannot determine server name. Instance won't be deleted!"
+        exit 0
+    fi
+
+    nova delete $SRVNAME || true
+
+    # clean up floating IP
+    if [ -n "$FLOATING_IP" ]; then
+        nova floating-ip-delete $FLOATING_IP
+    fi
+}
+
+revert() {
+    echo "revert not implemented" >&2
+    exit 1
+}
+
+reboot() {
+    if [ -z "$SRVNAME" ]; then
+        error "Cannot determine server name. Instance won't be rebooted!"
+        exit 1
+    fi
+
+    nova reboot --poll $SRVNAME >/dev/null 2>&1||true
+}
+
+# ########################################
+# Main procedure
+#
+if [ $# -eq 0 ]; then
+    error "Invalid number of arguments, command is missing"
+    exit 1
+fi
+cmd=$(echo $1|tr [[:upper:]] [[:lower:]])
+shift
+parse_args "$@"
+
+case $cmd in
+    open)
+        open;;
+    cleanup)
+        cleanup;;
+    revert)
+        revert;;
+    reboot)
+        reboot;;
+    '')
+        echo "Needs to be called with command as first argument" >&2
+        exit 1
+        ;;
+    *)
+        echo "invalid command $cmd" >&2
+        exit 1
+esac
