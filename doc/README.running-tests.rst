@@ -116,7 +116,13 @@ specifying tests and packages, so it is merely abbreviated as
 
    Note that for this you need to specify a virt-server which has
    "click" itself and the click app's required framework already
-   installed.
+   installed. To run this on an actual Ubuntu phone, you can use the SSH
+   testbed server:
+
+   ::
+
+     adt-run ubuntu-calculator-app/ com.ubuntu.calculator_1.3.283_all.click \
+       --- ssh -s /usr/share/autopkgtest/ssh-setup/adb
 
    If you aren't running the test on an Ubuntu touch device, you can
    approximate the environment in a normal schroot/LXC/QEMU testbed with
@@ -241,5 +247,19 @@ chroot
 Run tests in the specified chroot. You need to call adt-run as root for
 this. There is no automatic cleanup or revert for the chroot, so unless
 you can provide this by some other means, don't use this.
+
+ssh
+~~~
+::
+
+    adt-run ... --- ssh -l joe -h testhost.example.com
+
+This is a generic runner for an externally set up testbed which assumes
+nothing else than a working ssh connection. This can call a "setup
+script" to create/configure a testbed (such as spinning up a cloud VM
+with nova or setting up SSH on a phone through ADB). See the manpage for
+details. autopkgtest ships setup scripts for an adb host (mostly for
+Ubuntu Touch) and for nova currently, see their comment headers in
+``/usr/share/autopkgtest/ssh-setup/``.
 
 ..  vim: ft=rst tw=72
