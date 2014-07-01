@@ -57,6 +57,7 @@ class AdtTestCase(unittest.TestCase):
 
         temp_home = os.path.join(self.workdir, 'home')
         shutil.copytree(os.path.join(test_dir, 'home'), temp_home)
+        os.chmod(os.path.join(temp_home, '.ssh', 'id_rsa'), 0o600)
         os.environ['HOME'] = temp_home
 
     def build_src(self, test_control, test_scripts):
@@ -2479,6 +2480,241 @@ simple               PASS
             [self.schroot_name])
         self.assertEqual(code, 0, err)
         self.assertRegex(out, 't\s+PASS', out)
+
+
+@unittest.skipUnless('ADT_TEST_LXC' in os.environ,
+                     'Set $ADT_TEST_LXC to an existing container')
+class SshRunnerNoScript(AdtTestCase):
+    def __init__(self, *args, **kwargs):
+        super(SshRunnerNoScript, self).__init__('ssh', *args, **kwargs)
+        self.info = {}
+
+    def start_container(self, install_key=True, sudo=False, sudo_nopwd=False):
+        '''Set up container with SSH'''
+
+        cmd = [os.path.join(test_dir, 'ssh-setup-lxc')]
+        if install_key:
+            cmd.append('-k')
+        if sudo_nopwd:
+            cmd.append('-S')
+        elif sudo:
+            cmd.append('-s')
+        cmd += ['open', os.environ.get('ADT_TEST_LXC')]
+        out = subprocess.check_output(cmd, universal_newlines=True)
+        for l in out.splitlines():
+            (k, v) = l.split('=', 1)
+            self.info[k] = v
+
+    def tearDown(self):
+        if self.info:
+            subprocess.call([os.path.join(test_dir, 'ssh-setup-lxc'), 'cleanup']
+                            + self.info['extraopts'].split())
+            self.info = {}
+
+    def test_no_root(self):
+        '''no root'''
+
+        self.start_container()
+
+        p = self.build_src('Tests: pass\nDepends:\nRestrictions: allow-stderr\n\n'
+                           'Tests: rootonly\nDepends:\nRestrictions: needs-root',
+                           {'pass': '#!/bin/sh\necho I am fine >&2\necho babble\nwhoami',
+                            'rootonly': '#!/bin/sh\necho NOTME>&2; exit 1'})
+
+        (code, out, err) = self.adt_run(
+            ['-d', '-B', p + '//'],
+            ['-d', '-H', self.info['hostname'], '-l', self.info['login'], '-i', self.info['identity']])
+        self.assertEqual(code, 2, err)
+        self.assertRegex(out, 'pass\s+PASS', out)
+        self.assertRegex(out, 'rootonly\s+SKIP.*needs root', out)
+
+        # should show test stdout/err
+        self.assertIn('babble\nadt_test\n', out)
+        self.assertIn('\nI am fine\n', err)
+        self.assertRegex(err, 'adt-run \[[0-9: -]+\]: test pass: --')
+
+        # no root
+        self.assertIn('testbed capabilities: [', err)
+        self.assertNotRegex(err, 'testbed capabilities:.*root-on-testbed')
+
+    def test_with_root(self):
+        '''with root'''
+
+        self.start_container(sudo=True)
+
+        p = self.build_src('Tests: pass\nDepends:\nRestrictions: needs-root',
+                           {'pass': '#!/bin/sh\necho hello\nwhoami'})
+
+        (code, out, err) = self.adt_run(
+            ['-d', '-B', p + '//'],
+            ['-d', '-H', self.info['hostname'], '-l', self.info['login'],
+             '-i', self.info['identity'], '-P', self.info['password']])
+        self.assertEqual(code, 0, out + err)
+        self.assertRegex(out, 'pass\s+PASS', out)
+
+        self.assertIn('hello\nroot\n', out)
+
+        # has root
+        self.assertRegex(err, 'testbed capabilities: \[.*root-on-testbed')
+
+    def test_passwordless_sudo(self):
+        '''sudo without password'''
+
+        self.start_container(sudo_nopwd=True)
+
+        p = self.build_src('Tests: pass\nDepends:\nRestrictions: needs-root',
+                           {'pass': '#!/bin/sh\necho hello\nwhoami'})
+
+        (code, out, err) = self.adt_run(
+            ['-d', '-B', p + '//'],
+            ['-d', '-H', self.info['hostname'], '-l', self.info['login'], '-i', self.info['identity']])
+        self.assertEqual(code, 0, out + err)
+        self.assertRegex(out, 'pass\s+PASS', out)
+
+        self.assertIn('hello\nroot\n', out)
+
+        # has root
+        self.assertRegex(err, 'testbed capabilities: \[.*root-on-testbed')
+
+    @unittest.skip('ssh password auth is not implemented')
+    def test_password(self):
+        '''no root, password auth'''
+
+        self.start_container(install_key=False)
+
+        p = self.build_src('Tests: pass\nDepends:\nRestrictions: allow-stderr',
+                           {'pass': '#!/bin/sh\necho I am fine >&2\necho babble'})
+
+        (code, out, err) = self.adt_run(
+            ['-d', '-B', p + '//'],
+            ['-d', '-H', self.info['hostname'], '-l', self.info['login'], '-P', self.info['password']])
+        self.assertEqual(code, 0, err)
+        self.assertRegex(out, 'pass\s+PASS', out)
+
+        # should show test stdout/err
+        self.assertIn('babble\n', out)
+        self.assertRegex(err, '-+\nI am fine\nadt-run \[[0-9: -]+\]: test pass: --')
+
+        # no root
+        self.assertIn('testbed capabilities: [', err)
+        self.assertNotRegex(err, 'testbed capabilities:.*root-on-testbed')
+
+
+@unittest.skipUnless('ADT_TEST_LXC' in os.environ,
+                     'Set $ADT_TEST_LXC to an existing container')
+class SshRunnerWithScript(AdtTestCase):
+    def __init__(self, *args, **kwargs):
+        super(SshRunnerWithScript, self).__init__('ssh', *args, **kwargs)
+        self.container_template = os.environ.get('ADT_TEST_LXC')
+        self.script = os.path.join(test_dir, 'ssh-setup-lxc')
+
+    def test_no_root(self):
+        '''no root'''
+
+        p = self.build_src('Tests: pass\nDepends:\nRestrictions: allow-stderr\n\n'
+                           'Tests: rootonly\nDepends:\nRestrictions: needs-root',
+                           {'pass': '#!/bin/sh\necho I am fine >&2\necho babble\nwhoami',
+                            'rootonly': '#!/bin/sh\necho NOTME>&2; exit 1'})
+
+        (code, out, err) = self.adt_run(['-d', '-B', p + '//'],
+                                        ['-ds', self.script, '--', '-k', self.container_template])
+        self.assertEqual(code, 2, err)
+        self.assertRegex(out, 'pass\s+PASS', out)
+        self.assertRegex(out, 'rootonly\s+SKIP.*needs root', out)
+
+        # should show test stdout/err
+        self.assertIn('babble\nadt_test\n', out)
+        self.assertIn('\nI am fine\n', err)
+        self.assertRegex(err, 'adt-run \[[0-9: -]+\]: test pass: --')
+
+        # no root
+        self.assertIn('testbed capabilities: [', err)
+        self.assertNotRegex(err, 'testbed capabilities:.*root-on-testbed')
+
+    def test_with_root(self):
+        '''with root'''
+
+        p = self.build_src('Tests: pass\nDepends:\nRestrictions: needs-root',
+                           {'pass': '#!/bin/sh\necho hello\nwhoami'})
+
+        (code, out, err) = self.adt_run(['-d', '-B', p + '//'],
+                                        ['-ds', self.script, '--', '-ks', self.container_template])
+        self.assertEqual(code, 0, out + err)
+        self.assertRegex(out, 'pass\s+PASS', out)
+
+        self.assertIn('hello\nroot\n', out)
+
+        # has root
+        self.assertRegex(err, 'testbed capabilities: \[.*root-on-testbed')
+
+    def test_passwordless_sudo(self):
+        '''sudo without password'''
+
+        p = self.build_src('Tests: pass\nDepends:\nRestrictions: needs-root',
+                           {'pass': '#!/bin/sh\necho hello\nwhoami'})
+
+        (code, out, err) = self.adt_run(['-d', '-B', p + '//'],
+                                        ['-ds', self.script, '--', '-kS', self.container_template])
+        self.assertEqual(code, 0, out + err)
+        self.assertRegex(out, 'pass\s+PASS', out)
+
+        self.assertIn('hello\nroot\n', out)
+
+        # has root
+        self.assertRegex(err, 'testbed capabilities: \[.*root-on-testbed')
+
+    @unittest.skip('ssh password auth is not implemented')
+    def test_password(self):
+        '''no root, password auth'''
+
+        self.start_container(install_key=False)
+
+        p = self.build_src('Tests: pass\nDepends:\nRestrictions: allow-stderr',
+                           {'pass': '#!/bin/sh\necho I am fine >&2\necho babble'})
+
+        (code, out, err) = self.adt_run(['-d', '-B', p + '//'],
+                                        ['-ds', self.script, '--', self.container_template])
+        self.assertEqual(code, 0, err)
+        self.assertRegex(out, 'pass\s+PASS', out)
+
+        # should show test stdout/err
+        self.assertIn('babble\n', out)
+        self.assertRegex(err, '-+\nI am fine\nadt-run \[[0-9: -]+\]: test pass: --')
+
+        # no root
+        self.assertIn('testbed capabilities: [', err)
+        self.assertNotRegex(err, 'testbed capabilities:.*root-on-testbed')
+
+    def test_apt_source(self):
+        '''apt source'''
+
+        (code, out, err) = self.adt_run(['libpng'],
+                                        ['-s', self.script, '--', '-ks', self.container_template])
+        self.assertEqual(code, 0, out + err)
+        self.assertRegex(out, 'build\s+PASS', out)
+
+    def test_click_root(self):
+        '''click source, with root'''
+
+        env = os.environ.copy()
+        env['ADT_CLICK_NO_FRAMEWORK_CHECK'] = '1'
+        (code, out, err) = self.adt_run(
+            ['-d',
+             '--setup-commands', 'apt-get install -y --no-install-recommends click',
+             os.path.join(test_dir, 'testclick'),
+             os.path.join(test_dir, 'testclick_0.1_all.click')],
+            ['-s', self.script, '--', '-sk', self.container_template],
+            env=env)
+        self.assertEqual(code, 4, err)
+
+        # one test (broken) should fail, the others succeed
+        self.assertRegex(out, 'inst\s+PASS')
+        self.assertRegex(out, 'serr\s+PASS')
+        self.assertRegex(out, 'shell\s+PASS')
+        self.assertRegex(out, 'simple\s+PASS')
+        self.assertRegex(out, 'broken\s+FAIL stderr: Bad Things!')
+
+        self.assertIn('python3-evdev', err)
 
 
 if __name__ == '__main__':

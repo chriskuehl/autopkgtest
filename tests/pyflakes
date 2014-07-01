@@ -12,6 +12,6 @@ rootdir="$(dirname $testdir)"
 
 pyflakes $rootdir/lib $rootdir/runner/adt-run $testdir/adt-run $testdir/testdesc $rootdir/tools/adt-buildvm-ubuntu-cloud
 
-for v in chroot null schroot lxc qemu; do
+for v in chroot null schroot lxc qemu ssh; do
     pyflakes $rootdir/virt-subproc/adt-virt-$v
 done
