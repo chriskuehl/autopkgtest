@@ -58,7 +58,7 @@ htmlfiles =	$(patsubst %.rst,%.html,$(rstfiles))
 all: $(htmlfiles)
 
 install:
-	$(INSTALL_DIRS) $(bindir) $(docdir) $(man1dir) $(pythondir) $(datadir)/setup-commands
+	$(INSTALL_DIRS) $(bindir) $(docdir) $(man1dir) $(pythondir) $(datadir)/setup-commands $(datadir)/ssh-setup
 	set -e; for f in $(programs); do \
 		$(INSTALL_PROG) $$f $(bindir); \
 		test ! -f $$f.1 || $(INSTALL_DATA) $$f.1 $(man1dir); \
@@ -68,6 +68,7 @@ install:
 	$(INSTALL_DATA) CREDITS $(docdir)
 	$(INSTALL_DATA) $(rstfiles) $(htmlfiles) $(docdir)
 	$(INSTALL_DATA) setup-commands/*[!~] $(datadir)/setup-commands
+	$(INSTALL_DATA) ssh-setup/*[!~] $(datadir)/ssh-setup
 
 clean:
 	rm -f */*.pyc

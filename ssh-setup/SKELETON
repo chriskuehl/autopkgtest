@@ -1,0 +1,67 @@
+#!/bin/sh
+# Skeleton for an adt-virt-ssh setup script that configures a testbed.
+# See man adt-virt-ssh for details.
+
+set -e
+
+# add testbed capabilities here (possibly dynamically), see
+# doc/README.virtualisation-server.rst
+CAPABILITIES='isolation-machine'
+
+SUDO_PASSWORD=''
+
+# create a testbed (if necessary), configure ssh, copy ssh key into it,
+# configure sudo, etc.; print a list of "key=value" parameters to stdout on
+# success
+# required: login, hostname
+# optional: identity, password, port, options, capabilities, extraopts
+# see adt-virt-ssh(1) for details
+open() {
+    cat<<EOF
+login=<username>
+hostname=<host>
+capabilities=$CAPABILITIES
+identity=$HOME/.ssh/id_rsa
+extraopts="<additional args to pass to the script with other commands>"
+EOF
+    if [ -n "$SUDO_PASSWORD" ]; then
+        echo "password=$SUDO_PASSWORD"
+    fi
+}
+
+# called when closing the testbed; should revert/remove things installed in
+# open() if the testbed is not ephemeral
+cleanup() {
+    exit 0
+}
+
+# only needs implement this if CAPABILITIES offers "revert"
+revert() {
+    echo "revert not implemented" >&2
+    exit 1
+}
+
+# only needs to handle this if CAPABILITIES offers "reboot"
+reboot() {
+    echo "reboot not implemented" >&2
+    exit 1
+}
+
+case "$1" in
+    open)
+        open $@;;
+    cleanup)
+        cleanup $@;;
+    revert)
+        revert $@;;
+    reboot)
+        reboot $@;;
+    '')
+        echo "Needs to be called with command as first argument" >&2
+        exit 1
+        ;;
+    *)
+        echo "invalid command $1" >&2
+        exit 1
+        ;;
+esac
