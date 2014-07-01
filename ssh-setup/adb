@@ -1,0 +1,171 @@
+#!/bin/sh
+
+# adb.ssh is part of autopkgtest
+# autopkgtest is a tool for testing Debian binary packages
+#
+# This script sets up an ssh connection to an adb host. If that adb host is an
+# Ubuntu Touch system, it also does some extra configuration like disabling the
+# screen timeout and allowing Autopilot to introspect running apps.
+#
+# Options:
+# -w/--rw     Switch the device to read/write mode
+# -s serial | --serial=serial
+#             Serial  ID  of  the device as returned by adb devices -l when
+#             several devices are connected to the same host.
+#
+#
+# autopkgtest is Copyright (C) 2006-2014 Canonical Ltd.
+#
+# Author: Jean-Baptiste Lallement <jean-baptiste.lallement@canonical.com>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+#
+# See the file CREDITS for a full list of credits information (often
+# installed as /usr/share/doc/autopkgtest/CREDITS).
+set -e
+
+SSH_USER=phablet
+SUDO_PASSWORD=phablet
+CAPABILITIES='isolation-machine'
+
+debug() {
+    echo "$@">/dev/stderr
+}
+
+open() {
+    # Setup a connection to an adb device
+    # - Configure ssh connection
+    # - optionally ount device RW
+    ADBOPTS=""
+    RWCMD=""
+
+    SHORTOPTS="l:,P:,s:,w"
+    LONGOPTS="login:,serial:,rw"
+
+    TEMP=$(getopt -o $SHORTOPTS --long $LONGOPTS -- "$@")
+    eval set -- "$TEMP"
+
+    while true; do
+        case "$1" in
+            -l|--login)
+                SSH_USER=$2
+                shift 2;;
+            -s|--serial)
+                ADBOPTS="$ADBOPTS -s $2"
+                shift 2;;
+            -w|--rw)
+                RWCMD="mount -o rw,remount /"
+                shift;;
+            --)
+                shift;
+                break;;
+            *)
+                debug "E: $(basename $0): Unsupported option $1"
+                exit 1;;
+        esac
+    done
+
+    adb $ADBOPTS wait-for-device
+
+    # Configure SSH
+    adb $ADBOPTS shell start ssh
+    for port in `seq 2222 2299`; do
+        adb $ADBOPTS forward tcp:$port tcp:22 && break
+    done
+
+    # Purge the device host key so that SSH doesn't print a scary warning about it
+    # (it changes every time the device is reflashed and this is expected)
+    ssh-keygen -f ~/.ssh/known_hosts -R [localhost]:$PORT 2>/dev/null
+
+    # Copy your ssh id down to the device so you never need a password.
+    if [ ! -e ~/.ssh/id_rsa.pub ] || [ ! -e ~/.ssh/id_rsa ]; then
+        echo "~/.ssh/id_rsa.pub or ~/.ssh/id_rsa do not exist. Please generate a key" >&2
+        exit 1
+    fi
+    script=$(mktemp /tmp/$(basename $0).XXXXXX)
+    adb $ADBOPTS push ~/.ssh/id_rsa.pub /home/$SSH_USER/.ssh/authorized_keys
+    cat>$script <<EOF
+# Set right permissions
+chown $SSH_USER:$SSH_USER -R /home/$SSH_USER/.ssh/
+chmod 700 /home/$SSH_USER/.ssh
+chmod 600 /home/$SSH_USER/.ssh/authorized_keys
+
+$RWCMD
+EOF
+
+    adb $ADBOPTS push $script /tmp
+    adb $ADBOPTS shell sh $script
+    adb $ADBOPTS shell rm $script
+    rm $script
+
+    cat<<EOF
+login=$SSH_USER
+hostname=localhost
+port=$port
+capabilities=$CAPABILITIES
+identity=$HOME/.ssh/id_rsa
+EOF
+    if [ -n "$SUDO_PASSWORD" ]; then
+        echo "password=$SUDO_PASSWORD"
+    fi
+
+    # special setup on Ubuntu images,
+    SYSTEM_IMAGE=$(adb shell 'system-image-cli -i 2>/dev/null')
+    if [ "${SYSTEM_IMAGE#*ubuntu}" != "$SYSTEM_IMAGE" ]; then
+        # disable screen dimming; ugly, but pretty much everything else hangs forever
+        echo 'bash -c "powerd-cli display on bright & disown"' | adb shell &
+        P=$!
+        sleep 0.3
+        kill $P
+
+        # allow autopilot to introspect programs
+        adb shell "aa-clickhook -f --include=/usr/share/autopilot-touch/apparmor/click.rules"
+    fi
+}
+
+revert() {
+    return
+}
+
+reboot() {
+    return
+}
+
+cleanup() {
+    adb shell pkill powerd-cli
+}
+
+if [ -z "$1" ]; then
+    echo "Needs to be called with command as first argument" >&2
+    exit 1
+fi
+
+cmd=$(echo "$1"|tr [[:upper:]] [[:lower:]])
+shift
+
+case $cmd in
+    open)
+        open $@;;
+    revert)
+        revert $@;;
+    reboot)
+        reboot $@;;
+    cleanup)
+        cleanup $@;;
+    *)
+        echo "invalid command $cmd" >&2
+        exit 1
+        ;;
+esac
