@@ -1247,12 +1247,14 @@ Restrictions: needs-root
         apt_dir = os.path.join(self.chroot, 'etc', 'apt')
         with open(os.path.join(apt_dir, 'sources.list'), 'w') as f:
             f.write('''# comment
-deb http://my.distro/ fluffy-updates main non-free
-deb-src http://my.distro/ fluffy-updates main non-free
-deb http://my.distro/ fluffy main non-free
-deb-src http://my.distro/ fluffy main non-free
-deb http://my.distro/ fluffy extras
-deb-src http://my.distro/ fluffy extras
+deb http://foo.ubuntu.com/ fluffy-updates main non-free
+deb-src http://foo.ubuntu.com/ fluffy-updates main non-free
+deb http://foo.ubuntu.com/ fluffy main non-free
+deb-src http://foo.ubuntu.com/ fluffy main non-free
+deb http://bar.debian.org/ fluffy extras
+deb-src http://bar.debian.org/ fluffy extras
+# third-party repo
+deb http://something.else.net/ fluffy addons
 ''')
 
         (code, out, err) = self.adt_run(['-B', '-d', '--unbuilt-tree=' + p,
@@ -1265,10 +1267,10 @@ deb-src http://my.distro/ fluffy extras
 
         # verify proposed.list
         with open(os.path.join(apt_dir, 'sources.list.d', 'proposed.list')) as f:
-            self.assertEqual(f.read(), '''deb http://my.distro/ fluffy-proposed main non-free
-deb-src http://my.distro/ fluffy-proposed main non-free
-deb http://my.distro/ fluffy-proposed extras
-deb-src http://my.distro/ fluffy-proposed extras
+            self.assertEqual(f.read(), '''deb http://foo.ubuntu.com/ fluffy-proposed main non-free
+deb-src http://foo.ubuntu.com/ fluffy-proposed main non-free
+deb http://bar.debian.org/ fluffy-proposed extras
+deb-src http://bar.debian.org/ fluffy-proposed extras
 ''')
 
     def test_isolation(self):
