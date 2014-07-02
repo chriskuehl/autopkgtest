@@ -10,6 +10,7 @@ import io
 try:
     # Python >= 3.3
     from unittest.mock import patch
+    patch  # pyflakes
 except ImportError:
     # fall back to separate package
     from mock import patch
