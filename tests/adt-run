@@ -726,7 +726,7 @@ rm $TMPDIR/rootowned.txt $TMPDIR/world.txt
 
         (code, out, err) = self.adt_run(['--no-built-binaries', '--unbuilt-tree=' + p])
         # test should be skipped as null runner doesn't provide revert
-        self.assertEqual(code, 2)
+        self.assertEqual(code, 2, err)
         self.assertRegex(out, 'rambo\s+SKIP Test breaks testbed')
         self.assertNotIn(out, 'no tests')
         self.assertFalse(os.path.exists('/var/tmp/zap'))
