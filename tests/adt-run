@@ -1312,6 +1312,31 @@ deb-src http://bar.debian.org/ fluffy-proposed extras
         self.assertEqual(code, 8, err)
         self.assertRegex(out, 'SKIP no tests in this package', out)
 
+    def test_override_control(self):
+        '''custom control file path with --override-control'''
+
+        p = self.build_src('Tests: NOTME\nDepends: nonexisting\nRestrictions: breaks-testbed\n',
+                           {'pass': '#!/bin/sh\necho I am fine\n'})
+
+        custom_control = os.path.join(self.workdir, 'adtctrl')
+        with open(custom_control, 'w') as f:
+            f.write('Tests: pass\nDepends:\nRestrictions: needs-root')
+
+        (code, out, err) = self.adt_run(['-B', '--override-control=' + custom_control, p + '//'],
+                                        [self.chroot])
+        # test should succeed
+        self.assertEqual(code, 0, err)
+        self.assertRegex(out, 'pass\s+PASS', out)
+
+        # should show test stdout
+        self.assertRegex(out, '^I am fine\n')
+        # should not have any test stderr
+        self.assertNotIn(' stderr ', err)
+
+        # should not try anything with the bad test
+        self.assertNotIn('NOTME', out)
+        self.assertNotIn('NOTME', err)
+
 
 @unittest.skipUnless('ADT_TEST_SCHROOT' in os.environ,
                      'Set $ADT_TEST_SCHROOT to an existing schroot')

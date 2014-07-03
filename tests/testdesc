@@ -321,6 +321,25 @@ class Debian(unittest.TestCase):
         adtlog.report.assert_called_once_with(
             't', 'SKIP Test needs root on testbed which is not available')
 
+    def test_custom_control_path(self):
+        '''custom control file path'''
+
+        os.makedirs(os.path.join(self.pkgdir, 'stuff'))
+        c_path = os.path.join(self.pkgdir, 'stuff', 'adtctrl')
+        with open(c_path, 'w') as f:
+            f.write('Tests: one\nDepends: foo')
+
+        (ts, skipped) = testdesc.parse_debian_source(self.pkgdir, [],
+                                                     control_path=c_path)
+        self.assertEqual(len(ts), 1)
+        t = ts[0]
+        self.assertEqual(t.name, 'one')
+        self.assertEqual(t.path, 'debian/tests/one')
+        self.assertEqual(t.restrictions, [])
+        self.assertEqual(t.features, [])
+        self.assertEqual(t.depends, ['foo'])
+        self.assertFalse(skipped)
+
 
 class Click(unittest.TestCase):
     def setUp(self):
