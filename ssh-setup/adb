@@ -9,6 +9,8 @@
 #
 # Options:
 # -w/--rw     Switch the device to read/write mode
+# -r/--reset  Do a factory reset of the device before running the test
+#             (Available on Ubuntu Phone only)
 # -s serial | --serial=serial
 #             Serial  ID  of  the device as returned by adb devices -l when
 #             several devices are connected to the same host.
@@ -48,12 +50,13 @@ fi
 open() {
     # Setup a connection to an adb device
     # - Configure ssh connection
-    # - optionally ount device RW
+    # - optionally mount device RW
     ADBOPTS=""
     RWCMD=""
+    RESET=""
 
-    SHORTOPTS="l:,P:,s:,w"
-    LONGOPTS="login:,serial:,rw"
+    SHORTOPTS="l:,P:,s:,w,r"
+    LONGOPTS="login:,serial:,rw,reset,no-reset"
 
     TEMP=$(getopt -o $SHORTOPTS --long $LONGOPTS -- "$@")
     eval set -- "$TEMP"
@@ -69,6 +72,14 @@ open() {
             -w|--rw)
                 RWCMD="mount -o rw,remount /"
                 shift;;
+            -r|--reset)
+                RESET="1"
+                shift;;
+            # passed in "extraopts" so that --reset is only applied once, not
+            # in between tests that call "revert"
+            --no-reset)
+                RESET=""
+                shift;;
             --)
                 shift;
                 break;;
@@ -79,6 +90,19 @@ open() {
     done
 
     wait_booted
+
+    # special setup on Ubuntu images
+    SYSTEM_IMAGE=$(adb $ADBOPTS shell 'system-image-cli -i 2>/dev/null')
+    if [ "${SYSTEM_IMAGE#*ubuntu}" != "$SYSTEM_IMAGE" ]; then
+        if [ -n "$RESET" ]; then
+            revert
+        else
+            ubuntu_prepare_config
+            ubuntu_prepare_for_testing
+        fi
+        CAPABILITIES="$CAPABILITIES revert"
+    fi
+
 
     # Configure SSH
     adb $ADBOPTS shell start ssh
@@ -111,14 +135,6 @@ EOF
     adb $ADBOPTS shell rm $script
     rm $script
 
-    # special setup on Ubuntu images
-    SYSTEM_IMAGE=$(adb $ADBOPTS shell 'system-image-cli -i 2>/dev/null')
-    if [ "${SYSTEM_IMAGE#*ubuntu}" != "$SYSTEM_IMAGE" ]; then
-        ubuntu_prepare_config
-        ubuntu_prepare_for_testing
-        CAPABILITIES="$CAPABILITIES revert"
-    fi
-
     # print info for adt-virt-ssh
     cat<<EOF
 login=$SSH_USER
@@ -126,6 +142,7 @@ hostname=localhost
 port=$port
 capabilities=$CAPABILITIES
 identity=$HOME/.ssh/id_rsa
+extraopts=--no-reset
 EOF
     if [ -n "$SUDO_PASSWORD" ]; then
         echo "password=$SUDO_PASSWORD"
@@ -133,7 +150,7 @@ EOF
 }
 
 wait_booted() {
-    echo "Waiting for device ADB to come back..." >&2
+    echo "Waiting for device ADB to appear..." >&2
     adb $ADBOPTS wait-for-device
 }
 
@@ -198,6 +215,7 @@ ubuntu_prepare_for_testing() {
 
 revert() {
     # revert is only offered on Ubuntu images
+    echo "Performing factory reset, this will take a minute..." >&2
 
     # save current network connections
     local network_tar=$(mktemp)
