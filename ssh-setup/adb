@@ -38,11 +38,12 @@ set -e
 
 SSH_USER=phablet
 SUDO_PASSWORD=phablet
-CAPABILITIES='isolation-machine'
+CAPABILITIES='isolation-machine reboot'
 
-debug() {
-    echo "$@">/dev/stderr
-}
+# allow using lp:phablet-tools from a checkout
+if [ -n "$PHABLET_TOOLS_PATH" ]; then
+    export PATH="$PHABLET_TOOLS_PATH:$PATH"
+fi
 
 open() {
     # Setup a connection to an adb device
@@ -72,12 +73,12 @@ open() {
                 shift;
                 break;;
             *)
-                debug "E: $(basename $0): Unsupported option $1"
+                echo "E: $(basename $0): Unsupported option $1" >&2
                 exit 1;;
         esac
     done
 
-    adb $ADBOPTS wait-for-device
+    wait_booted
 
     # Configure SSH
     adb $ADBOPTS shell start ssh
@@ -110,6 +111,15 @@ EOF
     adb $ADBOPTS shell rm $script
     rm $script
 
+    # special setup on Ubuntu images
+    SYSTEM_IMAGE=$(adb $ADBOPTS shell 'system-image-cli -i 2>/dev/null')
+    if [ "${SYSTEM_IMAGE#*ubuntu}" != "$SYSTEM_IMAGE" ]; then
+        ubuntu_prepare_config
+        ubuntu_prepare_for_testing
+        CAPABILITIES="$CAPABILITIES revert"
+    fi
+
+    # print info for adt-virt-ssh
     cat<<EOF
 login=$SSH_USER
 hostname=localhost
@@ -120,31 +130,89 @@ EOF
     if [ -n "$SUDO_PASSWORD" ]; then
         echo "password=$SUDO_PASSWORD"
     fi
+}
 
-    # special setup on Ubuntu images,
-    SYSTEM_IMAGE=$(adb shell 'system-image-cli -i 2>/dev/null')
-    if [ "${SYSTEM_IMAGE#*ubuntu}" != "$SYSTEM_IMAGE" ]; then
-        # disable screen dimming; ugly, but pretty much everything else hangs forever
-        echo 'bash -c "powerd-cli display on bright & disown"' | adb shell &
-        P=$!
-        sleep 0.3
-        kill $P
+wait_booted() {
+    echo "Waiting for device ADB to come back..." >&2
+    adb $ADBOPTS wait-for-device
+}
 
-        # allow autopilot to introspect programs
-        adb shell "aa-clickhook -f --include=/usr/share/autopilot-touch/apparmor/click.rules"
+# configure Ubuntu device for testing
+ubuntu_prepare_config() {
+    if [ -z "$(adb $ADBOPTS shell 'type unity8 2>/dev/null')" ]; then
+        # not an Ubuntu phone
+        return
     fi
+
+    if ! type phablet-config >/dev/null 2>&1; then
+        echo "ERROR: phablet-config not found! Install phablet-tools package or" >&2
+        echo "bzr branch lp:phablet-tools and run with PHABLET_TOOLS_PATH=<checkout dir>" >&2
+        exit 1
+    fi
+
+    echo "Configuring Ubuntu phone for testing..." >&2
+
+    # allow autopilot to introspect programs
+    phablet-config $ADBOPTS autopilot --dbus-probe enable
+
+    # disable first-time wizards
+    phablet-config $ADBOPTS welcome-wizard --disable
+    # this needs accounts-daemon running
+    adb $ADBOPTS shell 'while ! pidof accounts-daemon >/dev/null; do sleep 1; done'
+    phablet-config $ADBOPTS edges-intro --disable
+
+    # TODO: disable greeter
+}
+
+# test run time setup for Ubuntu device
+ubuntu_prepare_for_testing() {
+    if [ -z "$(adb $ADBOPTS shell 'type unity8 2>/dev/null')" ]; then
+        # not an Ubuntu phone
+        return
+    fi
+
+    echo "Preparing Ubuntu phone for running tests..." >&2
+
+    # if welcome wizard is already running, restart unity8
+    adb $ADBOPTS shell "su -c 'pidof system-settings-wizard >/dev/null && kill -9 -1' phablet"
+
+    local timeout=60
+    local extra_wait=0
+    echo "Waiting for desktop to boot" >&2
+    while [ "$timeout" -ge 0 ]; do
+        [ -z "$(adb $ADBOPTS shell 'pidof unity8')" ] || break
+        # unity8 needs a few more seconds to actually be ready if it's not yet
+        # running
+        extra_wait=5
+        timeout=$((timeout -1))
+        sleep 5
+    done
+    sleep $extra_wait
+
+    # disable screen dimming; ugly, but pretty much everything else hangs forever
+    echo 'bash -c "powerd-cli display on bright & disown"' | adb $ADBOPTS shell &
+    P=$!
+    sleep 0.3
+    kill $P
 }
 
 revert() {
-    return
+    # only offered on Ubuntu images
+    adb $ADBOPTS shell 'echo format data > /cache/recovery/ubuntu_command'
+    adb $ADBOPTS reboot recovery
+    wait_booted
+    ubuntu_prepare_config
+    ubuntu_prepare_for_testing
 }
 
 reboot() {
-    return
+    adb $ADBOPTS reboot
+    wait_booted
+    ubuntu_prepare_for_testing
 }
 
 cleanup() {
-    adb shell pkill powerd-cli
+    adb $ADBOPTS shell pkill powerd-cli
 }
 
 if [ -z "$1" ]; then
