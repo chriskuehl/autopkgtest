@@ -197,10 +197,19 @@ ubuntu_prepare_for_testing() {
 }
 
 revert() {
-    # only offered on Ubuntu images
+    # revert is only offered on Ubuntu images
+
+    # save current network connections
+    local network_tar=$(mktemp)
+    adb $ADBOPTS shell tar cPpf /run/netconf.tar /etc/NetworkManager/system-connections
+    adb pull /run/netconf.tar $network_tar
     adb $ADBOPTS shell 'echo format data > /cache/recovery/ubuntu_command'
     adb $ADBOPTS reboot recovery
     wait_booted
+    # restore network connections
+    adb push $network_tar /run/netconf.tar
+    adb shell 'tar xPpf /run/netconf.tar && rm /run/netconf.tar'
+
     ubuntu_prepare_config
     ubuntu_prepare_for_testing
 }
