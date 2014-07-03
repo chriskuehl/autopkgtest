@@ -846,7 +846,6 @@ class ChrootRunner(AdtTestCase):
 
         # build a mini-chroot
         self.chroot = os.path.join(self.workdir, 'chroot')
-        self.addCleanup(shutil.rmtree, self.chroot, ignore_errors=True)
 
         install_file('/usr/bin/which')
         install_elf('/bin/bash')
@@ -874,11 +873,9 @@ class ChrootRunner(AdtTestCase):
         dev_dir = os.path.join(self.chroot, 'dev')
         os.mkdir(dev_dir)
         subprocess.check_call(['mount', '-o', 'bind', '/dev', dev_dir])
-        self.addCleanup(subprocess.call, 'while ! umount %s; do sleep 0.1; done' % dev_dir, shell=True)
         proc_dir = os.path.join(self.chroot, 'proc')
         os.mkdir(proc_dir)
         subprocess.check_call(['mount', '-o', 'bind', '/proc', proc_dir])
-        self.addCleanup(subprocess.call, 'while ! umount %s; do sleep 0.1; done' % proc_dir, shell=True)
 
         # some fakes
         for cmd in ['dpkg', 'dpkg-query', 'apt-get', 'apt-key', 'apt-cache']:
@@ -896,6 +893,12 @@ class ChrootRunner(AdtTestCase):
         os.mkdir(p)
         os.chmod(p, 0o177)
         os.makedirs(os.path.join(self.chroot, 'etc', 'apt', 'sources.list.d'))
+
+    def tearDown(self):
+        # these sometimes fail on EBUSY
+        subprocess.call('while ! umount %s/dev; do sleep 0.1; done' % self.chroot, shell=True)
+        subprocess.call('while ! umount %s/proc; do sleep 0.1; done' % self.chroot, shell=True)
+        subprocess.call('for i in `seq 10`; do rm -rf %s && break; sleep 0.5; done' % self.chroot, shell=True)
 
     def test_tree_norestrictions_nobuild_success(self):
         '''source tree, no build, no restrictions, test success'''
