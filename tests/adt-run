@@ -1749,7 +1749,8 @@ class SchrootRunner(AdtTestCase):
                            {'t': '''#!/bin/sh -e
                                     echo world > ${TMPDIR:=/tmp}/hello.txt
                                     cat $TMPDIR/hello.txt
-                                    whoami'''})
+                                    whoami
+                                    echo "USER: $USER"\n'''})
 
         (code, out, err) = self.adt_run(['--no-built-binaries',
                                          '--unbuilt-tree=' + p,
@@ -1764,7 +1765,7 @@ class SchrootRunner(AdtTestCase):
         self.assertRegex(out, 't\s+PASS', out)
 
         # has output from cat and whoami
-        self.assertRegex(out, '(^|\n)world\nnobody\n')
+        self.assertRegex(out, '(^|\n)world\nnobody\nUSER: nobody\n')
 
     def test_user_needs_root(self):
         '''--user option with needs-root restriction'''
@@ -1773,7 +1774,9 @@ class SchrootRunner(AdtTestCase):
                            {'t': '''#!/bin/sh -e
                                     echo world > ${TMPDIR:=/tmp}/hello.txt
                                     cat $TMPDIR/hello.txt
-                                    whoami'''})
+                                    whoami
+                                    echo "USER: $USER"
+                                 '''})
 
         (code, out, err) = self.adt_run(['--no-built-binaries',
                                          '--unbuilt-tree=' + p,
@@ -1788,7 +1791,7 @@ class SchrootRunner(AdtTestCase):
         self.assertRegex(out, 't\s+PASS', out)
 
         # has output from cat and whoami
-        self.assertRegex(out, '(^|\n)world\nroot\n')
+        self.assertRegex(out, '(^|\n)world\nroot\nUSER: root\n')
 
     def test_breaks_testbed(self):
         '''breaks-testbed restriction'''
@@ -2115,8 +2118,9 @@ class QemuRunner(AdtTestCase):
         '''source tree, no build, no restrictions, test success'''
 
         p = self.build_src('Tests: pass\nDepends: aspell-doc\n',
-                           {'pass': '#!/bin/sh\necho I am fine\n'
-                            '[ -d "$HOME" ] || echo "HOME not set" >&2\n'})
+                           {'pass': '#!/bin/sh -e\necho I am fine\n'
+                            '[ -d "$HOME" ] || echo "HOME not set" >&2\n'
+                            '[ -n "$USER" ] && [ "$USER" != "root" ] || echo "USER invalid: $USER" >&2\n'})
 
         (code, out, err) = self.adt_run(['--no-built-binaries', '--unbuilt-tree=' + p],
                                         [self.image])
@@ -2202,7 +2206,8 @@ class QemuRunner(AdtTestCase):
 
         p = self.build_src('Tests: t\nDepends:\n\nTests: r\nDepends:\nRestrictions: needs-root\n',
                            {'t': '#!/bin/sh -e\n[ -d "$HOME" ] || echo "HOME not set" >&2\n',
-                            'r': '#!/bin/sh -e\n[ -d "$HOME" ] || echo "HOME not set" >&2\n'})
+                            'r': '#!/bin/sh -e\n[ -d "$HOME" ] || echo "HOME not set" >&2\n'
+                                  '[ "$USER" = "root" ] || echo "USER invalid: $USER" >&2\n'})
 
         (code, out, err) = self.adt_run(['-B', '-d', p + '//', '--setup-commands',
                                          'apt-get install --reinstall -y cron'],
