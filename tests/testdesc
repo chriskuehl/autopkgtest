@@ -423,13 +423,61 @@ class Click(unittest.TestCase):
 
         self.assertFalse(skipped)
 
-    def test_autopilot_manual(self):
-        '''manual autopilot test specification'''
+    def test_autopilot_extradeps(self):
+        '''autopilot test specification with extra info'''
+
+        (ts, skipped) = testdesc.parse_click_manifest('''{
+  "name": "foo",
+  "x-test": {
+      "my_ap_test": {
+          "autopilot_module": "foo_tests",
+          "depends": ["extradep1"],
+          "restrictions": ["allow-stderr"]
+      }
+  }
+}''', [], ['/foo/myapp.click'])
+        self.assertEqual(len(ts), 1)
+        self.assertEqual(ts[0].name, 'my_ap_test')
+        self.assertEqual(ts[0].path, None)
+        self.assertIn('PYTHONPATH=', ts[0].command)
+        self.assertIn('autopilot', ts[0].command)
+        self.assertIn('autopilot', ts[0].depends[0])
+        self.assertIn('extradep1', ts[0].depends)
+        self.assertEqual(ts[0].clicks, ['/foo/myapp.click'])
+        self.assertEqual(ts[0].restrictions, ['allow-stderr'])
+        self.assertEqual(ts[0].features, [])
+
+        self.assertFalse(skipped)
+
+    def test_autopilot_manual_simple(self):
+        '''simple manual autopilot test specification'''
 
         (ts, skipped) = testdesc.parse_click_manifest('''{
   "name": "foo",
   "x-test": {
       "autopilot": "tests/run_tests"
+  }
+}''', [], ['/foo/myapp.click'])
+        self.assertEqual(len(ts), 1)
+        self.assertEqual(ts[0].name, "autopilot")
+        self.assertEqual(ts[0].path, "tests/run_tests")
+        self.assertEqual(ts[0].command, None)
+        self.assertEqual(ts[0].clicks, ['/foo/myapp.click'])
+        self.assertEqual(ts[0].depends, [])
+        self.assertEqual(ts[0].restrictions, [])
+        self.assertEqual(ts[0].features, [])
+
+        self.assertFalse(skipped)
+
+    def test_autopilot_manual_complex(self):
+        '''complex manual autopilot test specification'''
+
+        (ts, skipped) = testdesc.parse_click_manifest('''{
+  "name": "foo",
+  "x-test": {
+      "autopilot": {
+          "path": "tests/run_tests"
+      }
   }
 }''', [], ['/foo/myapp.click'])
         self.assertEqual(len(ts), 1)

@@ -75,9 +75,13 @@ path
 command
     (string) Shell command which is passed verbatim to bash
 
-*Exactly one* of either ``path`` or ``command`` must be given for each
-test. All other fields below are optional, and assumed to be empty lists
-of not present.
+autopilot_module
+    (string) Python module name in ``tests/autopilot`` which is an
+    Autopilot test. See below for details.
+
+*Exactly one* of ``path``, ``command``, or ``autopilot_module`` must be
+given for each test. All other fields below are optional, and assumed to
+be empty lists of not present.
 
 depends
     (list of strings) Debian package dependencies. Every list entry is a
@@ -113,22 +117,47 @@ which is equivalent to
         "path": "tests/testscript"
     }
 
-As a special case, if the test name is "autopilot" and the value is a single
-identifier, this must be a Python test module name in
-``tests/autopilot/``. Then the specification
+Autopilot tests
+---------------
+For autopilot tests you can use the ``autopilot_module`` test field,
+which will be interpreted as a Python module name under
+``tests/autopilot``. An appropriate test command and default
+dependencies are automatically provided. Thus a test description
 
 ::
 
-    "autopilot": "foo_tests"
+    "testname": {
+        "autopilot_module": "foo_tests",
+        "depends": ["python3-dateutil"],
+        "restrictions": ["allow-stderr"]
+    }
 
 expands to
 
 ::
 
-    "autopilot": {
+    "testname": {
         "command": "PYTHONPATH=tests/autopilot:$PYTHONPATH python3 -m autopilot.run run foo_tests",
-        "depends": ["ubuntu-ui-toolkit-autopilot", "autopilot-touch"]
-     }
+        "depends": ["ubuntu-ui-toolkit-autopilot", "autopilot-touch", "python3-dateutil"],
+        "restrictions": ["allow-stderr"]
+    }
 
+As a special case, if the test name is "autopilot" and the value is a single
+identifier, it is interpreted as an ``autopilot_module``. Thus the
+description
+
+::
+
+    "autopilot": "foo_tests"
+
+is equivalent to
+
+::
+
+    "autopilot": {
+        "autopilot_module": "foo_tests"
+    }
+
+which further expands to a complete description like above.
 
 ..  vim: ft=rst tw=72
