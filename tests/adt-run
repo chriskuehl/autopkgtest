@@ -2207,7 +2207,7 @@ class QemuRunner(AdtTestCase):
         p = self.build_src('Tests: t\nDepends:\n\nTests: r\nDepends:\nRestrictions: needs-root\n',
                            {'t': '#!/bin/sh -e\n[ -d "$HOME" ] || echo "HOME not set" >&2\n',
                             'r': '#!/bin/sh -e\n[ -d "$HOME" ] || echo "HOME not set" >&2\n'
-                                  '[ "$USER" = "root" ] || echo "USER invalid: $USER" >&2\n'})
+                                 '[ "$USER" = "root" ] || echo "USER invalid: $USER" >&2\n'})
 
         (code, out, err) = self.adt_run(['-B', '-d', p + '//', '--setup-commands',
                                          'apt-get install --reinstall -y cron'],
