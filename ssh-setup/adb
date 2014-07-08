@@ -172,13 +172,26 @@ ubuntu_prepare_config() {
     # allow autopilot to introspect programs
     phablet-config $ADBOPTS autopilot --dbus-probe enable
 
-    # disable first-time wizards
-    phablet-config $ADBOPTS welcome-wizard --disable
+    # disable first-time wizards; these fail due to adb instability from time
+    # to time, so retry
+    for retry in `seq 5`; do
+        if phablet-config $ADBOPTS welcome-wizard --disable; then
+            break
+        else
+            echo "Failed to disable welcome wizard, retrying (attempt $retry)..." >&2
+            sleep 1
+        fi
+    done
     # this needs accounts-daemon running
     adb $ADBOPTS shell 'while ! pidof accounts-daemon >/dev/null; do sleep 1; done'
-    phablet-config $ADBOPTS edges-intro --disable
-
-    # TODO: disable greeter
+    for retry in `seq 5`; do
+        if phablet-config $ADBOPTS edges-intro --disable; then
+            break
+        else
+            echo "Failed to disable edges intro, retrying (attempt $retry)..." >&2
+            sleep 1
+        fi
+    done
 }
 
 # test run time setup for Ubuntu device
