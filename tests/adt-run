@@ -2524,6 +2524,31 @@ simple               PASS
         # warn about restricted functionality
         self.assertIn('will only work for some packages', err)
 
+    def test_click_preinstalled(self):
+        '''already installed click package, temp dir deps'''
+
+        sumfile = os.path.join(self.workdir, 'summary')
+
+        (code, out, err) = self.adt_run(
+            ['-d', '--summary-file', sumfile,
+             '--copy', '%s:/root/testclick.click' % self.click,
+             '--setup-commands', 'click install --all-users /root/testclick.click',
+             '--setup-commands',
+             os.path.join(root_dir, 'setup-commands', 'ro-apt'),
+             self.click_src, '--click', 'testclick'],
+            [self.schroot_name])
+        self.assertEqual(code, 4, err)
+
+        # one test (broken) should fail, the others succeed
+        with open(sumfile) as f:
+            summary = f.read()
+        self.assertEqual(summary, '''broken               FAIL stderr: Bad Things!
+inst                 PASS
+serr                 PASS
+shell                PASS
+simple               PASS
+''')
+
     def test_setup_ubuntu_touch_session(self):
         '''setup-commands/ubuntu-touch-session'''
 

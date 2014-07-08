@@ -23,8 +23,9 @@ Ingredients for Debian packages:
 
 Ingredients for Click packages:
 
-- A binary .click package whose manifest specifies tests and their
-  metadata. See README.click-tests.rst for details.
+- A binary .click package (local ``*.click`` file or already installed)
+  whose manifest specifies tests and their metadata. See
+  README.click-tests.rst for details.
 
 - The corresponding click source package which contains the tests
   defined in the manifest.
@@ -110,7 +111,7 @@ specifying tests and packages, so it is merely abbreviated as
 
    ``adt-run packages/*.changes ---`` *virt-server*
 
--  Run tests for a click package:
+-  Run tests for a locally built click package:
 
    ``adt-run myclickapp/ myclickapp_0.1_all.click ---`` *virt-server*
 
@@ -135,6 +136,10 @@ specifying tests and packages, so it is merely abbreviated as
              myclickapp/ myclickapp_0.1_all.click --- lxc adt-utopic
 
    See the comments in the setup-commands scripts for details.
+
+- Run tests for an already installed click package:
+
+   ``adt-run myclickapp/ --click=com.example.myapp ---`` *virt-server*
 
 Output
 ------
