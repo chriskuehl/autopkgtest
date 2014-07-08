@@ -1242,6 +1242,36 @@ Restrictions: needs-root
 
         self.assertIn('@@@@@@ test bed setup', err)
 
+    def test_copy(self):
+        '''--copy'''
+
+        p = self.build_src('Tests: pass\nDepends:\nRestrictions: needs-root\n',
+                           {'pass': '#!/bin/sh -e\ncp -a /mytestdata/* $ADT_ARTIFACTS\necho test_ok'})
+
+        outdir = os.path.join(self.workdir, 'out')
+        os.mkdir(outdir)
+
+        (code, out, err) = self.adt_run(['-B', '--unbuilt-tree=' + p, '-o', outdir,
+                                         '--copy', '%s:/mytestdata/Makefile' % os.path.join(root_dir, 'Makefile'),
+                                         '--copy', '%s:/mytestdata/tree' % os.path.join(test_dir, 'testpkg')],
+                                        [self.chroot])
+        # test should succeed
+        self.assertEqual(code, 0, err)
+        self.assertRegex(out, 'pass\s+PASS', out)
+        self.assertRegex(out, '^test_ok\n')
+
+        # has copied the file correctly
+        f = os.path.join(outdir, 'artifacts', 'Makefile')
+        self.assertTrue(os.path.isfile(f))
+        with open(f) as fcopy:
+            with open(os.path.join(root_dir, 'Makefile')) as forig:
+                self.assertEqual(forig.read(), fcopy.read())
+
+        # has copied the dir correctly
+        d = os.path.join(outdir, 'artifacts', 'tree')
+        self.assertTrue(os.path.isdir(d))
+        subprocess.check_call(['diff', '-Nur', os.path.join(test_dir, 'testpkg'), d])
+
     def test_apt_pocket(self):
         '''--apt-pocket'''
 
