@@ -9,4 +9,4 @@ for v in chroot null schroot lxc qemu ssh; do
     pep8 --ignore E501 $rootdir/virt-subproc/adt-virt-$v
 done
 
-pep8 --ignore E501 $rootdir/runner/adt-run $testdir/adt-run $testdir/testdesc
+pep8 --ignore E501 $rootdir/runner/adt-run $testdir/adt-run $testdir/testdesc $testdir/run_args

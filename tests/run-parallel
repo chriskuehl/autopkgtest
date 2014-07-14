@@ -8,6 +8,7 @@ set -e
 $MYDIR/pep8
 $MYDIR/pyflakes
 $MYDIR/testdesc
+$MYDIR/run_args
 set +e
 
 # parse out the AdtTestCase classes

@@ -10,7 +10,9 @@ set -e
 testdir="$(dirname $(readlink -f $0))"
 rootdir="$(dirname $testdir)"
 
-pyflakes3 $rootdir/lib $rootdir/runner/adt-run $testdir/adt-run $testdir/testdesc $rootdir/tools/adt-buildvm-ubuntu-cloud
+pyflakes3 $rootdir/lib $rootdir/runner/adt-run $testdir/adt-run \
+    $testdir/testdesc $testdir/run_args \
+    $rootdir/tools/adt-buildvm-ubuntu-cloud
 
 for v in chroot null schroot lxc qemu ssh; do
     pyflakes3 $rootdir/virt-subproc/adt-virt-$v
