@@ -306,7 +306,7 @@ class NullRunner(AdtTestCase):
         p = self.build_src('Tests: pass\nDepends: coreutils\n',
                            {'pass': '#!/bin/sh\necho I am fine\n'})
 
-        (code, out, err) = self.adt_run(['-dB', '--unbuilt-tree=' + p])
+        (code, out, err) = self.adt_run(['-d', '-B', '--unbuilt-tree=' + p])
         # print('----- out ----\n%s\n----- err ----\n%s\n----' % (out, err))
         # test should succeed
         self.assertEqual(code, 0, err)
@@ -526,7 +526,6 @@ rm $TMPDIR/rootowned.txt $TMPDIR/world.txt
         self.assertIn('build needed for tests', contents)
         self.assertIn('dh build', contents)
         self.assertRegex(contents, 'sF\s+FAIL stderr: kaputt')
-        self.assertIn('@@@@ tests done', contents)
         self.assertIn('testing package testpkg version 1\n', contents)
 
         # check test package version
@@ -783,7 +782,7 @@ rm $TMPDIR/rootowned.txt $TMPDIR/world.txt
                            {'r': '#!/bin/sh -e\necho root $LANG',
                             'u': '#!/bin/sh -e\necho user $LANG'})
 
-        (code, out, err) = self.adt_run(['-dB', '--unbuilt-tree=' + p])
+        (code, out, err) = self.adt_run(['-B', '--unbuilt-tree=' + p])
         self.assertEqual(code, 0, err)
 
         # test should succeed
@@ -802,7 +801,7 @@ rm $TMPDIR/rootowned.txt $TMPDIR/world.txt
                            {'r': '#!/bin/sh -e\necho root $LANG',
                             'u': '#!/bin/sh -e\necho user $LANG'})
 
-        (code, out, err) = self.adt_run(['-dB', '--unbuilt-tree=' + p,
+        (code, out, err) = self.adt_run(['-B', '--unbuilt-tree=' + p,
                                          '--set-lang=ab_CD.UTF-8'])
         self.assertEqual(code, 0, err)
 
@@ -1000,7 +999,7 @@ Depends: fancypkg,
 Restrictions: needs-root
 ''', {'pass': '#!/bin/sh\ntrue'})
 
-        (code, out, err) = self.adt_run(['-dB', '--unbuilt-tree=' + p],
+        (code, out, err) = self.adt_run(['-d', '-B', '--unbuilt-tree=' + p],
                                         [self.chroot])
         self.assertEqual(code, 0, err)
         self.assertRegex(out, 'pass\s+PASS')
@@ -1026,7 +1025,7 @@ Restrictions: needs-root
 
         # run this under C locale to test that UTF-8 debian/control is still
         # handled correctly
-        (code, out, err) = self.adt_run(['-dB', '--unbuilt-tree=' + p],
+        (code, out, err) = self.adt_run(['-d', '-B', '--unbuilt-tree=' + p],
                                         [self.chroot], env={'LC_ALL': 'C'})
         self.assertEqual(code, 0, err)
         self.assertRegex(out, 'pass\s+PASS')
@@ -1332,7 +1331,7 @@ deb-src http://bar.debian.org/ fluffy-proposed extras
         self.assertEqual(code, 0, err)
         self.assertRegex(out, 'g\s+PASS', out)
 
-        self.assertRegex(out, '^/tmp/adt-run.*/ubtree0-build/real-tree\n'
+        self.assertRegex(out, '^/tmp/adt-run.*/real-tree\n'
                          'Makefile\ndebian\ntest_static\n')
         # should not have any test stderr
         self.assertNotIn(' stderr ', err)
@@ -1733,7 +1732,6 @@ class SchrootRunner(AdtTestCase):
             contents = f.read()
         self.assertIn('dh build', contents)
         self.assertRegex(contents, 'broken\s+FAIL stderr: kaputt')
-        self.assertIn('@@@@ tests done', contents)
 
         # check test package version
         with open(os.path.join(outdir, 'testpkg-version')) as f:
@@ -2371,7 +2369,7 @@ class QemuRunner(AdtTestCase):
         outdir = os.path.join(self.workdir, 'out')
         (code, out, err) = self.adt_run(['--output-dir=' + outdir,
                                          '--timeout-copy=1',
-                                         '-dB', p + '//'],
+                                         '-B', p + '//'],
                                         [self.image])
 
         # test should time out
@@ -2407,7 +2405,7 @@ class QemuRunner(AdtTestCase):
         outdir = os.path.join(self.workdir, 'out')
         (code, out, err) = self.adt_run(['--output-dir=' + outdir,
                                          '--timeout-copy=6',
-                                         '-dB', p + '//'],
+                                         '-B', p + '//'],
                                         [self.image])
 
         # test should succeed
