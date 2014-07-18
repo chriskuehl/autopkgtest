@@ -2,6 +2,7 @@
 
 import os
 import sys
+import io
 import argparse
 import unittest
 import tempfile
@@ -209,6 +210,27 @@ Files:
             f.write('stuff\n')
         args = self.parse(['--copy', '%s:/setup/stuff.txt' % stuff, './'])[0]
         self.assertEqual(args.copy, [(stuff, '/setup/stuff.txt')])
+
+    def test_help(self):
+        try:
+            out = io.StringIO()
+            sys.stdout = out
+            try:
+                self.parse(['--help'], default_virt=False)
+            finally:
+                sys.stdout = sys.__stdout__
+            self.fail('expected --help to exit')
+        except SystemExit:
+            pass
+        out = out.getvalue()
+        # has description
+        self.assertIn('Test installed bin', out)
+        # has actions
+        self.assertIn('--source', out)
+        # has options
+        self.assertIn('--no-built-binaries', out)
+        # has virt server
+        self.assertIn('---', out)
 
     #
     # Errors
