@@ -52,13 +52,21 @@ Control fields
 The fields which may appear in debian/tests/control stanzas are:
 
 Tests: name-of-test [name-of-another-test ...]
-    This field is mandatory. It names the tests which are defined by
-    this stanza. All of the other fields in the same stanza apply to all
-    of the named tests.
+    This field names the tests which are defined by this stanza, and map
+    to executables/scripts in the test directory. All of the other
+    fields in the same stanza apply to all of the named tests. Either
+    this field or ``Test-Command:`` must be present.
 
     Test names are separated by whitespace and should contain only
     characters which are legal in package names. It is permitted, but
     not encouraged, to use upper-case characters as well.
+
+Test-Command: shell command
+    If your test only contains a shell command or two, or you want to
+    re-use an existing upstream test executable and just need to wrap it
+    with some command like ``dbus-launch`` or ``env``, you can use this
+    field to specify the shell command directly. It will be run under
+    ``bash -e``. This is mutually exclusive with the ``Tests:`` field.
 
 Restrictions: restriction-name [another-restriction-name ...]
     Declares some restrictions or problems with the tests defined in

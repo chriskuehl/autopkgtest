@@ -186,6 +186,7 @@ class Debian(unittest.TestCase):
         t = ts[0]
         self.assertEqual(t.name, 'one')
         self.assertEqual(t.path, 'debian/tests/one')
+        self.assertEqual(t.command, None)
         self.assertEqual(t.restrictions, [])
         self.assertEqual(t.features, [])
         self.assertEqual(t.depends, [])
@@ -339,6 +340,39 @@ class Debian(unittest.TestCase):
         self.assertEqual(t.features, [])
         self.assertEqual(t.depends, ['foo'])
         self.assertFalse(skipped)
+
+    def test_test_command(self):
+        '''single test, test command'''
+
+        (ts, skipped) = self.call_parse('Test-Command: some -t --hing "foo"\nDepends:')
+        self.assertEqual(len(ts), 1)
+        t = ts[0]
+        self.assertEqual(t.name, 'command1')
+        self.assertEqual(t.path, None)
+        self.assertEqual(t.command, 'some -t --hing "foo"')
+        self.assertEqual(t.restrictions, [])
+        self.assertEqual(t.features, [])
+        self.assertEqual(t.depends, [])
+        self.assertFalse(skipped)
+
+    def test_test_command_and_tests(self):
+        '''Both Tests: and Test-Command:'''
+
+        with self.assertRaises(testdesc.InvalidControl) as cm:
+            self.call_parse('Tests: t1\nTest-Command: true\nDepends:')
+        self.assertIn('Tests', str(cm.exception))
+        self.assertIn('Test-Command', str(cm.exception))
+        self.assertIn(' or ', str(cm.exception))
+
+    @patch('adtlog.report')
+    def test_test_command_skip(self, *args):
+        '''single test, skipped test command'''
+
+        (ts, skipped) = self.call_parse('Test-Command: some --thing\nRestrictions: needs-root')
+        self.assertEqual(ts, [])
+        self.assertTrue(skipped)
+        adtlog.report.assert_called_once_with(
+            'command1', 'SKIP Test needs root on testbed which is not available')
 
 
 class Click(unittest.TestCase):

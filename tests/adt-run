@@ -293,6 +293,44 @@ bad                  FAIL non-zero exit status 1
 
         self.assertIn('test dependency graphviz (>= 4:999) is unsatisfiable: available version ', err)
 
+    def test_test_command(self):
+        '''Test-Command: instead of Tests:'''
+
+        p = self.build_src('Test-Command: echo "Some Stdout"\nDepends:\n\n'
+                           'Test-Command: echo "Some StdErr" >&2; sleep 0.5; echo done\nDepends:\n'
+                           'Restrictions: allow-stderr\n\n'
+                           'Test-Command: echo "More Stderr" >&2; echo hello > $ADT_ARTIFACTS/world.txt\nDepends:\n',
+                           {})
+
+        outdir = os.path.join(self.workdir, 'out')
+        os.mkdir(outdir)
+
+        (code, out, err) = self.adt_run(['-B', '--unbuilt-tree=' + p,
+                                         '-o', outdir, '-d'])
+        # two pass, one fails
+        self.assertEqual(code, 4, err)
+        self.assertRegex(out, 'done\n')
+        self.assertRegex(out, 'command1\s+PASS')
+        self.assertRegex(out, 'command2\s+PASS')
+        self.assertRegex(out, 'command3\s+FAIL stderr: More Stderr')
+        self.assertRegex(err, 'stderr [ -]+\nMore Stderr\n')
+        # shows commands
+        self.assertIn('test command1: echo "Some Stdout"\n', err)
+        self.assertIn('test command2: echo "Some StdErr" >&2; sleep 0.5; echo done\n', err)
+        self.assertIn('test command3: echo "More Stderr" >&2; echo hello > $ADT_ARTIFACTS/world.txt\n', err)
+
+        # check artifacts
+        with open(os.path.join(outdir, 'command1-stdout')) as f:
+            self.assertEqual(f.read(), 'Some Stdout\n')
+        with open(os.path.join(outdir, 'command2-stdout')) as f:
+            self.assertEqual(f.read(), 'done\n')
+        with open(os.path.join(outdir, 'command2-stderr')) as f:
+            self.assertEqual(f.read(), 'Some StdErr\n')
+        with open(os.path.join(outdir, 'command3-stderr')) as f:
+            self.assertEqual(f.read(), 'More Stderr\n')
+        with open(os.path.join(outdir, 'artifacts', 'world.txt')) as f:
+            self.assertEqual(f.read(), 'hello\n')
+
 
 @unittest.skipIf(os.getuid() > 0,
                  'null runner tests need to run as root')
