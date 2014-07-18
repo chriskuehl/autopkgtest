@@ -2572,6 +2572,28 @@ shell                PASS
 simple               PASS
 ''')
 
+    def test_override_control(self):
+        '''custom manifest with --override-control'''
+
+        custom_manifest = os.path.join(self.workdir, 'adtctrl')
+        with open(custom_manifest, 'w') as f:
+            f.write('''{"name": "testclick",
+   "x-test": { "simple": "tests/simple" }
+}''')
+
+        sumfile = os.path.join(self.workdir, 'summary')
+
+        (code, out, err) = self.adt_run(
+            ['--summary-file', sumfile,
+             '--override-control', custom_manifest,
+             '--click-source', self.click_src, '--click', self.click],
+            [self.schroot_name])
+        self.assertEqual(code, 0, err)
+
+        with open(sumfile) as f:
+            summary = f.read()
+        self.assertEqual(summary, 'simple               PASS\n')
+
     def test_setup_ubuntu_touch_session(self):
         '''setup-commands/ubuntu-touch-session'''
 
