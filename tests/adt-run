@@ -331,6 +331,17 @@ bad                  FAIL non-zero exit status 1
         with open(os.path.join(outdir, 'artifacts', 'world.txt')) as f:
             self.assertEqual(f.read(), 'hello\n')
 
+    def test_apt_source_error(self):
+        '''apt-source for nonexisting package'''
+
+        (code, out, err) = self.adt_run(['no.such-package'])
+
+        # test should succeed
+        self.assertEqual(code, 12, err)
+        self.assertRegex(err, 'no.such-package')
+        self.assertNotIn('PASS', out)
+        self.assertNotIn('[----', out)
+
 
 @unittest.skipIf(os.getuid() > 0,
                  'null runner tests need to run as root')
