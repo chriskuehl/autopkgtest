@@ -127,12 +127,14 @@ specifying tests and packages, so it is merely abbreviated as
 
    If you aren't running the test on an Ubuntu touch device, you can
    approximate the environment in a normal schroot/LXC/QEMU testbed with
-   the ``--setup-commands`` scripts that autopkgtest provides:
+   the ``--setup-commands`` scripts that autopkgtest provides (note that
+   you do not need to specify the full
+   ``/usr/share/autopkgtest/setup-commands/`` path for shipped scripts):
 
    ::
 
-     adt-run --setup-commands /usr/share/autopkgtest/setup-commands/ubuntu-touch-session \
-             --setup-commands /usr/share/autopkgtest/setup-commands/apt-ro \
+     adt-run --setup-commands ubuntu-touch-session \
+             --setup-commands apt-ro \
              myclickapp/ myclickapp_0.1_all.click --- lxc adt-utopic
 
    See the comments in the setup-commands scripts for details.
