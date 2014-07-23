@@ -99,6 +99,10 @@ features
     (list of strings) List of test features as defined in
     README.package-tests.rst.
 
+classes
+    (list of strings) List of test class names, see
+    README.package-tests.rst.
+
 Simple test specification
 -------------------------
 

@@ -118,6 +118,21 @@ Tests-Directory: path
     This allows tests to live outside the debian/ metadata area, so that
     they can more palatably be shared with non-Debian distributions.
 
+Classes: class-1, class-2, ...
+    Most package tests should work in a minimal environment and are
+    usually not hardware specific. However, some packages like the
+    kernel, X.org, or graphics drivers should be tested on particular
+    hardware, and also run on a set of different platforms rather than
+    just a single virtual testbeds.
+
+    This field can specify a list of abstract class names such as
+    "desktop" or "graphics-driver". Consumers of autopkgtest can then
+    map these class names to particular machines/platforms/policies.
+    Unknown class names should be ignored.
+
+    This is purely an informational field for autopkgtest itself and
+    will be ignored.
+
 Any unknown fields will cause the whole stanza to be skipped.
 
 Defined restrictions

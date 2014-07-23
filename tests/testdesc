@@ -374,6 +374,20 @@ class Debian(unittest.TestCase):
         adtlog.report.assert_called_once_with(
             'command1', 'SKIP Test needs root on testbed which is not available')
 
+    def test_classes(self):
+        '''Classes: field'''
+
+        (ts, skipped) = self.call_parse('Tests: one\nDepends:\nClasses: foo, bar')
+        self.assertEqual(len(ts), 1)
+        t = ts[0]
+        self.assertEqual(t.name, 'one')
+        self.assertEqual(t.path, 'debian/tests/one')
+        self.assertEqual(t.command, None)
+        self.assertEqual(t.restrictions, [])
+        self.assertEqual(t.features, [])
+        self.assertEqual(t.depends, [])
+        self.assertFalse(skipped)
+
 
 class Click(unittest.TestCase):
     def setUp(self):
@@ -390,7 +404,8 @@ class Click(unittest.TestCase):
       "path": "tests/do_t",
       "depends": ["foo (>= 1)", "bar | baz"],
       "restrictions": ["allow-stderr", "needs-recommends"],
-      "features": ["turns-blue", "bites-back"]
+      "features": ["turns-blue", "bites-back"],
+      "classes": ["foo", "bar"]
     }
   }
 }''', [], ['/foo/myapp.click'])
