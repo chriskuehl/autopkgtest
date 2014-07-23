@@ -122,8 +122,10 @@ specifying tests and packages, so it is merely abbreviated as
 
    ::
 
-     adt-run ubuntu-calculator-app/ com.ubuntu.calculator_1.3.283_all.click \
-       --- ssh -s /usr/share/autopkgtest/ssh-setup/adb
+     adt-run ubuntu-calculator-app/ com.ubuntu.calculator_1.3.283_all.click --- ssh -s adb
+
+   (This is using the shipped ``adb`` setup script in
+   ``/usr/share/autopkgtest/ssh-setup/``.)
 
    If you aren't running the test on an Ubuntu touch device, you can
    approximate the environment in a normal schroot/LXC/QEMU testbed with
