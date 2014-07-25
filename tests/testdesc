@@ -377,7 +377,7 @@ class Debian(unittest.TestCase):
     def test_classes(self):
         '''Classes: field'''
 
-        (ts, skipped) = self.call_parse('Tests: one\nDepends:\nClasses: foo, bar')
+        (ts, skipped) = self.call_parse('Tests: one\nDepends:\nClasses: foo bar')
         self.assertEqual(len(ts), 1)
         t = ts[0]
         self.assertEqual(t.name, 'one')
@@ -386,6 +386,22 @@ class Debian(unittest.TestCase):
         self.assertEqual(t.restrictions, [])
         self.assertEqual(t.features, [])
         self.assertEqual(t.depends, [])
+        self.assertFalse(skipped)
+
+    def test_comma_sep(self):
+        '''comma separator in fields'''
+
+        (ts, skipped) = self.call_parse(
+            'Tests: t1, t2\nRestrictions: build-needed, allow-stderr\n'
+            'Features: blue, green\n\n')
+        self.assertEqual(len(ts), 2)
+
+        self.assertEqual(ts[0].name, 't1')
+        self.assertEqual(ts[1].name, 't2')
+        for t in ts:
+            self.assertEqual(t.restrictions, ['build-needed', 'allow-stderr'])
+            self.assertEqual(t.features, ['blue', 'green'])
+
         self.assertFalse(skipped)
 
 
