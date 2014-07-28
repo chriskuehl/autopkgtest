@@ -14,6 +14,10 @@
 # -s serial | --serial=serial
 #             Serial  ID  of  the device as returned by adb devices -l when
 #             several devices are connected to the same host.
+# --apt-update
+#             Temporarily switch to read/write and run apt-get update;
+#             necessary on slightly older images when test package versions got
+#             updated
 #
 #
 # autopkgtest is Copyright (C) 2006-2014 Canonical Ltd.
@@ -52,11 +56,11 @@ open() {
     # - Configure ssh connection
     # - optionally mount device RW
     ADBOPTS=""
-    RWCMD=""
+    EXTRA_CMD=""
     RESET=""
 
     SHORTOPTS="l:,P:,s:,w,r"
-    LONGOPTS="login:,serial:,rw,reset,no-reset"
+    LONGOPTS="login:,serial:,rw,apt-update,reset,no-reset"
 
     TEMP=$(getopt -o $SHORTOPTS --long $LONGOPTS -- "$@")
     eval set -- "$TEMP"
@@ -70,10 +74,13 @@ open() {
                 ADBOPTS="$ADBOPTS -s $2"
                 shift 2;;
             -w|--rw)
-                RWCMD="mount -o rw,remount /"
+                EXTRA_CMD="mount -o rw,remount /"
                 shift;;
             -r|--reset)
                 RESET="1"
+                shift;;
+            --apt-update)
+                EXTRA_CMD="mount -o rw,remount / && apt-get update; mount -o remount,ro /"
                 shift;;
             # passed in "extraopts" so that --reset is only applied once, not
             # in between tests that call "revert"
@@ -127,7 +134,7 @@ chown $SSH_USER:$SSH_USER -R /home/$SSH_USER/.ssh/
 chmod 700 /home/$SSH_USER/.ssh
 chmod 600 /home/$SSH_USER/.ssh/authorized_keys
 
-$RWCMD
+$EXTRA_CMD
 EOF
 
     adb $ADBOPTS push $script /tmp
