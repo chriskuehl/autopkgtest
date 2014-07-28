@@ -2183,6 +2183,24 @@ class LxcRunner(AdtTestCase):
         # has output from cats and whoami
         self.assertIn('world\ndeep\ndir_is_rw\nnobody\n', out)
 
+    def test_no_locale_conf(self):
+        '''No /etc/default/locale'''
+
+        p = self.build_src('Test-Command: locale; echo TestOK\nDepends:\n', {})
+
+        # we expect a normal user for LXC
+        (code, out, err) = self.adt_run(['-B', p + '//', '--setup-commands',
+                                         'rm -f /etc/default/locale /etc/environment'],
+                                        self.virt_args)
+
+        # test should succeed
+        self.assertEqual(code, 0, err)
+        self.assertRegex(out, 'command1\s+PASS')
+        self.assertRegex(out, 'LC_MESSAGES="C.UTF-8"')
+        self.assertRegex(out, 'TestOK')
+        # should not have any test stderr
+        self.assertNotIn(' stderr ', err)
+
 
 @unittest.skipUnless('ADT_TEST_QEMU' in os.environ,
                      'Set $ADT_TEST_QEMU to an existing autopkgtest QEMU image')
