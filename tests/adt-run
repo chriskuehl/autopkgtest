@@ -644,7 +644,7 @@ rm $TMPDIR/rootowned.txt $TMPDIR/world.txt
                                          '--timeout-build=20', p])
         # test should not time out
         self.assertEqual(code, 0, err)
-        self.assertNotIn('timeout', err)
+        self.assertNotIn('timed out', err)
 
         # should show test stdout
         self.assertIn('start\n', out)
