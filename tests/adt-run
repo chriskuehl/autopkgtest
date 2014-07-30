@@ -254,7 +254,14 @@ bad                  FAIL non-zero exit status 1
 
         # should show test stdout
         self.assertIn('dotty version ', out)
-        self.assertRegex(out, 'DynamicModule.*Json.* from .*/tmp/adt-run.*/deps/usr/lib')
+        try:
+            from gi.repository import Json
+            Json  # pyflakes
+            # already installed on the system
+            self.assertRegex(out, 'DynamicModule.*Json.* from .*/usr/lib/.*girepository')
+        except ImportError:
+            # should use from local unpack dir
+            self.assertRegex(out, 'DynamicModule.*Json.* from .*/tmp/adt-run.*/deps/usr/lib')
         # no stderr
         self.assertNotIn(' stderr ', err)
 
