@@ -40,16 +40,16 @@ open() {
 
     # create user
     # password: python3 -c 'from crypt import *; print(crypt("adt_test", mksalt(METHOD_CRYPT)))'
-    $PREFIX lxc-attach -n $CONTAINER -- useradd -p uMBz978HXrv8s --create-home $USER
+    $PREFIX lxc-attach --name=$CONTAINER -- useradd --password uMBz978HXrv8s --create-home $USER
 
     if [ -n "$INSTALL_KEY" ]; then
         key=`cat $HOME/.ssh/id_rsa.pub`
-        $PREFIX lxc-attach -n $CONTAINER -- su -c "mkdir ~/.ssh; echo '$key' > ~/.ssh/authorized_keys" $USER
+        $PREFIX lxc-attach --name=$CONTAINER -- su -c "mkdir ~/.ssh; echo '$key' > ~/.ssh/authorized_keys" $USER
         echo "identity=$HOME/.ssh/id_rsa"
     fi
 
     if [ -n "$ENABLE_SUDO" ]; then
-        $PREFIX lxc-attach -n $CONTAINER -- sh -ec "echo '$USER ALL=(ALL) $ENABLE_SUDO' > /etc/sudoers.d/autopkgtest"
+        $PREFIX lxc-attach --name=$CONTAINER -- sh -ec "echo '$USER ALL=(ALL) $ENABLE_SUDO' > /etc/sudoers.d/autopkgtest"
     fi
 
     cat<<EOF
@@ -66,7 +66,7 @@ cleanup() {
         echo "Needs to be called with -n <container name>" >&2
         exit 1
     fi
-    $PREFIX lxc-stop -k -n $CONTAINER || true
+    $PREFIX lxc-stop --kill --name=$CONTAINER || true
 }
 
 # parse options

@@ -12,9 +12,9 @@
 # testbed which has at least ubuntu-sdk-libs already pre-installed.
 
 # click and the SDK
-apt-get install -y --no-install-recommends click ubuntu-sdk-libs ubuntu-app-launch-tools
+apt-get install --assume-yes --no-install-recommends click ubuntu-sdk-libs ubuntu-app-launch-tools
 # Xvfb and additional packages that autopilot needs to run on X instead of Mir
-apt-get install -y --no-install-recommends dbus-x11 xvfb python3-xlib gir1.2-glib-2.0 gir1.2-gtk-3.0
+apt-get install --assume-yes --no-install-recommends dbus-x11 xvfb python3-xlib gir1.2-glib-2.0 gir1.2-gtk-3.0
 
 # avoid tripping over AppArmor restrictions in container in click hook
 rm /sbin/apparmor_parser
@@ -33,7 +33,7 @@ set -e
 export LANG=$LANG
 export XDG_RUNTIME_DIR=\$(mktemp -d)
 echo XDG_RUNTIME_DIR=\$XDG_RUNTIME_DIR
-init -q --user &
+init --quiet --user &
 PID=\$!
 sleep 1
 . \$XDG_RUNTIME_DIR/upstart/sessions/\$PID.session

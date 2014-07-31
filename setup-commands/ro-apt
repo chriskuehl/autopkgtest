@@ -7,7 +7,7 @@
 # with locally unpacking test dependencies instead of actually installing them.
 # Use this in schroot, lxc, or QEMU runner.
 
-M=$(mktemp -d /run/ro-apt.XXXXX)
+M=$(mktemp --directory /run/ro-apt.XXXXX)
 mount -t tmpfs tmpfs $M
 cp -a /var/lib/dpkg/status /var/lib/dpkg/lock $M
 cp -a /var/cache/apt $M/cache_apt
