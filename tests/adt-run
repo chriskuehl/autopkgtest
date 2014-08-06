@@ -948,8 +948,8 @@ class ChrootRunner(AdtTestCase):
 
     def tearDown(self):
         # these sometimes fail on EBUSY
-        subprocess.call('while ! umount %s/dev; do sleep 0.1; done' % self.chroot, shell=True)
-        subprocess.call('while ! umount %s/proc; do sleep 0.1; done' % self.chroot, shell=True)
+        subprocess.call('for p in %(c)s/dev %(c)s/proc; do while mountpoint $p >/dev/null; do umount $p; sleep 0.1; done; done' %
+                        {'c': self.chroot}, shell=True)
         subprocess.call('for i in `seq 10`; do rm -rf %s && break; sleep 0.5; done' % self.chroot, shell=True)
 
     def test_tree_norestrictions_nobuild_success(self):
