@@ -51,51 +51,15 @@ if [ -n "$PHABLET_TOOLS_PATH" ]; then
     export PATH="$PHABLET_TOOLS_PATH:$PATH"
 fi
 
+# argument parsing
+ADBOPTS=""
+EXTRA_CMD=""
+RESET=""
+
 open() {
     # Setup a connection to an adb device
     # - Configure ssh connection
     # - optionally mount device RW
-    ADBOPTS=""
-    EXTRA_CMD=""
-    RESET=""
-
-    SHORTOPTS="l:,P:,s:,w,r"
-    LONGOPTS="login:,serial:,rw,apt-update,reset,no-reset"
-
-    TEMP=$(getopt -o $SHORTOPTS --long $LONGOPTS -- "$@")
-    eval set -- "$TEMP"
-
-    while true; do
-        case "$1" in
-            -l|--login)
-                SSH_USER=$2
-                shift 2;;
-            -s|--serial)
-                ADBOPTS="$ADBOPTS -s $2"
-                shift 2;;
-            -w|--rw)
-                EXTRA_CMD="mount -o rw,remount /"
-                shift;;
-            -r|--reset)
-                RESET="1"
-                shift;;
-            --apt-update)
-                EXTRA_CMD="mount -o rw,remount / && apt-get update; mount -o remount,ro /"
-                shift;;
-            # passed in "extraopts" so that --reset is only applied once, not
-            # in between tests that call "revert"
-            --no-reset)
-                RESET=""
-                shift;;
-            --)
-                shift;
-                break;;
-            *)
-                echo "E: $(basename $0): Unsupported option $1" >&2
-                exit 1;;
-        esac
-    done
-
     wait_booted
 
     # special setup on Ubuntu images
@@ -262,6 +226,49 @@ cleanup() {
     adb $ADBOPTS shell pkill powerd-cli
 }
 
+
+#
+# main
+#
+
+# argument parsing
+SHORTOPTS="l:,P:,s:,w,r"
+LONGOPTS="login:,serial:,rw,apt-update,reset,no-reset"
+
+TEMP=$(getopt -o $SHORTOPTS --long $LONGOPTS -- "$@")
+eval set -- "$TEMP"
+
+while true; do
+    case "$1" in
+        -l|--login)
+            SSH_USER=$2
+            shift 2;;
+        -s|--serial)
+            ADBOPTS="$ADBOPTS -s $2"
+            shift 2;;
+        -w|--rw)
+            EXTRA_CMD="mount -o rw,remount /"
+            shift;;
+        -r|--reset)
+            RESET="1"
+            shift;;
+        --apt-update)
+            EXTRA_CMD="mount -o rw,remount / && apt-get update; mount -o remount,ro /"
+            shift;;
+        # passed in "extraopts" so that --reset is only applied once, not
+        # in between tests that call "revert"
+        --no-reset)
+            RESET=""
+            shift;;
+        --)
+            shift;
+            break;;
+        *)
+            echo "E: $(basename $0): Unsupported option $1" >&2
+            exit 1;;
+    esac
+done
+
 if [ -z "$1" ]; then
     echo "Needs to be called with command as first argument" >&2
     exit 1
@@ -272,13 +279,13 @@ shift
 
 case $cmd in
     open)
-        open $@;;
+        open;;
     revert)
-        revert $@;;
+        revert;;
     reboot)
-        reboot $@;;
+        reboot;;
     cleanup)
-        cleanup $@;;
+        cleanup;;
     *)
         echo "invalid command $cmd" >&2
         exit 1
