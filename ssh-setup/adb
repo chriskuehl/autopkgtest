@@ -76,7 +76,7 @@ open() {
 
 
     # Configure SSH
-    adb $ADBOPTS shell start ssh
+    adb $ADBOPTS shell gdbus call -y -d com.canonical.PropertyService -o /com/canonical/PropertyService -m com.canonical.PropertyService.SetProperty ssh true
     for port in `seq 2222 2299`; do
         adb $ADBOPTS forward tcp:$port tcp:22 && break
     done
