@@ -83,7 +83,7 @@ open() {
 
     # Purge the device host key so that SSH doesn't print a scary warning about it
     # (it changes every time the device is reflashed and this is expected)
-    ssh-keygen -f ~/.ssh/known_hosts -R [localhost]:$PORT 2>/dev/null
+    ssh-keygen -f ~/.ssh/known_hosts -R [localhost]:$PORT 2>/dev/null || true
 
     # Copy your ssh id down to the device so you never need a password.
     if [ ! -e ~/.ssh/id_rsa.pub ] || [ ! -e ~/.ssh/id_rsa ]; then
