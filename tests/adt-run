@@ -349,6 +349,32 @@ bad                  FAIL non-zero exit status 1
         self.assertNotIn('PASS', out)
         self.assertNotIn('[----', out)
 
+    def test_undeletable_files(self):
+        '''source tree has undeletable files'''
+
+        p = self.build_src('Tests: t1 t2\nDepends:\n',
+                           {'t1': '#!/bin/sh\necho eins\n',
+                            't2': '#!/bin/sh\necho zwei\n'})
+        os.mkdir(os.path.join(p, 'data'))
+        with open(os.path.join(p, 'data', 'data.txt'), 'w') as f:
+            f.write('data\n')
+        os.chmod(os.path.join(p, 'data'), 0o555)
+
+        (code, out, err) = self.adt_run(['--built-tree=' + p])
+        # test should succeed
+        self.assertEqual(code, 0, err)
+        self.assertRegex(out, 't1\s+PASS', out)
+        self.assertRegex(out, 't2\s+PASS', out)
+
+        # should show test stdout
+        self.assertRegex(out, '^eins\n')
+        self.assertRegex(out, '\nzwei\n')
+        # should not have any test stderr
+        self.assertNotIn(' stderr ', err)
+
+        # chown it back so that we can clean up
+        os.chmod(os.path.join(p, 'data'), 0o755)
+
 
 @unittest.skipIf(os.getuid() > 0,
                  'null runner tests need to run as root')
