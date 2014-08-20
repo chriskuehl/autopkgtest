@@ -477,13 +477,13 @@ class Click(unittest.TestCase):
   }
 }''', [], ['/foo/myapp.click'])
         self.assertEqual(len(ts), 1)
-        self.assertEqual(ts[0].name, "autopilot")
+        self.assertEqual(ts[0].name, 'autopilot')
         self.assertEqual(ts[0].path, None)
         self.assertIn('PYTHONPATH=', ts[0].command)
         self.assertIn('autopilot', ts[0].command)
         self.assertIn('autopilot', ts[0].depends[0])
         self.assertEqual(ts[0].clicks, ['/foo/myapp.click'])
-        self.assertEqual(ts[0].restrictions, [])
+        self.assertEqual(ts[0].restrictions, ['allow-stderr'])
         self.assertEqual(ts[0].features, [])
 
         self.assertFalse(skipped)
