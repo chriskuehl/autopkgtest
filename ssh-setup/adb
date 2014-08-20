@@ -55,6 +55,7 @@ fi
 ADBOPTS=""
 EXTRA_CMD=""
 RESET=""
+IDENTITY=
 
 open() {
     # Setup a connection to an adb device
@@ -86,12 +87,16 @@ open() {
     ssh-keygen -f ~/.ssh/known_hosts -R [localhost]:$PORT 2>/dev/null || true
 
     # Copy your ssh id down to the device so you never need a password.
-    if [ ! -e ~/.ssh/id_rsa.pub ] || [ ! -e ~/.ssh/id_rsa ]; then
-        echo "~/.ssh/id_rsa.pub or ~/.ssh/id_rsa do not exist. Please generate a key" >&2
-        exit 1
+    IDENTITY=$HOME/.ssh/id_rsa
+    if [ ! -e $IDENTITY ]; then
+        IDENTITY=$HOME/.ssh/id_autopkgtest
+        if [ ! -e $IDENTITY ]; then
+            echo "No default ssh key, generating $IDENTITY" >&2
+            ssh-keygen -q -t ed25519 -f $IDENTITY -N ''
+        fi
     fi
     script=$(mktemp /tmp/$(basename $0).XXXXXX)
-    adb $ADBOPTS push ~/.ssh/id_rsa.pub /home/$SSH_USER/.ssh/authorized_keys
+    adb $ADBOPTS push ${IDENTITY}.pub /home/$SSH_USER/.ssh/authorized_keys
     cat>$script <<EOF
 # Set right permissions
 chown $SSH_USER:$SSH_USER -R /home/$SSH_USER/.ssh/
@@ -112,7 +117,7 @@ login=$SSH_USER
 hostname=localhost
 port=$port
 capabilities=$CAPABILITIES
-identity=$HOME/.ssh/id_rsa
+identity=$IDENTITY
 extraopts=--no-reset
 EOF
     if [ -n "$SUDO_PASSWORD" ]; then
