@@ -610,6 +610,10 @@ rm $TMPDIR/rootowned.txt $TMPDIR/world.txt
         self.assertRegex(contents, 'sF\s+FAIL stderr: kaputt')
         self.assertIn('testing package testpkg version 1\n', contents)
 
+        # check summary
+        with open(os.path.join(outdir, 'summary')) as f:
+            self.assertRegex(f.read(), '^sP\s+PASS\nsF\s+FAIL stderr: kaputt\nbP\s+PASS$')
+
         # check test package version
         with open(os.path.join(outdir, 'testpkg-version')) as f:
             contents = f.read()
@@ -634,7 +638,7 @@ rm $TMPDIR/rootowned.txt $TMPDIR/world.txt
         files = [i for i in os.listdir(outdir)
                  if not fnmatch.fnmatch(i, '[sb]*-std*') and
                  not fnmatch.fnmatch(i, '[sb]*-packages')]
-        self.assertEqual(set(files), set(['log', 'testpkg-version', 'testbed-packages']))
+        self.assertEqual(set(files), set(['log', 'summary', 'testpkg-version', 'testbed-packages']))
 
     def test_timeout(self):
         '''handling test timeout'''
@@ -1812,6 +1816,10 @@ class SchrootRunner(AdtTestCase):
         self.assertIn('dh build', contents)
         self.assertRegex(contents, 'broken\s+FAIL stderr: kaputt')
 
+        # check summary
+        with open(os.path.join(outdir, 'summary')) as f:
+            self.assertRegex(f.read(), '^ok\s+PASS\nbroken\s+FAIL stderr: kaputt$')
+
         # check test package version
         with open(os.path.join(outdir, 'testpkg-version')) as f:
             contents = f.read()
@@ -1845,7 +1853,7 @@ class SchrootRunner(AdtTestCase):
 
         # check for cruft in outdir
         self.assertEqual(set(os.listdir(outdir)),
-                         set(['log', 'binaries', 'testpkg-version',
+                         set(['log', 'summary', 'binaries', 'testpkg-version',
                               'testbed-packages', 'ok-packages', 'ok-stdout',
                               'broken-packages', 'broken-stderr']))
 
