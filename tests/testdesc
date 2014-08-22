@@ -413,7 +413,7 @@ class Click(unittest.TestCase):
     def test_all_fields(self):
         '''parsing manifest test with all possible fields'''
 
-        (ts, skipped) = testdesc.parse_click_manifest('''{
+        (srcdir, ts, skipped) = testdesc.parse_click_manifest('''{
   "name": "foo",
   "x-test": {
     "t": {
@@ -424,7 +424,7 @@ class Click(unittest.TestCase):
       "classes": ["foo", "bar"]
     }
   }
-}''', [], ['/foo/myapp.click'])
+}''', [], ['/foo/myapp.click'], '/src')
         self.assertEqual(len(ts), 1)
         self.assertEqual(ts[0].name, "t")
         self.assertEqual(ts[0].path, 'tests/do_t')
@@ -434,25 +434,26 @@ class Click(unittest.TestCase):
         self.assertEqual(ts[0].restrictions, ['allow-stderr', 'needs-recommends'])
         self.assertEqual(ts[0].features, ['turns-blue', 'bites-back'])
 
+        self.assertEqual(srcdir, '/src')
         self.assertFalse(skipped)
 
     def test_no_tests(self):
         '''parsing manifest without tests'''
 
         self.assertEqual(
-            testdesc.parse_click_manifest('{"name":"foo"}', [], []),
-            ([], False))
+            testdesc.parse_click_manifest('{"name":"foo"}', [], [], '/'),
+            ('/', [], False))
 
     def test_path_only(self):
         '''test description is a single path'''
 
-        (ts, skipped) = testdesc.parse_click_manifest('''{
+        (srcdir, ts, skipped) = testdesc.parse_click_manifest('''{
   "name": "foo",
   "x-test": {
       "t1": "tests/do_t",
       "t2": "runtests"
   }
-}''', [], ['/foo/myapp.click'])
+}''', [], ['/foo/myapp.click'], '/src')
         self.assertEqual(len(ts), 2)
         self.assertEqual(ts[0].name, "t1")
         self.assertEqual(ts[0].path, 'tests/do_t')
@@ -465,17 +466,18 @@ class Click(unittest.TestCase):
             self.assertEqual(ts[i].restrictions, [])
             self.assertEqual(ts[i].features, [])
 
+        self.assertEqual(srcdir, '/src')
         self.assertFalse(skipped)
 
     def test_autopilot_simple(self):
         '''simple autopilot test specification'''
 
-        (ts, skipped) = testdesc.parse_click_manifest('''{
+        (_, ts, skipped) = testdesc.parse_click_manifest('''{
   "name": "foo",
   "x-test": {
       "autopilot": "foo_tests"
   }
-}''', [], ['/foo/myapp.click'])
+}''', [], ['/foo/myapp.click'], '/')
         self.assertEqual(len(ts), 1)
         self.assertEqual(ts[0].name, 'autopilot')
         self.assertEqual(ts[0].path, None)
@@ -491,7 +493,7 @@ class Click(unittest.TestCase):
     def test_autopilot_extradeps(self):
         '''autopilot test specification with extra info'''
 
-        (ts, skipped) = testdesc.parse_click_manifest('''{
+        (_, ts, skipped) = testdesc.parse_click_manifest('''{
   "name": "foo",
   "x-test": {
       "my_ap_test": {
@@ -500,7 +502,7 @@ class Click(unittest.TestCase):
           "restrictions": ["allow-stderr"]
       }
   }
-}''', [], ['/foo/myapp.click'])
+}''', [], ['/foo/myapp.click'], '/')
         self.assertEqual(len(ts), 1)
         self.assertEqual(ts[0].name, 'my_ap_test')
         self.assertEqual(ts[0].path, None)
@@ -517,12 +519,12 @@ class Click(unittest.TestCase):
     def test_autopilot_manual_simple(self):
         '''simple manual autopilot test specification'''
 
-        (ts, skipped) = testdesc.parse_click_manifest('''{
+        (_, ts, skipped) = testdesc.parse_click_manifest('''{
   "name": "foo",
   "x-test": {
       "autopilot": "tests/run_tests"
   }
-}''', [], ['/foo/myapp.click'])
+}''', [], ['/foo/myapp.click'], '/')
         self.assertEqual(len(ts), 1)
         self.assertEqual(ts[0].name, "autopilot")
         self.assertEqual(ts[0].path, "tests/run_tests")
@@ -537,14 +539,14 @@ class Click(unittest.TestCase):
     def test_autopilot_manual_complex(self):
         '''complex manual autopilot test specification'''
 
-        (ts, skipped) = testdesc.parse_click_manifest('''{
+        (_, ts, skipped) = testdesc.parse_click_manifest('''{
   "name": "foo",
   "x-test": {
       "autopilot": {
           "path": "tests/run_tests"
       }
   }
-}''', [], ['/foo/myapp.click'])
+}''', [], ['/foo/myapp.click'], '/')
         self.assertEqual(len(ts), 1)
         self.assertEqual(ts[0].name, "autopilot")
         self.assertEqual(ts[0].path, "tests/run_tests")
@@ -563,7 +565,7 @@ class Click(unittest.TestCase):
             testdesc.parse_click_manifest('''{
   "x-test": {
     "t": { "depends": ["foo (>= 1)", }
-  }}''', [], [])
+  }}''', [], [], '/')
 
         self.assertIn('not valid JSON', str(cm.exception))
 
@@ -571,25 +573,25 @@ class Click(unittest.TestCase):
         '''parsing manifest with invalid JSON type'''
 
         with self.assertRaises(testdesc.InvalidControl) as cm:
-            testdesc.parse_click_manifest('{"x-test": ["tests/foo"]}', [], [])
+            testdesc.parse_click_manifest('{"x-test": ["tests/foo"]}', [], [], '/')
         self.assertIn('must be a dict', str(cm.exception))
 
         with self.assertRaises(testdesc.InvalidControl) as cm:
-            testdesc.parse_click_manifest('{"x-test": {"t": ["tests/foo"]}}', [], [])
+            testdesc.parse_click_manifest('{"x-test": {"t": ["tests/foo"]}}', [], [], '/')
         self.assertIn('must be strings or dicts', str(cm.exception))
 
     @patch('adtlog.report')
     def test_skip_caps(self, *args):
         '''skipped test due to insufficient testbed capabilities'''
 
-        (ts, skipped) = testdesc.parse_click_manifest('''{
+        (_, ts, skipped) = testdesc.parse_click_manifest('''{
   "x-test": {
     "t": {
       "path": "tests/do_t",
       "restrictions": ["needs-root"]
     }
   }
-}''', ['isolation-container'], [])
+}''', ['isolation-container'], [], '/')
         self.assertEqual(len(ts), 0)
         self.assertTrue(skipped)
         adtlog.report.assert_called_once_with(
@@ -607,7 +609,7 @@ class Click(unittest.TestCase):
       "command": "echo ok"
     }
   }
-}''', [], [])
+}''', [], [], '/')
         self.assertIn('must have either path or command', str(cm.exception))
 
     def test_click_with_srcdir(self):
