@@ -14,6 +14,8 @@
 # -s serial | --serial=serial
 #             Serial  ID  of  the device as returned by adb devices -l when
 #             several devices are connected to the same host.
+# -p PASSWORD | --password PASSWORD
+#             sudo password (defaults to "phablet")
 # --apt-update
 #             Temporarily switch to read/write and run apt-get update;
 #             necessary on slightly older images when test package versions got
@@ -239,8 +241,8 @@ cleanup() {
 #
 
 # argument parsing
-SHORTOPTS="l:,P:,s:,w,r"
-LONGOPTS="login:,serial:,rw,apt-update,reset,no-reset"
+SHORTOPTS="l:,p:,s:,w,r"
+LONGOPTS="login:,password:,serial:,rw,apt-update,reset,no-reset"
 
 TEMP=$(getopt -o $SHORTOPTS --long $LONGOPTS -- "$@")
 eval set -- "$TEMP"
@@ -249,6 +251,9 @@ while true; do
     case "$1" in
         -l|--login)
             SSH_USER=$2
+            shift 2;;
+        -p|--password)
+            SUDO_PASSWORD="$2"
             shift 2;;
         -s|--serial)
             ADBOPTS="$ADBOPTS -s $2"
