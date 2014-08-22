@@ -143,7 +143,11 @@ specifying tests and packages, so it is merely abbreviated as
 
 - Run tests for an already installed click package:
 
-   ``adt-run myclickapp/ --click=com.example.myapp ---`` *virt-server*
+   ``adt-run --click=com.example.myapp ---`` *virt-server*
+
+  This will work for click apps which have an ``x-source/vcs-bzr`` entry
+  in their manifest. If that's not the case, you will need to explicitly
+  specify the click source directory as above.
 
 Output
 ------

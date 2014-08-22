@@ -406,9 +406,31 @@ class Debian(unittest.TestCase):
 
 
 class Click(unittest.TestCase):
-    def setUp(self):
-        self.click = os.path.join(test_dir, 'testclick_0.1_all.click')
-        self.click_src = os.path.join(test_dir, 'testclick')
+    @classmethod
+    def setUpClass(kls):
+        kls.click = os.path.join(test_dir, 'testclick_0.1_all.click')
+        kls.click_src = os.path.join(test_dir, 'testclick')
+
+        # bzr fake
+        kls.fake_bins = tempfile.TemporaryDirectory(prefix='adt-fake-bins.')
+        with open(os.path.join(kls.fake_bins.name, 'bzr'), 'w') as f:
+            f.write('''#!/bin/sh -e
+[ "$1" = checkout ]
+[ "$2" = "--lightweight" ]
+[ -d "$4" ]
+if [ "$3" = bzr+fake://test-click ]; then
+    cp -r %s/* "$4"
+else
+    echo "unknown repository" >&2
+    exit 1
+fi''' % kls.click_src)
+        os.chmod(os.path.join(kls.fake_bins.name, 'bzr'), 0o700)
+        kls.orig_path = os.environ['PATH']
+        os.environ['PATH'] = '%s:%s' % (kls.fake_bins.name, os.environ['PATH'])
+
+    @classmethod
+    def tearDownClass(kls):
+        os.environ['PATH'] = kls.orig_path
 
     def test_all_fields(self):
         '''parsing manifest test with all possible fields'''
@@ -661,6 +683,50 @@ class Click(unittest.TestCase):
         self.assertEqual(ts[4].clicks, [self.click])
         self.assertEqual(ts[4].restrictions, [])
         self.assertEqual(ts[4].features, [])
+
+    @patch('adtlog.info')
+    @patch('adtlog.error')
+    def test_click_source_download(self, *args):
+        '''Automatic click source download'''
+
+        (srcdir, ts, skipped) = testdesc.parse_click_manifest('''{
+  "name": "foo",
+  "x-source": {
+    "vcs-bzr": "bzr+fake://test-click"
+  },
+  "x-test": {
+    "t": {
+      "command": "doit"
+    }
+  }
+}''', [], ['/foo/myapp.click'], None)
+        self.assertEqual(len(ts), 1)
+        self.assertNotEqual(srcdir, None)
+        self.assertTrue(os.path.exists(os.path.join(srcdir, 'CMakeLists.txt')))
+        self.assertFalse(skipped)
+
+        self.assertFalse(adtlog.error.called)
+        adtlog.info.assert_called_once_with(
+            'checking out click source from bzr+fake://test-click')
+
+    @patch('adtlog.error')
+    def test_click_source_download_no_vcs(self, *args):
+        '''Automatic click source download: fails, no vcs-* tag'''
+
+        (srcdir, ts, skipped) = testdesc.parse_click_manifest('''{
+  "name": "foo",
+  "x-test": {
+    "t": {
+      "command": "doit"
+    }
+  }
+}''', [], ['/foo/myapp.click'], None)
+
+        self.assertEqual(len(ts), 1)
+        self.assertFalse(skipped)
+        self.assertEqual(srcdir, None)
+        adtlog.error.assert_called_once_with(
+            'cannot download click source: manifest does not have "x-source"')
 
 
 if __name__ == '__main__':
