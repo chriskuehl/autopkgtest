@@ -197,7 +197,7 @@ ubuntu_prepare_for_testing() {
     echo "Preparing Ubuntu phone for running tests..." >&2
 
     # if welcome wizard is already running, restart unity8
-    adb $ADBOPTS shell "su -c 'pidof system-settings-wizard >/dev/null && kill -9 -1' phablet"
+    adb $ADBOPTS shell 'if pidof system-settings-wizard >/dev/null; then if [`id -u` = 0]; then su -c "kill -9 -1" phablet; else kill -9 -1; fi; fi'
 
     local timeout=60
     local extra_wait=0
