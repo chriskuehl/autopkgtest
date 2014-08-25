@@ -1185,7 +1185,9 @@ Restrictions: needs-root
         files = [i for i in os.listdir(outdir)
                  if not fnmatch.fnmatch(i, 'a*-std*') and
                  not fnmatch.fnmatch(i, 'a*-packages')]
-        self.assertEqual(set(files), set(['log', 'artifacts', 'testpkg-version', 'testbed-packages']))
+        self.assertEqual(set(files),
+                         set(['log', 'artifacts', 'testpkg-version',
+                              'testbed-packages', 'summary']))
 
         # check artifact; a2 should overwrite a1's health.txt
         with open(os.path.join(outdir, 'artifacts', 'health.txt')) as f:
