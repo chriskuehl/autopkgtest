@@ -67,8 +67,7 @@ open() {
     wait_booted
 
     # special setup on Ubuntu images
-    SYSTEM_IMAGE=$(adb $ADBOPTS shell 'system-image-cli -i 2>/dev/null')
-    if [ "${SYSTEM_IMAGE#*ubuntu}" != "$SYSTEM_IMAGE" ]; then
+    if [ -n "$(adb $ADBOPTS shell 'type unity8 2>/dev/null')" ]; then
         if [ -n "$RESET" ]; then
             revert
         else
