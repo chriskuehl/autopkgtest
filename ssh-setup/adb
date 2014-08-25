@@ -15,7 +15,8 @@
 #             Serial  ID  of  the device as returned by adb devices -l when
 #             several devices are connected to the same host.
 # -p PASSWORD | --password PASSWORD
-#             sudo password (defaults to "phablet")
+#             sudo password; if not given, tries "phablet" and "0000"; if
+#             neither works, tests cannot run as root
 # --apt-update
 #             Temporarily switch to read/write and run apt-get update;
 #             necessary on slightly older images when test package versions got
@@ -45,7 +46,7 @@
 set -e
 
 SSH_USER=phablet
-SUDO_PASSWORD=phablet
+SUDO_PASSWORD=
 CAPABILITIES='isolation-machine reboot'
 
 # allow using lp:phablet-tools from a checkout
@@ -112,6 +113,21 @@ EOF
     adb $ADBOPTS shell sh $script
     adb $ADBOPTS shell rm $script
     rm $script
+
+    # verify that we can connect through ssh
+    local ssh_cmd="ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i $IDENTITY -p $port -l $SSH_USER localhost"
+    if ! $ssh_cmd true; then
+        echo "ssh setup failed, cannot connect" >&2
+        exit 1
+    fi
+
+    # try to auto-detect sudo password from common ones used by CI
+    for p in phablet 0000; do
+        if $ssh_cmd "echo $p | sudo -S true" >/dev/null 2>&1; then
+            SUDO_PASSWORD="$p"
+            break
+        fi
+    done
 
     # print info for adt-virt-ssh
     cat<<EOF
