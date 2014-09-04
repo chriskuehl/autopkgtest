@@ -222,5 +222,46 @@ debian/control by adding
 
 in the ``Source:`` paragraph.
 
+Reboot during a test
+--------------------
+
+Some testbeds support rebooting; for those, the testbed will have an
+``autopkgtest-reboot`` command which tests can call to cause a reboot.
+**Do not** use ``reboot`` and similar commands directly! They will cause
+testbeds like ``null`` or ``schroot`` to reboot the entire host, and
+even for ``qemu`` it will just cause the test to fail as there is no
+state keeping to resume a test at the right position after reboot.
+
+The particular steps for a rebooting tests are:
+
+- The test calls ``autopkgtest-reboot my_mark`` with a "mark"
+  identifier. ``autopkgtest-reboot`` will cause the test to terminate
+  (with ``SIGPIPE``).
+
+- ``adt-run`` backs up the current state of the test source tree and
+  any ``$ADT_ARTIFACTS`` that were created so far, reboots the
+  testbed, and restores the test source tree and artifacts.
+
+- The test gets run again, this time with a new environment variable
+  ``$ADT_REBOOT_MARK`` containing the argument to
+  ``autopkgtest-reboot``, e. g. ``my_mark``.
+
+- The test needs to check ``$ADT_REBOOT_MARK`` and jump to the
+  appropriate point. A nonexisting variable means "start from the
+  beginning".
+
+This example test will reboot the testbed two times in between:
+
+::
+
+    #!/bin/sh -e
+    case "$ADT_REBOOT_MARK" in
+      "") echo "test beginning"; autopkgtest-reboot mark1 ;;
+      mark1) echo "test in mark1"; autopkgtest-reboot mark2 ;;
+      mark2) echo "test in mark2" ;;
+    esac
+    echo "test end"
+
+
 .. vim: ft=rst tw=72
 

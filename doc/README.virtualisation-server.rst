@@ -66,7 +66,8 @@ revert-full-system
 
 reboot
     The testbed supports (re)booting, to pick up updated kernels and/or
-    init system scripts, e. g. from ``--setup-commands``.
+    init system scripts from ``--setup-commands``, or from explicit
+    reboot requests from tests.
 
 root-on-testbed
     Commands run through ``print-execute-command`` will be run as root
