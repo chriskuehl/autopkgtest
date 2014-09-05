@@ -2394,7 +2394,10 @@ class QemuRunner(AdtTestCase):
         esac
         echo "test end"'''})
 
-        (code, out, err) = self.adt_run(['-B', p + '//'], [self.image])
+        outdir = os.path.join(self.workdir, 'out')
+        os.mkdir(outdir)
+
+        (code, out, err) = self.adt_run(['--output-dir=' + outdir, '-B', p + '//'], [self.image])
 
         # test should succeed
         self.assertEqual(code, 0, err)
@@ -2407,6 +2410,20 @@ class QemuRunner(AdtTestCase):
 
         # should not have any test stderr
         self.assertNotIn(' stderr ', err)
+
+        # check artifacts
+        with open(os.path.join(outdir, 'artifacts', 'begin.txt')) as f:
+            self.assertEqual(f.read(), 'zero\n')
+        with open(os.path.join(outdir, 'artifacts', 'mark1.txt')) as f:
+            self.assertEqual(f.read(), 'one\n')
+        with open(os.path.join(outdir, 'artifacts', 'mark2.txt')) as f:
+            self.assertEqual(f.read(), 'two\n')
+
+        # check outdir test stdout/err
+        with open(os.path.join(outdir, 't-stdout')) as f:
+            self.assertEqual(f.read(), 'test beginning\ntest in mark1\ntest in mark2\ntest end\n')
+        self.assertFalse(os.path.exists(
+            os.path.join(outdir, 't-stderr')))
 
         # should not have any errors from tar or otherwise
         self.assertNotIn('Traceback', err)
