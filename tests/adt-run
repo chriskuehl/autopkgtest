@@ -2394,7 +2394,7 @@ class QemuRunner(AdtTestCase):
         esac
         echo "test end"'''})
 
-        (code, out, err) = self.adt_run(['-d', '-B', p + '//'], [self.image])
+        (code, out, err) = self.adt_run(['-B', p + '//'], [self.image])
 
         # test should succeed
         self.assertEqual(code, 0, err)
@@ -2407,6 +2407,10 @@ class QemuRunner(AdtTestCase):
 
         # should not have any test stderr
         self.assertNotIn(' stderr ', err)
+
+        # should not have any errors from tar or otherwise
+        self.assertNotIn('Traceback', err)
+        self.assertNotIn('tar:', err)
 
     def test_isolation(self):
         '''isolation restrictions'''
