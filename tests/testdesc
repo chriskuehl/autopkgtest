@@ -417,13 +417,16 @@ class Debian(unittest.TestCase):
 
         with open(os.path.join(self.pkgdir, 'debian', 'ruby-tests.rb'), 'w') as f:
             f.write('exit(0)\n')
-        (ts, skipped) = self.call_parse(None, 'Source: ruby-foo\n\n'
+        (ts, skipped) = self.call_parse(None, 'Source: ruby-foo\n'
+                                        'Build-Depends: gem2deb, rake\n\n'
                                         'Package: ruby-foo\nArchitecture: all')
 
         self.assertEqual(len(ts), 1)
         self.assertIn('gem2deb', ts[0].command)
         self.assertIn('gem2deb-test-runner', ts[0].depends)
         self.assertIn('ruby-foo', ts[0].depends)
+        self.assertIn('rake', ts[0].depends)
+        self.assertNotIn('gem2deb', ts[0].depends)
 
     def test_auto_control_perl(self):
         '''automatic tests for Perl packages'''

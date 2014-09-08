@@ -245,7 +245,10 @@ The source package must contain at least one of the following files:
 Implied control file: ::
 
     Test-Command: gem2deb-test-runner --autopkgtest 2>&1
-    Depends: @, gem2deb-test-runner
+    Depends: @, @builddeps@, gem2deb-test-runner
+
+*Note:* ``gem2deb`` will be filtered out of the ``Depends:`` field, as it is
+not needed to run the tests for installed packages.
 
 Perl packages
 .............
