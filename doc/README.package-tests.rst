@@ -222,6 +222,34 @@ debian/control by adding
 
 in the ``Source:`` paragraph.
 
+Implicit test control file for known package types
+--------------------------------------------------
+
+There are groups of similarly-structured packages for which the contents
+of ``debian/tests/control`` would be mostly identical. For those
+packages, if ``debian/tests/control`` is absent, an implicit control
+file is assumed.  Those packages do not have to provide anything else,
+although they should still include the appropriate source package header
+(``XS-Testsuite: autopkgtest``) so that they can be discovered in the
+archive.
+
+Ruby packages
+.............
+
+The source package must contain at least one of the following files:
+
+- ``debian/ruby-test-files.yaml``
+- ``debian/ruby-tests.rb``
+- ``debian/ruby-tests.rake``
+
+Implied control file:
+
+::
+
+    Test-Command: gem2deb-test-runner --autopkgtest 2>&1
+    Depends: @, gem2deb-test-runner
+
+
 Reboot during a test
 --------------------
 

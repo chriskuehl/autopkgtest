@@ -412,6 +412,19 @@ class Debian(unittest.TestCase):
 
         self.assertFalse(skipped)
 
+    def test_auto_control_ruby(self):
+        '''automatic tests for Ruby packages'''
+
+        with open(os.path.join(self.pkgdir, 'debian', 'ruby-tests.rb'), 'w') as f:
+            f.write('exit(0)\n')
+        (ts, skipped) = self.call_parse(None, 'Source: ruby-foo\n\n'
+                                        'Package: ruby-foo\nArchitecture: all')
+
+        self.assertEqual(len(ts), 1)
+        self.assertIn('gem2deb', ts[0].command)
+        self.assertIn('gem2deb-test-runner', ts[0].depends)
+        self.assertIn('ruby-foo', ts[0].depends)
+
 
 class Click(unittest.TestCase):
     @classmethod
