@@ -2384,8 +2384,9 @@ class QemuRunner(AdtTestCase):
     def test_reboot(self):
         '''test that reboots'''
 
-        p = self.build_src('Tests: t\nDepends:\nRestrictions: needs-root',
-                           {'t': '''#!/bin/sh -e
+        p = self.build_src('Tests: s r\nDepends:\nRestrictions: needs-root breaks-testbed',
+                           {'s': '#!/bin/sh\necho simple_done',
+                            'r': '''#!/bin/sh -e
         case "$ADT_REBOOT_MARK" in
           mark1) echo "test in mark1"; echo one > $ADT_ARTIFACTS/mark1.txt; autopkgtest-reboot mark2 ;;
           mark2) echo "test in mark2"; echo two > $ADT_ARTIFACTS/mark2.txt ;;
@@ -2401,10 +2402,12 @@ class QemuRunner(AdtTestCase):
 
         # test should succeed
         self.assertEqual(code, 0, err)
-        self.assertRegex(out, 't\s+PASS', out)
+        self.assertRegex(out, 's\s+PASS', out)
+        self.assertRegex(out, 'r\s+PASS', out)
 
         # should have all three phases
-        self.assertIn('test beginning\ntest in mark1\ntest in mark2\ntest end\n', out)
+        self.assertIn('simple_done\n', out)
+        self.assertIn('\ntest beginning\ntest in mark1\ntest in mark2\ntest end\n', out)
         self.assertIn('test process requested reboot with marker mark1', err)
         self.assertIn('test process requested reboot with marker mark2', err)
 
@@ -2420,10 +2423,10 @@ class QemuRunner(AdtTestCase):
             self.assertEqual(f.read(), 'two\n')
 
         # check outdir test stdout/err
-        with open(os.path.join(outdir, 't-stdout')) as f:
+        with open(os.path.join(outdir, 'r-stdout')) as f:
             self.assertEqual(f.read(), 'test beginning\ntest in mark1\ntest in mark2\ntest end\n')
         self.assertFalse(os.path.exists(
-            os.path.join(outdir, 't-stderr')))
+            os.path.join(outdir, 'r-stderr')))
 
         # should not have any errors from tar or otherwise
         self.assertNotIn('Traceback', err)
