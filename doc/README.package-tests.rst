@@ -242,12 +242,30 @@ The source package must contain at least one of the following files:
 - ``debian/ruby-tests.rb``
 - ``debian/ruby-tests.rake``
 
-Implied control file:
-
-::
+Implied control file: ::
 
     Test-Command: gem2deb-test-runner --autopkgtest 2>&1
     Depends: @, gem2deb-test-runner
+
+Perl packages
+.............
+
+The source package must contain a ``t/`` directory and at least one of the
+following files:
+
+- ``Makefile.PL``
+- ``Build.PL``
+
+Implied control file: ::
+
+    Test-Command: /usr/share/pkg-perl-autopkgtest/runner build-deps
+    Depends: @, @builddeps@, pkg-perl-autopkgtest
+
+    Test-Command: /usr/share/pkg-perl-autopkgtest/runner runtime-deps
+    Depends: @, pkg-perl-autopkgtest
+
+    Test-Command: /usr/share/pkg-perl-autopkgtest/runner heavy-deps
+    Depends: @, pkg-perl-autopkgtest, pkg-perl-autopkgtest-heavy
 
 
 Reboot during a test

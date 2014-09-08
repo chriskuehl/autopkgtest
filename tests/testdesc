@@ -425,6 +425,29 @@ class Debian(unittest.TestCase):
         self.assertIn('gem2deb-test-runner', ts[0].depends)
         self.assertIn('ruby-foo', ts[0].depends)
 
+    def test_auto_control_perl(self):
+        '''automatic tests for Perl packages'''
+
+        with open(os.path.join(self.pkgdir, 'Makefile.PL'), 'w') as f:
+            f.write('use ExtUtils::MakeMaker;\n')
+        os.makedirs(os.path.join(self.pkgdir, 't'))
+        (ts, skipped) = self.call_parse(None, 'Source: libfoo-perl\n\n'
+                                        'Package: libfoo-perl\nArchitecture: all')
+
+        self.assertEqual(len(ts), 3)
+
+        self.assertRegex(ts[0].command, 'pkg-perl-autopkgtest.*build-deps')
+        self.assertIn('pkg-perl-autopkgtest', ts[0].depends)
+        self.assertIn('libfoo-perl', ts[0].depends)
+
+        self.assertRegex(ts[1].command, 'pkg-perl-autopkgtest.*runtime-deps')
+        self.assertIn('pkg-perl-autopkgtest', ts[1].depends)
+        self.assertIn('libfoo-perl', ts[1].depends)
+
+        self.assertRegex(ts[2].command, 'pkg-perl-autopkgtest.*heavy-deps')
+        self.assertIn('pkg-perl-autopkgtest-heavy', ts[2].depends)
+        self.assertIn('libfoo-perl', ts[2].depends)
+
 
 class Click(unittest.TestCase):
     @classmethod
