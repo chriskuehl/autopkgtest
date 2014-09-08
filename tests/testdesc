@@ -171,12 +171,20 @@ class Debian(unittest.TestCase):
         self.addCleanup(shutil.rmtree, self.pkgdir)
 
     def call_parse(self, testcontrol, pkgcontrol=None, caps=[]):
-        with open(os.path.join(self.pkgdir, 'debian', 'tests', 'control'), 'w', encoding='UTF-8') as f:
-            f.write(testcontrol)
+        if testcontrol:
+            with open(os.path.join(self.pkgdir, 'debian', 'tests', 'control'), 'w', encoding='UTF-8') as f:
+                f.write(testcontrol)
         if pkgcontrol:
             with open(os.path.join(self.pkgdir, 'debian', 'control'), 'w', encoding='UTF-8') as f:
                 f.write(pkgcontrol)
         return testdesc.parse_debian_source(self.pkgdir, caps)
+
+    def test_no_control(self):
+        '''no test control file'''
+
+        (ts, skipped) = self.call_parse(None, 'Source: foo\n')
+        self.assertEqual(ts, [])
+        self.assertFalse(skipped)
 
     def test_single(self):
         '''single test, simplest possible'''
