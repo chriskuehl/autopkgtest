@@ -267,9 +267,6 @@ Implied control file: ::
     Test-Command: /usr/share/pkg-perl-autopkgtest/runner runtime-deps
     Depends: @, pkg-perl-autopkgtest
 
-    Test-Command: /usr/share/pkg-perl-autopkgtest/runner heavy-deps
-    Depends: @, pkg-perl-autopkgtest, pkg-perl-autopkgtest-heavy
-
 
 Reboot during a test
 --------------------
