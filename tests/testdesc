@@ -219,6 +219,24 @@ class Debian(unittest.TestCase):
             self.assertEqual(t.depends, ['one (>= 0~)', 'two (>= 0~)'])
         self.assertFalse(skipped)
 
+    def test_arch_specific(self):
+        '''@ expansion with architecture specific binaries'''
+
+        (ts, skipped) = self.call_parse(
+            'Tests: t',
+            'Source: nums\n\nPackage: one\nArchitecture: any\n\n'
+            'Package: two\nArchitecture: linux-any\n\n'
+            'Package: three\nArchitecture: c64 vax')
+        self.assertEqual(len(ts), 1)
+        self.assertEqual(ts[0].name, 't')
+        self.assertEqual(ts[0].path, 'debian/tests/t')
+        self.assertEqual(ts[0].restrictions, [])
+        self.assertEqual(ts[0].features, [])
+        self.assertEqual(ts[0].depends,
+                         ['one (>= 0~)', 'two (>= 0~) [linux-any]',
+                          'three (>= 0~) [c64 vax]'])
+        self.assertFalse(skipped)
+
     def test_known_restrictions(self):
         '''known restrictions'''
 
