@@ -2279,6 +2279,7 @@ class QemuRunner(AdtTestCase):
 
         p = self.build_dsc('Tests: pass\nRestrictions: build-needed\n',
                            {'pass': '#!/bin/sh -e\ntest_built\n./test_built\n'
+                            './test_abspath\n'
                             'grep ^processor /proc/cpuinfo  |wc -l\n'})
 
         (code, out, err) = self.adt_run([p], ['-c', '2', self.image])
@@ -2288,7 +2289,7 @@ class QemuRunner(AdtTestCase):
         self.assertRegex(out, 'pass\s+PASS', out)
 
         # should show test stdout
-        self.assertIn('built script OK\nbuilt script OK\n2', out)
+        self.assertIn('built script OK\nbuilt script OK\nbuilt script OK\n2', out)
 
         # should not have any test stderr
         self.assertNotIn(' stderr ', err)
