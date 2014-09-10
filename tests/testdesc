@@ -216,7 +216,7 @@ class Debian(unittest.TestCase):
         for t in ts:
             self.assertEqual(t.restrictions, [])
             self.assertEqual(t.features, [])
-            self.assertEqual(t.depends, ['one', 'two'])
+            self.assertEqual(t.depends, ['one (>= 0~)', 'two (>= 0~)'])
         self.assertFalse(skipped)
 
     def test_known_restrictions(self):
@@ -284,7 +284,7 @@ class Debian(unittest.TestCase):
             'Build-Depends-Indep: bdi1\n'
             '\n'
             'Package: one\nArchitecture: any')
-        self.assertEqual(ts[0].depends, ['one', 'bd1', 'bd2 [armhf]',
+        self.assertEqual(ts[0].depends, ['one (>= 0~)', 'bd1', 'bd2 [armhf]',
                                          'bd3:native (>= 7) | bd4 [linux-any]',
                                          'bdi1', 'build-essential', 'foo (>= 7)'])
         self.assertFalse(skipped)
@@ -296,7 +296,7 @@ class Debian(unittest.TestCase):
             'Tests: t\nDepends: @,\n foo (>= 7) [linux-any],\n'
             ' bd3:native (>= 4) | bd4 [armhf megacpu],\n',
             'Source: nums\n\nPackage: one\nArchitecture: any')
-        self.assertEqual(ts[0].depends, ['one', 'foo (>= 7) [linux-any]',
+        self.assertEqual(ts[0].depends, ['one (>= 0~)', 'foo (>= 7) [linux-any]',
                                          'bd3:native (>= 4) | bd4 [armhf megacpu]'])
         self.assertFalse(skipped)
 
@@ -317,7 +317,7 @@ class Debian(unittest.TestCase):
             '# more c☺ mments\n'
             '\n'
             'Package: one\nArchitecture: any')
-        self.assertEqual(ts[0].depends, ['one', 'bd1', 'build-essential'])
+        self.assertEqual(ts[0].depends, ['one (>= 0~)', 'bd1', 'build-essential'])
         self.assertFalse(skipped)
 
     @patch('adtlog.report')
@@ -424,7 +424,7 @@ class Debian(unittest.TestCase):
         self.assertEqual(len(ts), 1)
         self.assertIn('gem2deb', ts[0].command)
         self.assertIn('gem2deb-test-runner', ts[0].depends)
-        self.assertIn('ruby-foo', ts[0].depends)
+        self.assertIn('ruby-foo (>= 0~)', ts[0].depends)
         self.assertIn('rake', ts[0].depends)
         self.assertNotIn('gem2deb', ts[0].depends)
 
@@ -441,15 +441,15 @@ class Debian(unittest.TestCase):
 
         self.assertRegex(ts[0].command, 'pkg-perl-autopkgtest.*build-deps')
         self.assertIn('pkg-perl-autopkgtest', ts[0].depends)
-        self.assertIn('libfoo-perl', ts[0].depends)
+        self.assertIn('libfoo-perl (>= 0~)', ts[0].depends)
 
         self.assertRegex(ts[1].command, 'pkg-perl-autopkgtest.*runtime-deps')
         self.assertIn('pkg-perl-autopkgtest', ts[1].depends)
-        self.assertIn('libfoo-perl', ts[1].depends)
+        self.assertIn('libfoo-perl (>= 0~)', ts[1].depends)
 
         self.assertRegex(ts[2].command, 'pkg-perl-autopkgtest.*heavy-deps')
         self.assertIn('pkg-perl-autopkgtest-heavy', ts[2].depends)
-        self.assertIn('libfoo-perl', ts[2].depends)
+        self.assertIn('libfoo-perl (>= 0~)', ts[2].depends)
 
 
 class Click(unittest.TestCase):
