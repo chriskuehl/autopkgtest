@@ -1,6 +1,7 @@
 build:
 	/bin/echo -e "#!/bin/sh -e\necho built script OK" > test_built
-	chmod 755 test_built
+	/bin/echo -e "#!/bin/sh -e\nexec $(PWD)/test_built" > test_abspath
+	chmod 755 test_built test_abspath
 
 clean:
 	rm -f test_built
