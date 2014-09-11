@@ -217,6 +217,9 @@ ubuntu_prepare_for_testing() {
     P=$!
     sleep 0.3
     kill $P
+
+    # unlock the greeter
+    adb shell "sudo -n -u phablet -i gdbus call --session --dest com.canonical.UnityGreeter --object-path / --method com.canonical.UnityGreeter.HideGreeter && echo Greeter unlocked"
 }
 
 revert() {
