@@ -1113,7 +1113,7 @@ Restrictions: needs-root
         self.assertEqual(code, 0, err)
         self.assertRegex(out, 'pass\s+PASS')
 
-        self.assertIn('synthesised dependency testpkg\n', err)
+        self.assertIn('synthesised dependency testpkg (>= 0~)\n', err)
         self.assertIn('processing dependency testdep1\n', err)
         self.assertIn('synthesised dependency bdep1\n', err)
         self.assertIn('synthesised dependency bdep2\n', err)
