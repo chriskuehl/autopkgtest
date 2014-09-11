@@ -2342,10 +2342,11 @@ class QemuRunner(AdtTestCase):
     def test_setup_commands_reboot(self):
         '''--setup-commands with reboot'''
 
-        p = self.build_src('Tests: t\nDepends:\n\nTests: r\nDepends:\nRestrictions: needs-root\n',
+        p = self.build_src('Tests: t\nDepends:\n\nTests: r\nDepends:\nRestrictions: needs-root, build-needed\n',
                            {'t': '#!/bin/sh -e\n[ -d "$HOME" ] || echo "HOME not set" >&2\n',
                             'r': '#!/bin/sh -e\n[ -d "$HOME" ] || echo "HOME not set" >&2\n'
-                                 '[ "$USER" = "root" ] || echo "USER invalid: $USER" >&2\n'})
+                                 '[ "$USER" = "root" ] || echo "USER invalid: $USER" >&2\n'
+                                 './test_built\n./test_abspath\n'})
 
         (code, out, err) = self.adt_run(['-B', '-d', p + '//', '--setup-commands',
                                          'apt-get install --reinstall -y cron'],
@@ -2355,6 +2356,9 @@ class QemuRunner(AdtTestCase):
         self.assertEqual(code, 0, err)
         self.assertRegex(out, 't\s+PASS', out)
         self.assertRegex(out, 'r\s+PASS', out)
+
+        # built sources should succeed
+        self.assertIn('built script OK\nbuilt script OK\n', out)
 
         # should not have any test stderr
         self.assertNotIn(' stderr ', err)
