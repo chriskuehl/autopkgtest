@@ -455,15 +455,15 @@ class Debian(unittest.TestCase):
         (ts, skipped) = self.call_parse(None, 'Source: libfoo-perl\n\n'
                                         'Package: libfoo-perl\nArchitecture: all')
 
-        self.assertEqual(len(ts), 2)
+        self.assertEqual(len(ts), 3)
 
         self.assertRegex(ts[0].command, 'pkg-perl-autopkgtest.*build-deps')
-        self.assertIn('pkg-perl-autopkgtest', ts[0].depends)
-        self.assertIn('libfoo-perl (>= 0~)', ts[0].depends)
+        self.assertRegex(ts[1].command, 'pkg-perl-autopkgtest.*runtime-deps$')
+        self.assertRegex(ts[2].command, 'pkg-perl-autopkgtest.*runtime-deps-and-recommends$')
 
-        self.assertRegex(ts[1].command, 'pkg-perl-autopkgtest.*runtime-deps')
-        self.assertIn('pkg-perl-autopkgtest', ts[1].depends)
-        self.assertIn('libfoo-perl (>= 0~)', ts[1].depends)
+        for t in ts:
+            self.assertIn('pkg-perl-autopkgtest', t.depends)
+            self.assertIn('libfoo-perl (>= 0~)', t.depends)
 
 
 class Click(unittest.TestCase):
