@@ -1952,6 +1952,40 @@ class SchrootRunner(AdtTestCase):
         self.assertIn('Unpacking apt-doc', out)
         self.assertIn('built script OK', out)
 
+    def test_needs_recommends_last(self):
+        '''needs-recommends restriction in later of two tests'''
+
+        # check that testpkg's Recommends: gets installed
+        # even if there's a preceding test with the same dependencies
+        # but without needs-recommends
+        p = self.build_src('Tests: nr\n\nTests: wr\nRestrictions: needs-recommends',
+                           {'nr': '#!/bin/sh -e\n'
+                            'test ! -e /usr/share/doc/apt-doc/copyright ||'
+                            'echo "apt-doc unexpectedly installed" >&2',
+                            'wr': '#!/bin/sh -e\n'
+                            'test -e /usr/share/doc/apt-doc/copyright ||'
+                            'echo "apt-doc not installed!" >&2'})
+
+        (code, out, err) = self.adt_run(['--unbuilt-tree=' + p], [self.schroot_name])
+        self.assertEqual(code, 0, out + err)
+
+    def test_needs_recommends_first(self):
+        '''needs-recommends restriction in former of two tests'''
+
+        # check that testpkg's Recommends: isn't installed without
+        # needs-recommends even if there's a preceding test with the
+        # same dependencies but with needs-recommends
+        p = self.build_src('Tests: wr\nRestrictions: needs-recommends\n\nTests: nr\n',
+                           {'wr': '#!/bin/sh -e\n'
+                            'test -e /usr/share/doc/apt-doc/copyright ||'
+                            'echo "apt-doc not installed!" >&2',
+                            'nr': '#!/bin/sh -e\n'
+                            'test ! -e /usr/share/doc/apt-doc/copyright ||'
+                            'echo "apt-doc unexpectedly installed!" >&2'})
+
+        (code, out, err) = self.adt_run(['--unbuilt-tree=' + p], [self.schroot_name])
+        self.assertEqual(code, 0, out + err)
+
 
 @unittest.skipUnless('ADT_TEST_LXC' in os.environ,
                      'Set $ADT_TEST_LXC to an existing container')
