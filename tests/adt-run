@@ -1467,7 +1467,7 @@ class SchrootRunner(AdtTestCase):
 
         # also test some fancy dependencies
         p = self.build_src('Tests: p1 p2\n'
-                           'Depends: coreutils, aspell-doc [linux-any], cpp-doc:native, unknown [nosucharch]\n'
+                           'Depends: coreutils, aspell-doc [linux-any], apt-doc:native, unknown [nosucharch]\n'
                            'Restrictions: needs-root\n',
                            {'p1': '#!/bin/sh\necho I am fine\n',
                             'p2': '#!/bin/sh\necho I am also fine\n'})
@@ -1482,7 +1482,7 @@ class SchrootRunner(AdtTestCase):
         # handles expected packages
         self.assertIn('processing dependency coreutils', err)
         self.assertIn('Unpacking aspell-doc', out)
-        self.assertIn('Unpacking cpp-doc', out)
+        self.assertIn('Unpacking apt-doc', out)
         self.assertNotIn('unknown', out)
 
         # should show test stdout
@@ -1623,8 +1623,8 @@ class SchrootRunner(AdtTestCase):
         self.assertIn('binaries/./testpkg.deb', out)
         self.assertIn('Unpacking aspell-doc', out)
         # does not install Recommends by default
-        self.assertNotIn('Unpacking cpp-doc', out)
-        self.assertNotIn('Unpacking cpp-doc', err)
+        self.assertNotIn('Unpacking apt-doc', out)
+        self.assertNotIn('Unpacking apt-doc', err)
 
         # test should succeed
         self.assertRegex(out, 'pass\s+PASS', out)
@@ -1941,15 +1941,15 @@ class SchrootRunner(AdtTestCase):
     def test_needs_recommends(self):
         '''needs-recommends restriction'''
 
-        # check that testpkg's Recommends: cpp-doc gets installed
+        # check that testpkg's Recommends: apt-doc gets installed
         p = self.build_src('Tests: pass\nRestrictions: needs-recommends',
                            {'pass': '#!/bin/sh -e\n/usr/bin/test_built; '
-                            'test -e /usr/share/doc/cpp-doc/copyright ||'
-                            'echo "cpp-doc not installed!" >&2'})
+                            'test -e /usr/share/doc/apt-doc/copyright ||'
+                            'echo "apt-doc not installed!" >&2'})
 
         (code, out, err) = self.adt_run(['--unbuilt-tree=' + p], [self.schroot_name])
         self.assertEqual(code, 0, out + err)
-        self.assertIn('Unpacking cpp-doc', out)
+        self.assertIn('Unpacking apt-doc', out)
         self.assertIn('built script OK', out)
 
 
