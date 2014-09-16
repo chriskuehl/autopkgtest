@@ -287,7 +287,7 @@ The particular steps for a rebooting tests are:
 
 - The test calls ``autopkgtest-reboot my_mark`` with a "mark"
   identifier. ``autopkgtest-reboot`` will cause the test to terminate
-  (with ``SIGPIPE``).
+  (with ``SIGKILL``).
 
 - ``adt-run`` backs up the current state of the test source tree and
   any ``$ADT_ARTIFACTS`` that were created so far, reboots the
