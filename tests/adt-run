@@ -810,6 +810,33 @@ bad                  FAIL non-zero exit status 1
         # chown it back so that we can clean up
         os.chmod(os.path.join(p, 'data'), 0o755)
 
+    def test_signal(self):
+        '''tests keep default signal handler'''
+
+        p = self.build_src('Tests: int\nDepends:',
+                           {'int': '''#!/usr/bin/perl -wl
+$| = 1; # unbuffer output
+my $pid = fork;
+if ($pid) { # parent
+    sleep 1;
+    print "P: killing";
+    kill INT => $pid;
+    print "P: waiting";
+    wait;
+    print "P: done";
+} else { # child
+    sleep;
+    print "C: survived!";
+}
+'''})
+
+        (code, out, err) = self.adt_run(['-B', '--timeout-test=5', p + '//'])
+        self.assertEqual(code, 0, err)
+        self.assertRegex(out, 'int\s+PASS')
+
+        self.assertIn('P: done\n', out)
+        self.assertNotIn('survived', out)
+
 
 @unittest.skipIf(os.getuid() > 0,
                  'NullRunnerRoot tests need to run as root')
