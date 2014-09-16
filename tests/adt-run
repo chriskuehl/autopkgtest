@@ -31,6 +31,7 @@ import unittest
 import tempfile
 import shutil
 import fnmatch
+import time
 from glob import glob
 
 test_dir = os.path.dirname(os.path.abspath(__file__))
@@ -470,13 +471,20 @@ bad                  FAIL non-zero exit status 1
         '''handling test timeout for test without any output'''
 
         p = self.build_dsc('Tests: totest\nDepends:\n',
-                           {'totest': '#!/bin/sh\nsleep 10\n'})
+                           {'totest': '#!/bin/bash\nexec -a adtsleep sleep 15\n'})
 
+        time_start = time.time()
         (code, out, err) = self.adt_run(['--no-built-binaries', '--timeout-test=3', p])
+        duration = time.time() - time_start
+
         # test should time out
         self.assertEqual(code, 16, err)
         self.assertIn("timed out on command", err)
         self.assertNotIn('totest', out)
+        self.assertLess(duration, 6, err)
+
+        # should not leave test process running
+        self.assertEqual(subprocess.getoutput(['pidof', 'adtsleep']), '')
 
     def test_timeout_long_test(self):
         '''long-running test with custom timeouts
