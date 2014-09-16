@@ -115,9 +115,299 @@ class AdtTestCase(unittest.TestCase):
         return (adt.returncode, out.decode('UTF-8'), err.decode('UTF-8'))
 
 
-class NullRunnerNoRoot(AdtTestCase):
+class NullRunner(AdtTestCase):
     def __init__(self, *args, **kwargs):
-        super(NullRunnerNoRoot, self).__init__('null', *args, **kwargs)
+        super(NullRunner, self).__init__('null', *args, **kwargs)
+
+    def test_tree_norestrictions_nobuild_success(self):
+        '''source tree, no build, no restrictions, test success'''
+
+        p = self.build_src('Tests: pass\nDepends: coreutils\n',
+                           {'pass': '#!/bin/sh\necho I am fine\n'})
+
+        (code, out, err) = self.adt_run(['-d', '-B', '--unbuilt-tree=' + p])
+        # print('----- out ----\n%s\n----- err ----\n%s\n----' % (out, err))
+        # test should succeed
+        self.assertEqual(code, 0, err)
+        self.assertRegex(out, 'pass\s+PASS', out)
+
+        self.assertIn('processing dependency coreutils', err)
+        # should show test stdout
+        self.assertRegex(out, '(^|\n)I am fine\n')
+        # should not have any test stderr
+        self.assertNotIn(' stderr ', err)
+
+        # should not build package
+        self.assertNotIn('dh build', err)
+
+    def test_tree_norestrictions_nobuild_fail_on_exit(self):
+        '''source tree, no build, no restrictions, test fails with non-zero'''
+
+        p = self.build_src('Tests: nz\nDepends: coreutils\n',
+                           {'nz': '#!/bin/sh\necho I am sick\nexit 7'})
+
+        (code, out, err) = self.adt_run(['--no-built-binaries', '--built-tree=' + p])
+        # test should fail
+        self.assertEqual(code, 4)
+        self.assertRegex(out, 'nz\s+FAIL non-zero exit status 7')
+
+        # should show test stdout
+        self.assertRegex(out, '(^|\n)I am sick\n')
+        # should not have any test stderr
+        self.assertNotIn(' stderr ', err)
+
+    def test_tree_norestrictions_nobuild_fail_on_stderr(self):
+        '''source tree, no build, no restrictions, test fails with stderr'''
+
+        p = self.build_src('Tests: se\nDepends: coreutils\n',
+                           {'se': '#!/bin/sh\necho I am sick >&2\n'})
+
+        (code, out, err) = self.adt_run(['--no-built-binaries', '--built-tree=' + p])
+        # test should fail
+        self.assertEqual(code, 4)
+        self.assertRegex(out, '(^|\n)se\s+FAIL stderr: I am sick\n')
+
+        # should show test stderr
+        self.assertRegex(err, 'stderr [ -]+\nI am sick', err)
+
+    def test_tree_allow_stderr_nobuild_fail_on_exit(self):
+        '''source tree, no build, allow-stderr, test fails with non-zero'''
+
+        p = self.build_src('Tests: nz\nDepends: coreutils\nRestrictions: allow-stderr',
+                           {'nz': '#!/bin/sh\necho I am fine >&2\necho babble\nexit 7'})
+
+        (code, out, err) = self.adt_run(['--no-built-binaries', '--built-tree=' + p])
+        # test should fail
+        self.assertEqual(code, 4)
+        self.assertRegex(out, 'nz\s+FAIL non-zero exit status 7')
+
+        # should show test stdout/err inline
+        self.assertRegex(out, '(^|\n)babble\n')
+        self.assertRegex(err, '---+\nI am fine\nadt-run', err)
+        # but not complain about stderr
+        self.assertNotIn(' stderr ', err)
+
+    def test_tree_norestrictions_nobuild_fail_on_stderr_and_exit(self):
+        '''source tree, no build, no restrictions, test fails with stderr+exit'''
+
+        p = self.build_src('Tests: senz\nDepends:\n',
+                           {'senz': '#!/bin/sh\necho I am sick >&2\nexit 7\n'})
+
+        (code, out, err) = self.adt_run(['--no-built-binaries', '--built-tree=' + p])
+        # test should fail
+        self.assertEqual(code, 4, err)
+        self.assertRegex(out, 'senz\s+FAIL non-zero exit status 7')
+
+        # should show test stderr, but inline
+        self.assertRegex(err, 'stderr [ -]+\nI am sick', err)
+
+    def test_tree_allow_stderr_nobuild_success(self):
+        '''source tree, no build, allow-stderr, test success'''
+
+        p = self.build_src('Tests: pass\nDepends: coreutils\nRestrictions: allow-stderr',
+                           {'pass': '#!/bin/sh\necho I am fine >&2\necho babble'})
+
+        (code, out, err) = self.adt_run(['--no-built-binaries', '--built-tree=' + p])
+        self.assertEqual(code, 0, err)
+        self.assertRegex(out, 'pass\s+PASS', out)
+
+        # should show test stdout/err
+        self.assertIn('babble\n', out)
+        self.assertRegex(err, '-+\nI am fine\nadt-run \[[0-9: -]+\]: test pass: --')
+        # but not complain about stderr
+        self.assertNotIn(' stderr ', err)
+
+        # should log package version
+        self.assertIn('testing package testpkg version 1\n', err)
+
+        # no restricted dependencies functionality as they are already installed
+        self.assertNotIn('will only work for some packages', err)
+
+    def test_tree_build_needed_success(self):
+        '''source tree, build-needed restriction, test success'''
+
+        p = self.build_src('Tests: pass\nDepends: coreutils\nRestrictions: build-needed\n',
+                           {'pass': '#!/bin/sh -e\n./test_built | grep -q "built script OK"\n'})
+
+        (code, out, err) = self.adt_run(['--no-built-binaries', '--unbuilt-tree=' + p])
+        # test should succeed
+        self.assertRegex(out, 'pass\s+PASS', out)
+        self.assertEqual(code, 0, err)
+
+        # should not have any test stdout/stderr
+        self.assertNotIn(' stderr ', err)
+
+        # should build package
+        self.assertIn('dh build', err)
+
+    def test_tree_output_dir(self):
+        '''source tree, explicit --output-dir
+
+        This also covers using upper-case lettes in test names.
+        '''
+        p = self.build_src('Tests: sP sF\nDepends: coreutils\n\n'
+                           'Tests: bP\nDepends: coreutils\nRestrictions: build-needed',
+                           {'sP': '#!/bin/sh\n./test_static\n',
+                            'sF': '#!/bin/sh\necho kaputt >&2',
+                            'bP': '#!/bin/sh\n./test_built'})
+
+        outdir = os.path.join(self.workdir, 'out')
+        os.mkdir(outdir)
+        # put some cruft into it, to check that it gets cleaned up
+        with open(os.path.join(outdir, 'cruft.txt'), 'w') as f:
+            f.write('hello world')
+
+        (code, out, err) = self.adt_run(['--no-built-binaries',
+                                         '--unbuilt-tree=' + p,
+                                         '--output-dir=' + outdir])
+
+        # test results
+        self.assertEqual(code, 4, err)
+        self.assertRegex(out, 'sP\s+PASS', out)
+        self.assertRegex(out, 'sF\s+FAIL stderr: kaputt', out)
+        self.assertRegex(out, 'bP\s+PASS', out)
+
+        # should show test stdout and stderr
+        self.assertRegex(out, '(^|\n)static script OK\n')
+        self.assertIn('\nbuilt script OK\n', out)
+        self.assertRegex(err, 'stderr [ -]+\nkaputt', err)
+
+        # should build package
+        self.assertIn('dh build', err)
+
+        # check outdir test stdout/err
+        with open(os.path.join(outdir, 'sP-stdout')) as f:
+            self.assertEqual(f.read(), 'static script OK\n')
+        self.assertFalse(os.path.exists(
+            os.path.join(outdir, 'sP-stderr')))
+        with open(os.path.join(outdir, 'bP-stdout')) as f:
+            self.assertEqual(f.read(), 'built script OK\n')
+        self.assertFalse(os.path.exists(
+            os.path.join(outdir, 'bP-stderr')))
+        self.assertFalse(os.path.exists(
+            os.path.join(outdir, 'sF-stdout')))
+        with open(os.path.join(outdir, 'sF-stderr')) as f:
+            self.assertEqual(f.read(), 'kaputt\n')
+
+        # check outdir log
+        with open(os.path.join(outdir, 'log')) as f:
+            contents = f.read()
+        self.assertIn('build needed for tests', contents)
+        self.assertIn('dh build', contents)
+        self.assertRegex(contents, 'sF\s+FAIL stderr: kaputt')
+        self.assertIn('testing package testpkg version 1\n', contents)
+
+        # check summary
+        with open(os.path.join(outdir, 'summary')) as f:
+            self.assertRegex(f.read(), '^sP\s+PASS\nsF\s+FAIL stderr: kaputt\nbP\s+PASS$')
+
+        # check test package version
+        with open(os.path.join(outdir, 'testpkg-version')) as f:
+            contents = f.read()
+        self.assertEqual(contents, 'testpkg 1\n')
+
+        # check recorded package lists
+        with open(os.path.join(outdir, 'testbed-packages')) as f:
+            contents = f.read()
+            lines = contents.splitlines()
+            self.assertGreater(len(lines), 10)
+            self.assertRegex(lines[0], '^[0-9a-z.-]+\t[0-9a-z.~-]+')
+            self.assertRegex(lines[1], '^[0-9a-z.-]+\t[0-9a-z.~-]+')
+            self.assertIn('bash\t', contents)
+
+        # test don't pull in any additional dependencies
+        for t in ['sP', 'sF', 'bP']:
+            self.assertEqual(os.path.getsize(os.path.join(
+                outdir, '%s-packages' % t)), 0)
+
+        # check for cruft in outdir
+        # --no-built-binaries, we don't expect any debs
+        files = [i for i in os.listdir(outdir)
+                 if not fnmatch.fnmatch(i, '[sb]*-std*') and
+                 not fnmatch.fnmatch(i, '[sb]*-packages')]
+        self.assertEqual(set(files), set(['log', 'summary', 'testpkg-version', 'testbed-packages']))
+
+    def test_tree_apply_patches(self):
+        '''source tree, 3.0 (quilt) patches get applied'''
+
+        p = self.build_src('Tests: pass\nDepends: coreutils\nRestrictions: build-needed\n',
+                           {'pass': '#!/bin/sh -e\ndebian/testpkg/usr/bin/test_built\n'
+                            'debian/testpkg/usr/bin/test_static\n'})
+
+        # add patch
+        patchdir = os.path.join(p, 'debian', 'patches')
+        os.mkdir(patchdir)
+        with open(os.path.join(patchdir, '01_hack.patch'), 'w') as f:
+            f.write('''--- testpkg.orig/test_static
++++ testpkg/test_static
+@@ -1,2 +1,2 @@
+ #!/bin/sh
+-echo "static script OK"
++echo "static patched script OK"
+''')
+        with open(os.path.join(patchdir, 'series'), 'w') as f:
+            f.write('01_hack.patch')
+
+        # turn into 3.0 (quilt) source
+        dsrcdir = os.path.join(p, 'debian', 'source')
+        os.mkdir(dsrcdir)
+        with open(os.path.join(dsrcdir, 'format'), 'w') as f:
+            f.write('3.0 (quilt)\n')
+
+        # run tests, should apply unapplied patches
+        (code, out, err) = self.adt_run(['-B', '-d', '--unbuilt-tree=' + p])
+
+        # test should succeed
+        self.assertRegex(out, 'pass\s+PASS', out)
+        self.assertEqual(code, 0, err)
+
+        # should have patched source
+        self.assertRegex(err, 'dpkg-source:.*01_hack.patch')
+        self.assertIn('built script OK\nstatic patched script OK\n', out)
+
+        # should not have any test stderr
+        self.assertNotIn(' stderr ', err)
+
+        # should build package
+        self.assertIn('dh build', err)
+
+    def test_dsc_norestrictions_nobuild_success(self):
+        '''dsc, no build, no restrictions, test success'''
+
+        p = self.build_dsc('Tests: pass\nDepends: coreutils\n',
+                           {'pass': '#!/bin/sh\necho I am fine\n'})
+
+        (code, out, err) = self.adt_run(['-d', '--no-built-binaries', p])
+        # test should succeed
+        self.assertEqual(code, 0, err)
+        self.assertIn('coreutils', err)
+        self.assertRegex(out, 'pass\s+PASS', out)
+
+        self.assertIn('processing dependency coreutils', err)
+        # should show test stdout
+        self.assertRegex(out, '(^|\n)I am fine\n')
+        # should not have any test stderr
+        self.assertNotIn(' stderr ', err)
+
+        # should log package version
+        self.assertIn('testing package testpkg version 1\n', err)
+
+    def test_dsc_build_needed_success(self):
+        '''dsc, build-needed restriction, test success'''
+
+        p = self.build_dsc('Tests: pass\nDepends: coreutils\nRestrictions: build-needed\n',
+                           {'pass': '#!/bin/sh -e\n./test_built | grep -q "built script OK"\n'})
+
+        (code, out, err) = self.adt_run(['--no-built-binaries', p])
+        # test should succeed
+        self.assertRegex(out, 'pass\s+PASS', out)
+        self.assertEqual(code, 0, err)
+
+        # should not have any test stderr
+        self.assertNotIn(' stderr ', err)
+
+        # should build package
+        self.assertIn('dh build', err)
 
     def test_dev_stdouterr_access(self):
         '''write to /dev/stdout and /dev/stderr in a test'''
@@ -159,41 +449,178 @@ class NullRunnerNoRoot(AdtTestCase):
 bad                  FAIL non-zero exit status 1
 ''')
 
-    def test_tree_norestrictions_nobuild_fail_on_stderr_and_exit(self):
-        '''source tree, no build, no restrictions, test fails with stderr+exit'''
+    def test_timeout(self):
+        '''handling test timeout'''
 
-        p = self.build_src('Tests: senz\nDepends:\n',
-                           {'senz': '#!/bin/sh\necho I am sick >&2\nexit 7\n'})
+        p = self.build_dsc('Tests: totest\nDepends:\n',
+                           {'totest': '#!/bin/sh\necho start\nsleep 10\necho after_sleep\n'})
 
-        (code, out, err) = self.adt_run(['--no-built-binaries', '--built-tree=' + p])
-        # test should fail
-        self.assertEqual(code, 4, err)
-        self.assertRegex(out, 'senz\s+FAIL non-zero exit status 7')
+        (code, out, err) = self.adt_run(['--no-built-binaries', '--timeout-test=3', p])
+        # test should time out
+        self.assertEqual(code, 16, err)
+        self.assertIn("timed out on command", err)
+        self.assertNotIn('totest', out)
 
-        # should show test stderr, but inline
-        self.assertRegex(err, 'stderr [ -]+\nI am sick', err)
+        # should show test stdout
+        self.assertIn('start', out)
+        # but not let the test finish
+        self.assertNotIn('after_sleep', out)
 
-    def test_tree_allow_stderr_nobuild_success(self):
-        '''source tree, no build, allow-stderr, test success'''
+    def test_timeout_no_output(self):
+        '''handling test timeout for test without any output'''
 
-        p = self.build_src('Tests: pass\nDepends: coreutils\nRestrictions: allow-stderr',
-                           {'pass': '#!/bin/sh\necho I am fine >&2\necho babble'})
+        p = self.build_dsc('Tests: totest\nDepends:\n',
+                           {'totest': '#!/bin/sh\nsleep 10\n'})
 
-        (code, out, err) = self.adt_run(['--no-built-binaries', '--built-tree=' + p])
+        (code, out, err) = self.adt_run(['--no-built-binaries', '--timeout-test=3', p])
+        # test should time out
+        self.assertEqual(code, 16, err)
+        self.assertIn("timed out on command", err)
+        self.assertNotIn('totest', out)
+
+    def test_timeout_long_test(self):
+        '''long-running test with custom timeouts
+
+        This verifies that the right timeout is being used for tests.
+        '''
+        p = self.build_dsc('Tests: p\nDepends:\nRestrictions: build-needed',
+                           {'p': '#!/bin/sh\necho start\nsleep 5\n./test_built\n'})
+
+        (code, out, err) = self.adt_run(['-B', '--timeout-test=6',
+                                         '--timeout-build=20', p])
+        # test should not time out
         self.assertEqual(code, 0, err)
-        self.assertRegex(out, 'pass\s+PASS', out)
+        self.assertNotIn('timed out', err)
 
-        # should show test stdout/err
-        self.assertIn('babble\n', out)
-        self.assertRegex(err, '-+\nI am fine\nadt-run \[[0-9: -]+\]: test pass: --')
-        # but not complain about stderr
+        # should show test stdout
+        self.assertIn('start\n', out)
+        self.assertIn('built script OK\n', out)
+
+    def test_timeout_long_build(self):
+        '''long-running build with custom timeouts
+
+        This verifies that the right timeout is being used for builds.
+        '''
+        p = self.build_src('Tests: p\nDepends:\nRestrictions: build-needed',
+                           {'p': '#!/bin/sh\necho start\n\n./test_built\n'})
+
+        # make build take 4s
+        subprocess.check_call(['sed', '-i', '/^build:/ s/$/\\n\\tsleep 4/',
+                               os.path.join(p, 'Makefile')])
+
+        (code, out, err) = self.adt_run(['--timeout-test=1', '--timeout-build=30',
+                                         '-B', '--unbuilt-tree', p])
+        # should build package
+        self.assertIn('dh build', err)
+
+        # test should not time out
+        self.assertEqual(code, 0, err)
+        self.assertNotIn('timeout', err)
+
+        # should show test stdout
+        self.assertIn('start\n', out)
+        self.assertIn('built script OK\n', out)
+
+    def test_timeout_long_build_fail(self):
+        '''long-running build times out
+
+        This verifies that the right timeout is being used for builds.
+        '''
+        p = self.build_src('Tests: p\nDepends:\nRestrictions: build-needed',
+                           {'p': '#!/bin/sh\necho start\n\n./test_built\n'})
+
+        # make build take 4s
+        subprocess.check_call(['sed', '-i', '/^build:/ s/$/\\n\\tsleep 4/',
+                               os.path.join(p, 'Makefile')])
+
+        (code, out, err) = self.adt_run(['--timeout-test=1', '--timeout-build=6',
+                                         '-B', '--unbuilt-tree', p])
+        # should start building package
+        self.assertIn('dh build', err)
+
+        # build should time out
+        self.assertEqual(code, 16, err)
+        self.assertIn('timed out', err)
+
+        # should not start tests
+        self.assertNotIn('start\n', out)
+
+    def test_logfile_success(self):
+        '''--log-file option, success'''
+
+        p = self.build_src('Tests: pass\nDepends: coreutils\n',
+                           {'pass': '#!/bin/sh\necho I am fine\n'})
+
+        logfile = os.path.join(self.workdir, 'adt.log')
+        (code, out, err) = self.adt_run(['-d', '--no-built-binaries',
+                                         '--unbuilt-tree=' + p,
+                                         '--log-file=' + logfile])
+        # test should succeed
+        self.assertEqual(code, 0, err)
+
+        with open(logfile) as f:
+            log = f.read()
+        self.assertIn('coreutils', err)
+        self.assertIn('coreutils', log)
+        self.assertRegex(out, 'pass\s+PASS')
+        self.assertRegex(log, 'pass\s+PASS')
+
+        self.assertIn('processing dependency coreutils', err)
+        self.assertIn('processing dependency coreutils', log)
+        # should show test stdout
+        self.assertRegex(out, '(^|\n)I am fine\n')
+        self.assertRegex(log, '(^|\n)I am fine\n')
+        # should not have any test stderr
         self.assertNotIn(' stderr ', err)
+        self.assertNotIn(' stderr ', log)
 
-        # should log package version
-        self.assertIn('testing package testpkg version 1\n', err)
+        # should not build package
+        self.assertNotIn('dh build', err)
 
-        # no restricted dependencies functionality as they are already installed
-        self.assertNotIn('will only work for some packages', err)
+    def test_logfile_failure(self):
+        '''--log-file option, failure'''
+
+        p = self.build_src('Tests: nz\nDepends: coreutils\nRestrictions: build-needed\n',
+                           {'nz': '#!/bin/sh\n./test_built\necho I am sick >&2\nexit 7'})
+
+        logfile = os.path.join(self.workdir, 'adt.log')
+        (code, out, err) = self.adt_run(['-d', '--no-built-binaries',
+                                         '--unbuilt-tree=' + p,
+                                         '--log-file=' + logfile])
+        with open(logfile) as f:
+            log = f.read()
+
+        # test should fail
+        self.assertEqual(code, 4)
+        self.assertRegex(out, 'nz\s+FAIL non-zero exit status 7')
+        self.assertRegex(log, 'nz\s+FAIL non-zero exit status 7')
+
+        self.assertIn('processing dependency coreutils', err)
+        self.assertIn('processing dependency coreutils', log)
+
+        # should build package
+        self.assertIn('dh build', err)
+        self.assertIn('dh build', log)
+
+        # should show test stdout
+        self.assertRegex(out, '(^|\n)built script OK\n')
+        self.assertRegex(log, '(^|\n)built script OK\n')
+        # should show test stderr
+        self.assertRegex(err, 'stderr [ -]+\nI am sick\n')
+        self.assertRegex(log, 'stderr [ -]+\nI am sick\n')
+
+    def test_breaks_testbed(self):
+        '''breaks-testbed restriction'''
+
+        p = self.build_src('Tests: rambo\nDepends:\nRestrictions: needs-root breaks-testbed',
+                           {'rambo': '#!/bin/sh\ntouch /var/tmp/zap\n'})
+
+        (code, out, err) = self.adt_run(['--no-built-binaries', '--unbuilt-tree=' + p])
+        # test should be skipped as null runner doesn't provide revert
+        self.assertEqual(code, 2, err)
+        self.assertRegex(out, 'rambo\s+SKIP Test breaks testbed')
+        self.assertNotIn(out, 'no tests')
+        self.assertFalse(os.path.exists('/var/tmp/zap'))
 
     def test_unicode(self):
         '''Unicode test output'''
@@ -377,133 +804,10 @@ bad                  FAIL non-zero exit status 1
 
 
 @unittest.skipIf(os.getuid() > 0,
-                 'null runner tests need to run as root')
-class NullRunner(AdtTestCase):
+                 'NullRunnerRoot tests need to run as root')
+class NullRunnerRoot(AdtTestCase):
     def __init__(self, *args, **kwargs):
-        super(NullRunner, self).__init__('null', *args, **kwargs)
-
-    def test_tree_norestrictions_nobuild_success(self):
-        '''source tree, no build, no restrictions, test success'''
-
-        p = self.build_src('Tests: pass\nDepends: coreutils\n',
-                           {'pass': '#!/bin/sh\necho I am fine\n'})
-
-        (code, out, err) = self.adt_run(['-d', '-B', '--unbuilt-tree=' + p])
-        # print('----- out ----\n%s\n----- err ----\n%s\n----' % (out, err))
-        # test should succeed
-        self.assertEqual(code, 0, err)
-        self.assertRegex(out, 'pass\s+PASS', out)
-
-        self.assertIn('processing dependency coreutils', err)
-        # should show test stdout
-        self.assertRegex(out, '(^|\n)I am fine\n')
-        # should not have any test stderr
-        self.assertNotIn(' stderr ', err)
-
-        # should not build package
-        self.assertNotIn('dh build', err)
-
-    def test_tree_norestrictions_nobuild_fail_on_exit(self):
-        '''source tree, no build, no restrictions, test fails with non-zero'''
-
-        p = self.build_src('Tests: nz\nDepends: coreutils\n',
-                           {'nz': '#!/bin/sh\necho I am sick\nexit 7'})
-
-        (code, out, err) = self.adt_run(['--no-built-binaries', '--built-tree=' + p])
-        # test should fail
-        self.assertEqual(code, 4)
-        self.assertRegex(out, 'nz\s+FAIL non-zero exit status 7')
-
-        # should show test stdout
-        self.assertRegex(out, '(^|\n)I am sick\n')
-        # should not have any test stderr
-        self.assertNotIn(' stderr ', err)
-
-    def test_tree_norestrictions_nobuild_fail_on_stderr(self):
-        '''source tree, no build, no restrictions, test fails with stderr'''
-
-        p = self.build_src('Tests: se\nDepends: coreutils\n',
-                           {'se': '#!/bin/sh\necho I am sick >&2\n'})
-
-        (code, out, err) = self.adt_run(['--no-built-binaries', '--built-tree=' + p])
-        # test should fail
-        self.assertEqual(code, 4)
-        self.assertRegex(out, '(^|\n)se\s+FAIL stderr: I am sick\n')
-
-        # should show test stderr
-        self.assertRegex(err, 'stderr [ -]+\nI am sick', err)
-
-    def test_tree_allow_stderr_nobuild_fail_on_exit(self):
-        '''source tree, no build, allow-stderr, test fails with non-zero'''
-
-        p = self.build_src('Tests: nz\nDepends: coreutils\nRestrictions: allow-stderr',
-                           {'nz': '#!/bin/sh\necho I am fine >&2\necho babble\nexit 7'})
-
-        (code, out, err) = self.adt_run(['--no-built-binaries', '--built-tree=' + p])
-        # test should fail
-        self.assertEqual(code, 4)
-        self.assertRegex(out, 'nz\s+FAIL non-zero exit status 7')
-
-        # should show test stdout/err inline
-        self.assertRegex(out, '(^|\n)babble\n')
-        self.assertRegex(err, '---+\nI am fine\nadt-run', err)
-        # but not complain about stderr
-        self.assertNotIn(' stderr ', err)
-
-    def test_tree_build_needed_success(self):
-        '''source tree, build-needed restriction, test success'''
-
-        p = self.build_src('Tests: pass\nDepends: coreutils\nRestrictions: build-needed\n',
-                           {'pass': '#!/bin/sh -e\n./test_built | grep -q "built script OK"\n'})
-
-        (code, out, err) = self.adt_run(['--no-built-binaries', '--unbuilt-tree=' + p])
-        # test should succeed
-        self.assertRegex(out, 'pass\s+PASS', out)
-        self.assertEqual(code, 0, err)
-
-        # should not have any test stdout/stderr
-        self.assertNotIn(' stderr ', err)
-
-        # should build package
-        self.assertIn('dh build', err)
-
-    def test_dsc_norestrictions_nobuild_success(self):
-        '''dsc, no build, no restrictions, test success'''
-
-        p = self.build_dsc('Tests: pass\nDepends: coreutils\n',
-                           {'pass': '#!/bin/sh\necho I am fine\n'})
-
-        (code, out, err) = self.adt_run(['-d', '--no-built-binaries', p])
-        # test should succeed
-        self.assertEqual(code, 0, err)
-        self.assertIn('coreutils', err)
-        self.assertRegex(out, 'pass\s+PASS', out)
-
-        self.assertIn('processing dependency coreutils', err)
-        # should show test stdout
-        self.assertRegex(out, '(^|\n)I am fine\n')
-        # should not have any test stderr
-        self.assertNotIn(' stderr ', err)
-
-        # should log package version
-        self.assertIn('testing package testpkg version 1\n', err)
-
-    def test_dsc_build_needed_success(self):
-        '''dsc, build-needed restriction, test success'''
-
-        p = self.build_dsc('Tests: pass\nDepends: coreutils\nRestrictions: build-needed\n',
-                           {'pass': '#!/bin/sh -e\n./test_built | grep -q "built script OK"\n'})
-
-        (code, out, err) = self.adt_run(['--no-built-binaries', p])
-        # test should succeed
-        self.assertRegex(out, 'pass\s+PASS', out)
-        self.assertEqual(code, 0, err)
-
-        # should not have any test stderr
-        self.assertNotIn(' stderr ', err)
-
-        # should build package
-        self.assertIn('dh build', err)
+        super(NullRunnerRoot, self).__init__('null', *args, **kwargs)
 
     def test_tmpdir_for_other_users(self):
         '''$TMPDIR is accessible to non-root users'''
@@ -552,310 +856,6 @@ rm $TMPDIR/rootowned.txt $TMPDIR/world.txt
 
         # has output from cat and whoami
         self.assertIn('world\nnobody\nnobody\nnobody\nUSER: nobody\nnobody\n', out)
-
-    def test_tree_output_dir(self):
-        '''source tree, explicit --output-dir
-
-        This also covers using upper-case lettes in test names.
-        '''
-        p = self.build_src('Tests: sP sF\nDepends: coreutils\n\n'
-                           'Tests: bP\nDepends: coreutils\nRestrictions: build-needed',
-                           {'sP': '#!/bin/sh\n./test_static\n',
-                            'sF': '#!/bin/sh\necho kaputt >&2',
-                            'bP': '#!/bin/sh\n./test_built'})
-
-        outdir = os.path.join(self.workdir, 'out')
-        os.mkdir(outdir)
-        # put some cruft into it, to check that it gets cleaned up
-        with open(os.path.join(outdir, 'cruft.txt'), 'w') as f:
-            f.write('hello world')
-
-        (code, out, err) = self.adt_run(['--no-built-binaries',
-                                         '--unbuilt-tree=' + p,
-                                         '--output-dir=' + outdir])
-
-        # test results
-        self.assertEqual(code, 4, err)
-        self.assertRegex(out, 'sP\s+PASS', out)
-        self.assertRegex(out, 'sF\s+FAIL stderr: kaputt', out)
-        self.assertRegex(out, 'bP\s+PASS', out)
-
-        # should show test stdout and stderr
-        self.assertRegex(out, '(^|\n)static script OK\n')
-        self.assertIn('\nbuilt script OK\n', out)
-        self.assertRegex(err, 'stderr [ -]+\nkaputt', err)
-
-        # should build package
-        self.assertIn('dh build', err)
-
-        # check outdir test stdout/err
-        with open(os.path.join(outdir, 'sP-stdout')) as f:
-            self.assertEqual(f.read(), 'static script OK\n')
-        self.assertFalse(os.path.exists(
-            os.path.join(outdir, 'sP-stderr')))
-        with open(os.path.join(outdir, 'bP-stdout')) as f:
-            self.assertEqual(f.read(), 'built script OK\n')
-        self.assertFalse(os.path.exists(
-            os.path.join(outdir, 'bP-stderr')))
-        self.assertFalse(os.path.exists(
-            os.path.join(outdir, 'sF-stdout')))
-        with open(os.path.join(outdir, 'sF-stderr')) as f:
-            self.assertEqual(f.read(), 'kaputt\n')
-
-        # check outdir log
-        with open(os.path.join(outdir, 'log')) as f:
-            contents = f.read()
-        self.assertIn('build needed for tests', contents)
-        self.assertIn('dh build', contents)
-        self.assertRegex(contents, 'sF\s+FAIL stderr: kaputt')
-        self.assertIn('testing package testpkg version 1\n', contents)
-
-        # check summary
-        with open(os.path.join(outdir, 'summary')) as f:
-            self.assertRegex(f.read(), '^sP\s+PASS\nsF\s+FAIL stderr: kaputt\nbP\s+PASS$')
-
-        # check test package version
-        with open(os.path.join(outdir, 'testpkg-version')) as f:
-            contents = f.read()
-        self.assertEqual(contents, 'testpkg 1\n')
-
-        # check recorded package lists
-        with open(os.path.join(outdir, 'testbed-packages')) as f:
-            contents = f.read()
-            lines = contents.splitlines()
-            self.assertGreater(len(lines), 10)
-            self.assertRegex(lines[0], '^[0-9a-z.-]+\t[0-9a-z.~-]+')
-            self.assertRegex(lines[1], '^[0-9a-z.-]+\t[0-9a-z.~-]+')
-            self.assertIn('bash\t', contents)
-
-        # test don't pull in any additional dependencies
-        for t in ['sP', 'sF', 'bP']:
-            self.assertEqual(os.path.getsize(os.path.join(
-                outdir, '%s-packages' % t)), 0)
-
-        # check for cruft in outdir
-        # --no-built-binaries, we don't expect any debs
-        files = [i for i in os.listdir(outdir)
-                 if not fnmatch.fnmatch(i, '[sb]*-std*') and
-                 not fnmatch.fnmatch(i, '[sb]*-packages')]
-        self.assertEqual(set(files), set(['log', 'summary', 'testpkg-version', 'testbed-packages']))
-
-    def test_timeout(self):
-        '''handling test timeout'''
-
-        p = self.build_dsc('Tests: totest\nDepends:\n',
-                           {'totest': '#!/bin/sh\necho start\nsleep 10\necho after_sleep\n'})
-
-        (code, out, err) = self.adt_run(['--no-built-binaries', '--timeout-test=3', p])
-        # test should time out
-        self.assertEqual(code, 16, err)
-        self.assertIn("timed out on command", err)
-        self.assertNotIn('totest', out)
-
-        # should show test stdout
-        self.assertIn('start', out)
-        # but not let the test finish
-        self.assertNotIn('after_sleep', out)
-
-    def test_timeout_no_output(self):
-        '''handling test timeout for test without any output'''
-
-        p = self.build_dsc('Tests: totest\nDepends:\n',
-                           {'totest': '#!/bin/sh\nsleep 10\n'})
-
-        (code, out, err) = self.adt_run(['--no-built-binaries', '--timeout-test=3', p])
-        # test should time out
-        self.assertEqual(code, 16, err)
-        self.assertIn("timed out on command", err)
-        self.assertNotIn('totest', out)
-
-    def test_timeout_long_test(self):
-        '''long-running test with custom timeouts
-
-        This verifies that the right timeout is being used for tests.
-        '''
-        p = self.build_dsc('Tests: p\nDepends:\nRestrictions: build-needed',
-                           {'p': '#!/bin/sh\necho start\nsleep 5\n./test_built\n'})
-
-        (code, out, err) = self.adt_run(['-B', '--timeout-test=6',
-                                         '--timeout-build=20', p])
-        # test should not time out
-        self.assertEqual(code, 0, err)
-        self.assertNotIn('timed out', err)
-
-        # should show test stdout
-        self.assertIn('start\n', out)
-        self.assertIn('built script OK\n', out)
-
-    def test_timeout_long_build(self):
-        '''long-running build with custom timeouts
-
-        This verifies that the right timeout is being used for builds.
-        '''
-        p = self.build_src('Tests: p\nDepends:\nRestrictions: build-needed',
-                           {'p': '#!/bin/sh\necho start\n\n./test_built\n'})
-
-        # make build take 4s
-        subprocess.check_call(['sed', '-i', '/^build:/ s/$/\\n\\tsleep 4/',
-                               os.path.join(p, 'Makefile')])
-
-        (code, out, err) = self.adt_run(['--timeout-test=1', '--timeout-build=30',
-                                         '-B', '--unbuilt-tree', p])
-        # should build package
-        self.assertIn('dh build', err)
-
-        # test should not time out
-        self.assertEqual(code, 0, err)
-        self.assertNotIn('timeout', err)
-
-        # should show test stdout
-        self.assertIn('start\n', out)
-        self.assertIn('built script OK\n', out)
-
-    def test_timeout_long_build_fail(self):
-        '''long-running build times out
-
-        This verifies that the right timeout is being used for builds.
-        '''
-        p = self.build_src('Tests: p\nDepends:\nRestrictions: build-needed',
-                           {'p': '#!/bin/sh\necho start\n\n./test_built\n'})
-
-        # make build take 4s
-        subprocess.check_call(['sed', '-i', '/^build:/ s/$/\\n\\tsleep 4/',
-                               os.path.join(p, 'Makefile')])
-
-        (code, out, err) = self.adt_run(['--timeout-test=1', '--timeout-build=6',
-                                         '-B', '--unbuilt-tree', p])
-        # should start building package
-        self.assertIn('dh build', err)
-
-        # build should time out
-        self.assertEqual(code, 16, err)
-        self.assertIn('timed out', err)
-
-        # should not start tests
-        self.assertNotIn('start\n', out)
-
-    def test_logfile_success(self):
-        '''--log-file option, success'''
-
-        p = self.build_src('Tests: pass\nDepends: coreutils\n',
-                           {'pass': '#!/bin/sh\necho I am fine\n'})
-
-        logfile = os.path.join(self.workdir, 'adt.log')
-        (code, out, err) = self.adt_run(['-d', '--no-built-binaries',
-                                         '--unbuilt-tree=' + p,
-                                         '--log-file=' + logfile])
-        # test should succeed
-        self.assertEqual(code, 0, err)
-
-        with open(logfile) as f:
-            log = f.read()
-        self.assertIn('coreutils', err)
-        self.assertIn('coreutils', log)
-        self.assertRegex(out, 'pass\s+PASS')
-        self.assertRegex(log, 'pass\s+PASS')
-
-        self.assertIn('processing dependency coreutils', err)
-        self.assertIn('processing dependency coreutils', log)
-        # should show test stdout
-        self.assertRegex(out, '(^|\n)I am fine\n')
-        self.assertRegex(log, '(^|\n)I am fine\n')
-        # should not have any test stderr
-        self.assertNotIn(' stderr ', err)
-        self.assertNotIn(' stderr ', log)
-
-        # should not build package
-        self.assertNotIn('dh build', err)
-
-    def test_logfile_failure(self):
-        '''--log-file option, failure'''
-
-        p = self.build_src('Tests: nz\nDepends: coreutils\nRestrictions: build-needed\n',
-                           {'nz': '#!/bin/sh\n./test_built\necho I am sick >&2\nexit 7'})
-
-        logfile = os.path.join(self.workdir, 'adt.log')
-        (code, out, err) = self.adt_run(['-d', '--no-built-binaries',
-                                         '--unbuilt-tree=' + p,
-                                         '--log-file=' + logfile])
-        with open(logfile) as f:
-            log = f.read()
-
-        # test should fail
-        self.assertEqual(code, 4)
-        self.assertRegex(out, 'nz\s+FAIL non-zero exit status 7')
-        self.assertRegex(log, 'nz\s+FAIL non-zero exit status 7')
-
-        self.assertIn('processing dependency coreutils', err)
-        self.assertIn('processing dependency coreutils', log)
-
-        # should build package
-        self.assertIn('dh build', err)
-        self.assertIn('dh build', log)
-
-        # should show test stdout
-        self.assertRegex(out, '(^|\n)built script OK\n')
-        self.assertRegex(log, '(^|\n)built script OK\n')
-        # should show test stderr
-        self.assertRegex(err, 'stderr [ -]+\nI am sick\n')
-        self.assertRegex(log, 'stderr [ -]+\nI am sick\n')
-
-    def test_breaks_testbed(self):
-        '''breaks-testbed restriction'''
-
-        p = self.build_src('Tests: rambo\nDepends:\nRestrictions: needs-root breaks-testbed',
-                           {'rambo': '#!/bin/sh\ntouch /var/tmp/zap\n'})
-
-        (code, out, err) = self.adt_run(['--no-built-binaries', '--unbuilt-tree=' + p])
-        # test should be skipped as null runner doesn't provide revert
-        self.assertEqual(code, 2, err)
-        self.assertRegex(out, 'rambo\s+SKIP Test breaks testbed')
-        self.assertNotIn(out, 'no tests')
-        self.assertFalse(os.path.exists('/var/tmp/zap'))
-
-    def test_tree_apply_patches(self):
-        '''source tree, 3.0 (quilt) patches get applied'''
-
-        p = self.build_src('Tests: pass\nDepends: coreutils\nRestrictions: build-needed\n',
-                           {'pass': '#!/bin/sh -e\ndebian/testpkg/usr/bin/test_built\n'
-                            'debian/testpkg/usr/bin/test_static\n'})
-
-        # add patch
-        patchdir = os.path.join(p, 'debian', 'patches')
-        os.mkdir(patchdir)
-        with open(os.path.join(patchdir, '01_hack.patch'), 'w') as f:
-            f.write('''--- testpkg.orig/test_static
-+++ testpkg/test_static
-@@ -1,2 +1,2 @@
- #!/bin/sh
--echo "static script OK"
-+echo "static patched script OK"
-''')
-        with open(os.path.join(patchdir, 'series'), 'w') as f:
-            f.write('01_hack.patch')
-
-        # turn into 3.0 (quilt) source
-        dsrcdir = os.path.join(p, 'debian', 'source')
-        os.mkdir(dsrcdir)
-        with open(os.path.join(dsrcdir, 'format'), 'w') as f:
-            f.write('3.0 (quilt)\n')
-
-        # run tests, should apply unapplied patches
-        (code, out, err) = self.adt_run(['-B', '-d', '--unbuilt-tree=' + p])
-
-        # test should succeed
-        self.assertRegex(out, 'pass\s+PASS', out)
-        self.assertEqual(code, 0, err)
-
-        # should have patched source
-        self.assertRegex(err, 'dpkg-source:.*01_hack.patch')
-        self.assertIn('built script OK\nstatic patched script OK\n', out)
-
-        # should not have any test stderr
-        self.assertNotIn(' stderr ', err)
-
-        # should build package
-        self.assertIn('dh build', err)
 
     def test_default_locale(self):
         '''tests have default locale C.UTF-8'''
