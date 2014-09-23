@@ -227,17 +227,15 @@ revert() {
     echo "Performing factory reset, this will take a minute..." >&2
 
     # save current network connections
-    local network_tar=$(mktemp)
-    adb $ADBOPTS shell tar cPpf /run/netconf.tar /etc/NetworkManager/system-connections
-    adb $ADBOPTS pull /run/netconf.tar $network_tar
+    NETCONF=$(phablet-config $ADBOPTS network --read)
 
     # do factory reset
     adb $ADBOPTS shell 'gdbus call --system -d com.canonical.SystemImage -o /Service -m com.canonical.SystemImage.FactoryReset'
     wait_booted
+    adb $ADBOPTS shell 'while ! pidof NetworkManager >/dev/null; do sleep 1; done'
 
     # restore network connections
-    adb $ADBOPTS push $network_tar /run/netconf.tar
-    adb $ADBOPTS shell 'tar xPpf /run/netconf.tar && rm /run/netconf.tar'
+    phablet-config $ADBOPTS network --write "$NETCONF"
 
     ubuntu_prepare_config
     ubuntu_prepare_for_testing
