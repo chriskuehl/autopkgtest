@@ -484,7 +484,7 @@ bad                  FAIL non-zero exit status 1
         self.assertLess(duration, 6, err)
 
         # should not leave test process running
-        self.assertEqual(subprocess.getoutput(['pidof', 'adtsleep']), '')
+        self.assertEqual(subprocess.getoutput('pidof adtsleep'), '')
 
     def test_timeout_long_test(self):
         '''long-running test with custom timeouts
