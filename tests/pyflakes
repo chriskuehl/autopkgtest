@@ -10,6 +10,11 @@ set -e
 testdir="$(dirname $(readlink -f $0))"
 rootdir="$(dirname $testdir)"
 
+if ! type pyflakes3 >/dev/null 2>&1; then
+    echo "pyflakes3 not available, skipping"
+    exit 0
+fi
+
 pyflakes3 $rootdir/lib $rootdir/runner/adt-run $testdir/adt-run \
     $testdir/testdesc $testdir/run_args \
     $rootdir/tools/adt-buildvm-ubuntu-cloud
