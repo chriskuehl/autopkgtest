@@ -481,7 +481,7 @@ bad                  FAIL non-zero exit status 1
         self.assertEqual(code, 16, err)
         self.assertIn("timed out on command", err)
         self.assertNotIn('totest', out)
-        self.assertLess(duration, 6, err)
+        self.assertLess(duration, 8, err)
 
         # should not leave test process running
         self.assertEqual(subprocess.getoutput('pidof adtsleep'), '')
