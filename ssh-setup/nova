@@ -16,6 +16,8 @@
 # -k keyname | --keyname=keyname
 #        Key name of keypair that should be created earlier with  the  command
 #        'nova keypair-add', mandatory
+# -N net-id | --net-id=net-id
+#        UUID of the network that should be used for the instance
 # -a | --associate-ip
 #        If the internal instance IP is not accessible to you, this option will
 #        request and associate a floating IP to the instance.
@@ -56,6 +58,7 @@ FLAVOR=""
 IMAGE=""
 KEYNAME=""
 SRVNAME=""
+NET_ID=""
 ASSOCIATE_IP=""
 FLOATING_IP=""
 
@@ -77,8 +80,8 @@ error() {
 parse_args() {
     # Parse command line argument and populate environment
 
-    SHORTOPTS="f:,i:,k:,l:,n:,a,d"
-    LONGOPTS="flavor:,image:,keyname:,login:,name:,associate-ip,floating-ip:,debug"
+    SHORTOPTS="f:,i:,k:,N:,l:,n:,a,d"
+    LONGOPTS="flavor:,image:,keyname:,net-id:,login:,name:,associate-ip,floating-ip:,debug"
 
     TEMP=$(getopt -o $SHORTOPTS --long $LONGOPTS -- "$@")
     eval set -- "$TEMP"
@@ -93,6 +96,9 @@ parse_args() {
                 shift 2;;
             -k|--keyname)
                 KEYNAME=$2
+                shift 2;;
+            -N|--net-id)
+                NET_ID="$2"
                 shift 2;;
             -l|--login)
                 SSH_USER=$2
@@ -146,10 +152,14 @@ open() {
     local cfg=`mktemp`
     echo "manage_etc_hosts: true" > $cfg
 
+    if [ -n "$NET_ID" ]; then
+        NET_ID="--nic net-id=$NET_ID"
+    fi
+
     # Boot the instance
     OUT=$(nova boot --flavor $FLAVOR --key_name $KEYNAME \
         --file /etc/cloud/cloud.cfg.d/01manage_hosts.cfg=$cfg \
-        --image $IMAGE --poll $SRVNAME 2>&1) || {
+        --image $IMAGE $NET_ID --poll $SRVNAME 2>&1) || {
         error "nova boot failed:"
         error "$OUT"
         exit 1
