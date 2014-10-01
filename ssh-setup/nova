@@ -15,7 +15,8 @@
 #        Name or ID of image (see 'nova image-list'), mandatory
 # -k keyname | --keyname=keyname
 #        Key name of keypair that should be created earlier with  the  command
-#        'nova keypair-add', mandatory
+#        'nova keypair-add'; if not given, default to the first key in
+#        'nova keypair-list'
 # -N net-id | --net-id=net-id
 #        UUID of the network that should be used for the instance
 # -a | --associate-ip
@@ -134,9 +135,14 @@ parse_args() {
         exit 1
     fi
     if [ -z "$KEYNAME" ]; then
-        error "Argument 'keyname' is mandatory. Run 'nova keypair-list' to "\
-            "print a list of keypairs for a user."
-        exit 1
+        # use first existing key
+        KEYNAME=$(nova keypair-list | gawk 'BEGIN {FS="|"} /([0-9a-f][0-9a-f]:){10}/ {print $2; exit }')
+        if [ -z "$KEYNAME" ]; then
+            error "Could not determine default key name from 'nova keypair-list'" \
+                  "Run 'nova keypair-create' to generate a key."
+            exit 1
+        fi
+        debug "Using nova key $KEYNAME"
     fi
 }
 
