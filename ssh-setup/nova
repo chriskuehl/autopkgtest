@@ -27,7 +27,9 @@
 #        Name for the new server. A name will be generated if not specified.
 #
 #
-# Author: Jean-Baptiste Lallement <jean-baptiste.lallement@canonical.com>
+# Authors:
+# Jean-Baptiste Lallement <jean-baptiste.lallement@canonical.com>
+# Martin Pitt <martin.pitt@ubuntu.com>
 #
 # autopkgtest is Copyright (C) 2006-2014 Canonical Ltd.
 #
@@ -148,24 +150,36 @@ open() {
     [ -n "$SRVNAME" ] || SRVNAME=`mktemp -u adt-nova-XXXXXX`
     debug "Creating nova instance $SRVNAME ..."
 
-    # cloud-init config to fix broken hostname resolution
-    local cfg=`mktemp`
-    echo "manage_etc_hosts: true" > $cfg
+    # generate cloud-init user data; mostly for manage_etc_hosts, but also get
+    # rid of some unnecessary stuff in the VM
+    local userdata=`mktemp`
+    cat <<EOF > $userdata
+#cloud-config
+manage_etc_hosts: true
+apt_update: true
+apt_upgrade: false
+runcmd:
+ - echo 'Acquire::Languages "none";' > /etc/apt/apt.conf.d/90nolanguages
+ - echo 'force-unsafe-io' > /etc/dpkg/dpkg.cfg.d/autopkgtest
+ - for p in accountsservice apt-xapian-index cryptsetup landscape-client
+     landscape-common pollinate open-vm-tools; do
+     apt-get --auto-remove -y purge \$p || true;
+   done
+EOF
 
     if [ -n "$NET_ID" ]; then
         NET_ID="--nic net-id=$NET_ID"
     fi
 
     # Boot the instance
-    OUT=$(nova boot --flavor $FLAVOR --key_name $KEYNAME \
-        --file /etc/cloud/cloud.cfg.d/01manage_hosts.cfg=$cfg \
+    OUT=$(nova boot --flavor $FLAVOR --key_name $KEYNAME --user-data $userdata \
         --image $IMAGE $NET_ID --poll $SRVNAME 2>&1) || {
         error "nova boot failed:"
         error "$OUT"
         exit 1
     }
     debug "Nova boot succeeded"
-    rm $cfg
+    rm $userdata
 
     if [ -n "$ASSOCIATE_IP" ]; then
         OUT=$(nova floating-ip-create)
