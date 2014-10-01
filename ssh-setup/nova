@@ -134,6 +134,15 @@ parse_args() {
             "print a list of available images to boot from."
         exit 1
     fi
+}
+
+# create a testbed (if necessary), configure ssh, copy ssh key into it,
+# configure sudo, etc.; print a list of "key=value" parameters to stdout on
+# success
+# required: login, hostname, and one of identity or password
+# optional: port, options, capabilities
+open() {
+    # provide default key name
     if [ -z "$KEYNAME" ]; then
         # use first existing key
         KEYNAME=$(nova keypair-list | gawk 'BEGIN {FS="|"} /([0-9a-f][0-9a-f]:){10}/ {print $2; exit }')
@@ -144,14 +153,7 @@ parse_args() {
         fi
         debug "Using nova key $KEYNAME"
     fi
-}
 
-# create a testbed (if necessary), configure ssh, copy ssh key into it,
-# configure sudo, etc.; print a list of "key=value" parameters to stdout on
-# success
-# required: login, hostname, and one of identity or password
-# optional: port, options, capabilities
-open() {
     # Boot a nova instance and returns its connection parameters
     [ -n "$SRVNAME" ] || SRVNAME=`mktemp -u adt-nova-XXXXXX`
     debug "Creating nova instance $SRVNAME ..."
