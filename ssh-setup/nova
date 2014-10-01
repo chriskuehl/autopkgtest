@@ -227,6 +227,26 @@ EOF
     if [ -n "$SUDO_PASSWORD" ]; then
         echo "password=$SUDO_PASSWORD"
     fi
+
+    # wait until ssh is available and cloud-config is done
+    debug "Waiting until ssh becomes available"
+    SSH="ssh -q -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -l $SSH_USER $ipaddr"
+    retry=60
+    while ! $SSH true; do
+        retry=$(( retry - 1 ))
+        if [ $retry -le 0 ]; then
+            error "Timed out waiting for ssh. Aborting!"
+            cleanup
+            exit 1
+        fi
+        sleep 5
+    done
+    debug "Waiting for cloud-init to finish"
+    if ! timeout 30m $SSH 'while [ ! -e /var/lib/cloud/instance/boot-finished ]; do sleep 1; done'; then
+        error "Timed out waiting for cloud-init to finish. Aborting!"
+        cleanup
+        exit 1
+    fi
 }
 
 cleanup() {
