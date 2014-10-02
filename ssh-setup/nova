@@ -221,7 +221,7 @@ EOF
     fi
 
     # purge the device host key so that SSH doesn't print a scary warning
-    ssh-keygen -f ~/.ssh/known_hosts -R $ipaddr >/dev/null 2>&1
+    ssh-keygen -f ~/.ssh/known_hosts -R $ipaddr >/dev/null 2>&1 || true
 
     cat<<EOF
 login=$SSH_USER
