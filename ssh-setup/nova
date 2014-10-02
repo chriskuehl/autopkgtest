@@ -167,17 +167,9 @@ manage_etc_hosts: true
 apt_update: true
 apt_upgrade: false
 
-packages:
- - linux-generic
- - haveged
-
 runcmd:
  - echo 'Acquire::Languages "none";' > /etc/apt/apt.conf.d/90nolanguages
  - echo 'force-unsafe-io' > /etc/dpkg/dpkg.cfg.d/autopkgtest
- - for p in accountsservice apt-xapian-index cryptsetup landscape-client
-     landscape-common pollinate open-vm-tools; do
-     apt-get --auto-remove -y purge \$p || true;
-   done
 EOF
 
     if [ -n "$NET_ID" ]; then
