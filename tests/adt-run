@@ -830,7 +830,7 @@ if ($pid) { # parent
 }
 '''})
 
-        (code, out, err) = self.adt_run(['-B', '--timeout-test=5', p + '//'])
+        (code, out, err) = self.adt_run(['-B', '--timeout-test=20', p + '//'])
         self.assertEqual(code, 0, err)
         self.assertRegex(out, 'int\s+PASS')
 
