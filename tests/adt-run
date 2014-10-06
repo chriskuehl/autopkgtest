@@ -2964,6 +2964,28 @@ class SshRunnerNoScript(AdtTestCase):
         self.assertIn('testbed capabilities: [', err)
         self.assertNotRegex(err, 'testbed capabilities:.*root-on-testbed')
 
+    def test_background_process(self):
+        '''leftover background process in test'''
+
+        self.start_container(sudo_nopwd=True)
+
+        # leak sleep processes during build and test
+        p = self.build_src('Tests: bg\nDepends:\nRestrictions: build-needed',
+                           {'bg': '#!/bin/bash -e\nexec -a bg_daemon sleep 30 &\n'
+                                  'echo TEST DONE\n'})
+
+        with open(os.path.join(p, 'debian', 'rules'), 'a') as f:
+            f.write('\n\noverride_dh_auto_build:\n\tsleep 60 &\n'
+                    '\tdh_auto_build\n')
+
+        (code, out, err) = self.adt_run(
+            ['-d', '-B', p + '//',
+             '--timeout-build=10', '--timeout-test=5'],
+            ['-d', '-H', self.info['hostname'], '-l', self.info['login'], '-i', self.info['identity']])
+        self.assertEqual(code, 0, err)
+        self.assertRegex(out, 'bg\s+PASS', out)
+        self.assertIn('TEST DONE\n', out)
+
 
 @unittest.skipUnless('ADT_TEST_LXC' in os.environ,
                      'Set $ADT_TEST_LXC to an existing container')
