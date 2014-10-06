@@ -60,15 +60,15 @@ class T(unittest.TestCase):
         self.assertEqual(virt, ['null'])
 
     def test_implicit_built_tree(self):
-        (args, acts, virt) = self.parse(['/etc/', './'])
+        (args, acts, virt) = self.parse(['/proc/', './'])
         self.assertTrue(isinstance(args, argparse.Namespace))
-        self.assertEqual(acts, [('built-tree', '/etc/', False),
+        self.assertEqual(acts, [('built-tree', '/proc/', False),
                                 ('built-tree', './', False)])
         self.assertEqual(virt, ['null'])
 
     def test_implicit_unbuilt_tree(self):
-        acts = self.parse(['/etc//', './/'])[1]
-        self.assertEqual(acts, [('unbuilt-tree', '/etc//', True),
+        acts = self.parse(['/proc//', './/'])[1]
+        self.assertEqual(acts, [('unbuilt-tree', '/proc//', True),
                                 ('unbuilt-tree', './/', True)])
 
     def test_implicit_deb(self):
