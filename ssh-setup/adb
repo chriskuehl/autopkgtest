@@ -10,7 +10,8 @@
 # Options:
 # -w/--rw     Switch the device to read/write mode
 # -r/--reset  Do a factory reset of the device before running the test
-#             (Available on Ubuntu Phone only)
+#             (Available on Ubuntu Phone only; disabled for now as it does not
+#             re-enable developer mode)
 # -b/--reboot Reboot the device before running the test
 # -s serial | --serial=serial
 #             Serial  ID  of  the device as returned by adb devices -l when
@@ -81,7 +82,7 @@ open() {
             ubuntu_prepare_config
             ubuntu_prepare_for_testing
         fi
-        CAPABILITIES="$CAPABILITIES revert"
+        #CAPABILITIES="$CAPABILITIES revert"
     fi
 
 
@@ -296,6 +297,8 @@ while true; do
             REBOOT="1"
             shift;;
         -r|--reset)
+            echo "--reset is currently broken as it does not restore PIN/developer mode. Use -b/--reboot instead." >&2
+            exit 1
             RESET="1"
             shift;;
         --apt-update)
