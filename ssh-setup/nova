@@ -52,7 +52,7 @@
 # installed as /usr/share/doc/autopkgtest/CREDITS).
 set -eu
 
-CAPABILITIES='isolation-machine,reboot'
+CAPABILITIES='isolation-machine,reboot,revert,revert-full-system'
 
 SUDO_PASSWORD=''
 SSH_USER=ubuntu
@@ -269,8 +269,12 @@ cleanup() {
 }
 
 revert() {
-    echo "revert not implemented" >&2
-    exit 1
+    if [ -z "$SRVNAME" ]; then
+        echo "Needs to be called with -n <server name>" >&2
+        exit 1
+    fi
+    cleanup
+    open
 }
 
 reboot() {
