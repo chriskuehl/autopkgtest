@@ -233,7 +233,7 @@ revert() {
     echo "Performing factory reset, this will take a minute..." >&2
 
     # save current network connections
-    NETCONF=$(phablet-config $ADBOPTS network --read)
+    NETCONF=$(phablet-config $ADBOPTS network --read) || true:
 
     # do factory reset
     adb $ADBOPTS shell 'gdbus call --system -d com.canonical.SystemImage -o /Service -m com.canonical.SystemImage.FactoryReset'
@@ -241,7 +241,9 @@ revert() {
     adb $ADBOPTS shell 'while ! pidof NetworkManager >/dev/null; do sleep 1; done'
 
     # restore network connections
-    phablet-config $ADBOPTS network --write "$NETCONF"
+    if [ -n "$NETCONF" ]; then
+        phablet-config $ADBOPTS network --write "$NETCONF"
+    fi
 
     ubuntu_prepare_config
     ubuntu_prepare_for_testing
