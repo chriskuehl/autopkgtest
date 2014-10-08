@@ -145,7 +145,7 @@ open() {
     # provide default key name
     if [ -z "$KEYNAME" ]; then
         # use first existing key
-        KEYNAME=$(nova keypair-list | gawk 'BEGIN {FS="|"} /([0-9a-f][0-9a-f]:){10}/ {print $2; exit }')
+        KEYNAME=$(nova keypair-list | awk 'BEGIN {FS="|"} /([0-9a-f][0-9a-f]:)+/ {print $2; exit }')
         if [ -z "$KEYNAME" ]; then
             error "Could not determine default key name from 'nova keypair-list'" \
                   "Run 'nova keypair-create' to generate a key."
@@ -206,7 +206,7 @@ EOF
         retry=6
         while [ -z "$ipaddr" ]; do
             OUT=$(nova show --minimal $SRVNAME)
-            ipaddr=$(echo "$OUT" | gawk 'BEGIN {FS="|"} /network/ {n=split($3,i,/,\s*/); gsub(" ", "", i[n]); print i[n]}')
+            ipaddr=$(echo "$OUT" | awk 'BEGIN {FS="|"} /network/ {n=split($3,i,/,\s*/); gsub(" ", "", i[n]); print i[n]}')
             retry=$(( retry - 1 ))
             if [ $retry -le 0 ]; then
                 error "Failed to acquire an IP address. Aborting!"
