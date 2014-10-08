@@ -3018,21 +3018,26 @@ class SshRunnerWithScript(AdtTestCase):
         self.assertIn('testbed capabilities: [', err)
         self.assertNotRegex(err, 'testbed capabilities:.*root-on-testbed')
 
-    def test_with_root(self):
-        '''with root'''
+    def test_with_root_and_revert(self):
+        '''with root and revert'''
 
-        p = self.build_src('Tests: pass\nDepends:\nRestrictions: needs-root',
-                           {'pass': '#!/bin/sh\necho hello\nwhoami'})
+        p = self.build_src('Tests: p1\nDepends:\nRestrictions: needs-root, breaks-testbed\n\n'
+                           'Tests: p2\nDepends:\n',
+                           {'p1': '#!/bin/sh -e\necho hellop1\ntouch /stomp\nwhoami',
+                            'p2': '#!/bin/sh -e\n[ ! -e /stomp ]\necho hellop2\nwhoami'})
 
         (code, out, err) = self.adt_run(['-d', '-B', p + '//'],
                                         ['-ds', self.script, '--', '-ks', self.container_template])
         self.assertEqual(code, 0, out + err)
-        self.assertRegex(out, 'pass\s+PASS', out)
+        self.assertRegex(out, 'p1\s+PASS', out)
+        self.assertRegex(out, 'p2\s+PASS', out)
 
-        self.assertIn('hello\nroot\n', out)
+        self.assertIn('hellop1\nroot\n', out)
+        self.assertIn('hellop2\nadt_test\n', out)
 
-        # has root
+        # check capabilities
         self.assertRegex(err, 'testbed capabilities: \[.*root-on-testbed')
+        self.assertRegex(err, 'testbed capabilities: \[.*revert-full-system')
 
     def test_passwordless_sudo(self):
         '''sudo without password'''

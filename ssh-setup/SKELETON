@@ -35,10 +35,17 @@ cleanup() {
     exit 0
 }
 
-# only needs implement this if CAPABILITIES offers "revert"
+# Called for reverting the testbed. This can optionally output some or all of
+# the ssh config keys from open() to update the configuration.
+# This only needs to be implemented if CAPABILITIES offers "revert".
 revert() {
     echo "revert not implemented" >&2
     exit 1
+
+    # calling these two is a common method, but there might be a more efficient
+    # way like snapshots
+    # cleanup
+    # open
 }
 
 # only needs to handle this if CAPABILITIES offers "reboot"
