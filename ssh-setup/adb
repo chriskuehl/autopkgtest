@@ -11,6 +11,7 @@
 # -w/--rw     Switch the device to read/write mode
 # -r/--reset  Do a factory reset of the device before running the test
 #             (Available on Ubuntu Phone only)
+# -b/--reboot Reboot the device before running the test
 # -s serial | --serial=serial
 #             Serial  ID  of  the device as returned by adb devices -l when
 #             several devices are connected to the same host.
@@ -58,6 +59,7 @@ fi
 ADBOPTS=""
 EXTRA_CMD=""
 RESET=""
+REBOOT=""
 IDENTITY=
 
 open() {
@@ -65,6 +67,11 @@ open() {
     # - Configure ssh connection
     # - optionally mount device RW
     wait_booted
+
+    if [ -n "$REBOOT" ]; then
+        adb $ADBOPTS reboot
+        wait_booted
+    fi
 
     # special setup on Ubuntu images
     if [ -n "$(adb $ADBOPTS shell 'type unity8 2>/dev/null')" ]; then
@@ -265,8 +272,8 @@ cleanup() {
 #
 
 # argument parsing
-SHORTOPTS="l:,p:,s:,w,r"
-LONGOPTS="login:,password:,serial:,rw,apt-update,reset,no-reset"
+SHORTOPTS="l:,p:,s:,w,r,b"
+LONGOPTS="login:,password:,serial:,rw,apt-update,reset,reboot,no-reset"
 
 TEMP=$(getopt -o $SHORTOPTS --long $LONGOPTS -- "$@")
 eval set -- "$TEMP"
@@ -284,6 +291,9 @@ while true; do
             shift 2;;
         -w|--rw)
             EXTRA_CMD="mount -o rw,remount /"
+            shift;;
+        -b|--reboot)
+            REBOOT="1"
             shift;;
         -r|--reset)
             RESET="1"
