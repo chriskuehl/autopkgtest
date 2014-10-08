@@ -185,6 +185,15 @@ ubuntu_prepare_config() {
             sleep 1
         fi
     done
+
+    # if welcome wizard is already running, restart unity8
+    out="$(adb $ADBOPTS shell 'if pidof system-settings-wizard >/dev/null; then kill -9 -1; else echo NO; fi')"
+    if [ -z "$out" ]; then
+        sleep 5
+        # this also needs to restart local adb daemon
+        kill `pidof adb` || true
+        adb $ADBOPTS wait-for-device
+    fi
 }
 
 # test run time setup for Ubuntu device
@@ -195,9 +204,6 @@ ubuntu_prepare_for_testing() {
     fi
 
     echo "Preparing Ubuntu phone for running tests..." >&2
-
-    # if welcome wizard is already running, restart unity8
-    adb $ADBOPTS shell 'if pidof system-settings-wizard >/dev/null; then if [`id -u` = 0]; then su -c "kill -9 -1" phablet; else kill -9 -1; fi; fi'
 
     local timeout=60
     local extra_wait=0
