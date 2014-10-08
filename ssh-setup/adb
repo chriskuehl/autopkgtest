@@ -206,17 +206,17 @@ ubuntu_prepare_for_testing() {
     echo "Preparing Ubuntu phone for running tests..." >&2
 
     local timeout=60
-    local extra_wait=0
     echo "Waiting for desktop to boot" >&2
     while [ "$timeout" -ge 0 ]; do
-        [ -z "$(adb $ADBOPTS shell 'pidof unity8')" ] || break
-        # unity8 needs a few more seconds to actually be ready if it's not yet
-        # running
-        extra_wait=5
+        out=$(adb $ADBOPTS shell 'gdbus call --session --dest com.canonical.UnityGreeter --object-path / --method org.freedesktop.DBus.Properties.Get com.canonical.UnityGreeter IsActive 2>/dev/null')
+        [ -z "$out" ] || break
         timeout=$((timeout -1))
         sleep 5
     done
-    sleep $extra_wait
+    if [ "$timeout" -le 0 ]; then
+        echo "ERROR: timed out waiting for Unity greeter" >&2
+        exit 1
+    fi
 
     # disable screen dimming; ugly, but pretty much everything else hangs forever
     echo 'bash -c "powerd-cli display on bright & disown"' | adb $ADBOPTS shell &
