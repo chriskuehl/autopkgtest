@@ -266,6 +266,7 @@ cleanup() {
     if [ -n "$FLOATING_IP" ]; then
         nova floating-ip-delete $FLOATING_IP
     fi
+    SRVNAME=""
 }
 
 revert() {
