@@ -218,7 +218,7 @@ debian/control by adding
 
 ::
 
-    XS-Testsuite: autopkgtest
+    Testsuite: autopkgtest
 
 in the ``Source:`` paragraph.
 
@@ -230,7 +230,7 @@ of ``debian/tests/control`` would be mostly identical. For those
 packages, if ``debian/tests/control`` is absent, an implicit control
 file is assumed.  Those packages do not have to provide anything else,
 although they should still include an appropriate source package header
-(``XS-Testsuite``) so that they can be discovered in the archive.
+(``Testsuite``) so that they can be discovered in the archive.
 
 Ruby packages
 .............
