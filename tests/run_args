@@ -118,6 +118,7 @@ Files:
  deadbeef 10000 utils optional mypkg_1_all.deb
  deadbeef 100 utils optional mypkg_1.dsc
  deadbeef 20000 utils optional mypkg_1.tar.gz
+ deadbeef 10000 utils optional libmypkg_1_all.deb
 ''')
 
         acts = self.parse(['--source', 'dsc1y', ch, '--apt-source', 'apt1'])[1]
@@ -125,6 +126,7 @@ Files:
             acts,
             [('source', 'dsc1y', True),
              ('binary', os.path.join(self.workdir.name, 'mypkg_1_all.deb'), None),
+             ('binary', os.path.join(self.workdir.name, 'libmypkg_1_all.deb'), None),
              ('source', os.path.join(self.workdir.name, 'mypkg_1.dsc'), False),
              ('apt-source', 'apt1', False)])
 
