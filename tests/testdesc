@@ -6,6 +6,7 @@ import unittest
 import tempfile
 import shutil
 import io
+import subprocess
 
 try:
     # Python >= 3.3
@@ -26,6 +27,10 @@ sys.path.insert(1, our_base)
 
 import adtlog
 import testdesc
+
+
+have_autodep8 = subprocess.call(['which', 'autodep8'], stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE) == 0
 
 
 class Rfc822(unittest.TestCase):
@@ -430,8 +435,8 @@ class Debian(unittest.TestCase):
 
         self.assertFalse(skipped)
 
-    def test_auto_control_ruby(self):
-        '''automatic tests for Ruby packages'''
+    def test_autodep8_ruby(self):
+        '''autodep8 tests for Ruby packages'''
 
         with open(os.path.join(self.pkgdir, 'debian', 'ruby-tests.rb'), 'w') as f:
             f.write('exit(0)\n')
@@ -439,15 +444,14 @@ class Debian(unittest.TestCase):
                                         'Build-Depends: gem2deb, rake\n\n'
                                         'Package: ruby-foo\nArchitecture: all')
 
-        self.assertEqual(len(ts), 1)
-        self.assertIn('gem2deb', ts[0].command)
-        self.assertIn('gem2deb-test-runner', ts[0].depends)
-        self.assertIn('ruby-foo (>= 0~)', ts[0].depends)
-        self.assertIn('rake', ts[0].depends)
-        self.assertNotIn('gem2deb', ts[0].depends)
+        if have_autodep8:
+            self.assertGreaterEqual(len(ts), 1)
+            self.assertIn('gem2deb', ts[0].command)
+        else:
+            self.assertEqual(len(ts), 0)
 
-    def test_auto_control_perl(self):
-        '''automatic tests for Perl packages'''
+    def test_autodep8_perl(self):
+        '''autodep8 tests for Perl packages'''
 
         with open(os.path.join(self.pkgdir, 'Makefile.PL'), 'w') as f:
             f.write('use ExtUtils::MakeMaker;\n')
@@ -455,15 +459,13 @@ class Debian(unittest.TestCase):
         (ts, skipped) = self.call_parse(None, 'Source: libfoo-perl\n\n'
                                         'Package: libfoo-perl\nArchitecture: all')
 
-        self.assertEqual(len(ts), 3)
-
-        self.assertRegex(ts[0].command, 'pkg-perl-autopkgtest.*build-deps')
-        self.assertRegex(ts[1].command, 'pkg-perl-autopkgtest.*runtime-deps$')
-        self.assertRegex(ts[2].command, 'pkg-perl-autopkgtest.*runtime-deps-and-recommends$')
-
-        for t in ts:
-            self.assertIn('pkg-perl-autopkgtest', t.depends)
-            self.assertIn('libfoo-perl (>= 0~)', t.depends)
+        if have_autodep8:
+            self.assertGreaterEqual(len(ts), 1)
+            self.assertIn('pkg-perl-autopkgtest', ts[0].command)
+            self.assertIn('pkg-perl-autopkgtest', ts[0].depends)
+            self.assertIn('libfoo-perl (>= 0~)', ts[0].depends)
+        else:
+            self.assertEqual(len(ts), 0)
 
 
 class Click(unittest.TestCase):

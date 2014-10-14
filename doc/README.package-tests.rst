@@ -222,56 +222,19 @@ debian/control by adding
 
 in the ``Source:`` paragraph.
 
-Implicit test control file for known package types
---------------------------------------------------
+Automatic test control file for known package types
+---------------------------------------------------
 
 There are groups of similarly-structured packages for which the contents
-of ``debian/tests/control`` would be mostly identical. For those
-packages, if ``debian/tests/control`` is absent, an implicit control
-file is assumed.  Those packages do not have to provide anything else,
-although they should still include an appropriate source package header
-(``Testsuite``) so that they can be discovered in the archive.
+of ``debian/tests/control`` would be mostly identical, such as Perl or
+Ruby libraries. If ``debian/tests/control`` is absent, the ``autodep8``
+tool can generate an automatic control file. If installed, ``adt-run``
+will automatically use it.
 
-Ruby packages
-.............
-
-The source package must contain at least one of the following files:
-
-- ``debian/ruby-test-files.yaml``
-- ``debian/ruby-tests.rb``
-- ``debian/ruby-tests.rake``
-
-Implied control file: ::
-
-    Test-Command: gem2deb-test-runner --autopkgtest 2>&1
-    Depends: @, @builddeps@, gem2deb-test-runner
-
-*Note:* ``gem2deb`` will be filtered out of the ``Depends:`` field, as it is
-not needed to run the tests for installed packages.
-
-Packages should declare ``Testsuite: autopkgtest-pkg-ruby`` in
-``debian/control``.
-
-Perl packages
-.............
-
-The source package must contain a ``t/`` directory and at least one of the
-following files:
-
-- ``Makefile.PL``
-- ``Build.PL``
-
-Implied control file: ::
-
-    Test-Command: /usr/share/pkg-perl-autopkgtest/runner build-deps
-    Depends: @, @builddeps@, pkg-perl-autopkgtest
-
-    Test-Command: /usr/share/pkg-perl-autopkgtest/runner runtime-deps
-    Depends: @, pkg-perl-autopkgtest
-
-Packages should declare ``Testsuite: autopkgtest-pkg-perl`` in
-``debian/control``.
-
+Those packages do not have to provide ``debian/tests/``, but they should
+still include an appropriate source package header
+(``Testsuite: autopkgtest-pkg-perl`` or similar) so that they can be
+discovered in the archive.
 
 Reboot during a test
 --------------------
