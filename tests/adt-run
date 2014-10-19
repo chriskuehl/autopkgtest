@@ -1487,6 +1487,21 @@ deb-src http://bar.debian.org/ fluffy-proposed extras
         self.assertNotIn('NOTME', out)
         self.assertNotIn('NOTME', err)
 
+    def test_relative_chroot_path(self):
+        '''relative chroot path'''
+
+        p = self.build_src('Tests: pass\nDepends:\nRestrictions: needs-root\n',
+                           {'pass': '#!/bin/sh\necho I am fine\n'})
+
+        os.chdir(self.workdir)
+        (code, out, err) = self.adt_run(['--no-built-binaries', '--unbuilt-tree=' + p],
+                                        [os.path.basename(self.chroot)])
+        # test should succeed
+        self.assertEqual(code, 0, err)
+        self.assertRegex(out, 'pass\s+PASS', out)
+        # should show test stdout
+        self.assertRegex(out, '^I am fine\n')
+
 
 @unittest.skipUnless('ADT_TEST_SCHROOT' in os.environ,
                      'Set $ADT_TEST_SCHROOT to an existing schroot')
