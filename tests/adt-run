@@ -2850,7 +2850,8 @@ simple               PASS
                   'JOBS=$(/sbin/initctl  --user list)\n'
                   'echo "$JOBS" | grep -q "dbus start/running"\n'
                   'echo "$JOBS" | grep -q "click-user-hooks"\n'
-                  # FIXME: in schroot this spits out "Error opening shm /lttng-ust-wait-*"
+                  # in environments without /dev/shm/ mounted (like schroots)
+                  # this spits out "Error opening shm /lttng-ust-wait-*"
                   'ubuntu-app-list 2>/dev/null\n'
              })
 
