@@ -8,7 +8,6 @@
 # screen timeout and allowing Autopilot to introspect running apps.
 #
 # Options:
-# -w/--rw     Switch the device to read/write mode
 # -r/--reset  Do a factory reset of the device before running the test
 #             (Available on Ubuntu Phone only; disabled for now as it does not
 #             re-enable developer mode)
@@ -19,11 +18,6 @@
 # -p PASSWORD | --password PASSWORD
 #             sudo password; if not given, tries "phablet" and "0000"; if
 #             neither works, tests cannot run as root
-# --apt-update
-#             Temporarily switch to read/write and run apt-get update;
-#             necessary on slightly older images when test package versions got
-#             updated
-#
 #
 # autopkgtest is Copyright (C) 2006-2014 Canonical Ltd.
 #
@@ -58,7 +52,6 @@ fi
 
 # argument parsing
 ADBOPTS=""
-EXTRA_CMD=""
 RESET=""
 REBOOT=""
 IDENTITY=
@@ -112,8 +105,6 @@ open() {
 chown $SSH_USER:$SSH_USER -R /home/$SSH_USER/.ssh/
 chmod 700 /home/$SSH_USER/.ssh
 chmod 600 /home/$SSH_USER/.ssh/authorized_keys
-
-$EXTRA_CMD
 EOF
 
     adb $ADBOPTS push $script /tmp
@@ -290,9 +281,6 @@ while true; do
         -s|--serial)
             ADBOPTS="$ADBOPTS -s $2"
             shift 2;;
-        -w|--rw)
-            EXTRA_CMD="mount -o rw,remount /"
-            shift;;
         -b|--reboot)
             REBOOT="1"
             shift;;
@@ -300,9 +288,6 @@ while true; do
             echo "--reset is currently broken as it does not restore PIN/developer mode. Use -b/--reboot instead." >&2
             exit 1
             RESET="1"
-            shift;;
-        --apt-update)
-            EXTRA_CMD="mount -o rw,remount / && apt-get update; mount -o remount,ro /"
             shift;;
         # passed in "extraopts" so that --reset is only applied once, not
         # in between tests that call "revert"
