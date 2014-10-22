@@ -3141,6 +3141,23 @@ class SshRunnerWithScript(AdtTestCase):
 
         self.assertIn('python3-evdev', err)
 
+    def test_timeout(self):
+        '''handling test that times out'''
+
+        p = self.build_src('Tests: to\nDepends:\n',
+                           {'to': '#!/bin/sh\necho StartTest; sleep 60; echo NotReached >&2'})
+
+        time_start = time.time()
+        (code, out, err) = self.adt_run(['-d', '-B', p + '//', '--timeout-test=5'],
+                                        ['-ds', self.script, '--', '-k', self.container_template])
+        duration = time.time() - time_start
+        self.assertEqual(code, 16, err)
+        self.assertIn("timed out on command", err)
+        self.assertIn('StartTest\n', out)
+        self.assertNotIn('PASS', out)
+        self.assertNotIn('NotReached', err)
+        self.assertLess(duration, 60, err)
+
 
 if __name__ == '__main__':
     # Force encoding to UTF-8 even in non-UTF-8 locales.
