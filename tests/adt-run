@@ -681,7 +681,8 @@ bad                  FAIL non-zero exit status 1
         '''temp dir unpack of test dependencies'''
 
         p = self.build_src('Tests: t\nDepends: graphviz, gir1.2-json-1.0 (>= 0.14), python3-gi, a|b,',
-                           {'t': '#!/bin/sh\ndotty -V 2>&1 || true\npython3 -c "from gi.repository import Json; print(Json)"'})
+                           {'t': '#!/bin/sh\ndotty -V 2>&1 || true\n'
+                                 'python3 -c "from gi.repository import Json; print(Json)"'})
 
         (code, out, err) = self.adt_run(['-B', p + '//'])
         self.assertEqual(code, 0, err)
