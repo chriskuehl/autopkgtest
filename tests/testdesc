@@ -111,17 +111,19 @@ class Test(unittest.TestCase):
         '''valid Test instantiation with path'''
 
         t = testdesc.Test('foo', 'tests/do_foo', None, ['needs-root'],
-                          ['unknown_feature'], ['coreutils >= 7'], [])
+                          ['unknown_feature'], ['coreutils >= 7'], [], [])
         self.assertEqual(t.name, 'foo')
         self.assertEqual(t.path, 'tests/do_foo')
         self.assertEqual(t.command, None)
+        self.assertEqual(t.clicks, [])
+        self.assertEqual(t.installed_clicks, [])
         self.assertEqual(t.result, None)
 
     def test_valid_command(self):
         '''valid Test instantiation with command'''
 
         t = testdesc.Test('foo', None, 'echo hi', ['needs-root'],
-                          ['unknown_feature'], ['coreutils >= 7'], [])
+                          ['unknown_feature'], ['coreutils >= 7'], [], [])
         self.assertEqual(t.name, 'foo')
         self.assertEqual(t.path, None)
         self.assertEqual(t.command, 'echo hi')
@@ -131,7 +133,7 @@ class Test(unittest.TestCase):
         '''Test with invalid name'''
 
         with self.assertRaises(testdesc.Unsupported) as cm:
-            testdesc.Test('foo/bar', 'do_foo', None, [], [], [], [])
+            testdesc.Test('foo/bar', 'do_foo', None, [], [], [], [], [])
         self.assertIn('may not contain /', str(cm.exception))
 
     def test_unknown_restriction(self):
@@ -139,28 +141,28 @@ class Test(unittest.TestCase):
 
         with self.assertRaises(testdesc.Unsupported) as cm:
             testdesc.Test('foo', 'tests/do_foo', None, ['needs-red'], [], [],
-                          [])
+                          [], [])
         self.assertIn('unknown restriction needs-red', str(cm.exception))
 
     def test_neither_path_nor_command(self):
         '''Test without path nor command'''
 
         with self.assertRaises(testdesc.InvalidControl) as cm:
-            testdesc.Test('foo', None, None, [], [], [], [])
+            testdesc.Test('foo', None, None, [], [], [], [], [])
         self.assertIn('either path or command', str(cm.exception))
 
     def test_both_path_and_command(self):
         '''Test with path and command'''
 
         with self.assertRaises(testdesc.InvalidControl) as cm:
-            testdesc.Test('foo', 'do_foo', 'echo hi', [], [], [], [])
+            testdesc.Test('foo', 'do_foo', 'echo hi', [], [], [], [], [])
         self.assertIn('either path or command', str(cm.exception))
 
     def test_capabilities_compat(self):
         '''Test compatibility with testbed capabilities'''
 
         t = testdesc.Test('foo', 'tests/do_foo', None,
-                          ['needs-root', 'isolation-container'], [], [], [])
+                          ['needs-root', 'isolation-container'], [], [], [], [])
 
         self.assertRaises(testdesc.Unsupported,
                           t.check_testbed_compat, ['isolation-container'])
@@ -509,13 +511,14 @@ fi''' % kls.click_src)
       "classes": ["foo", "bar"]
     }
   }
-}''', [], ['/foo/myapp.click'], '/src')
+}''', [], ['/foo/myapp.click'], False, '/src')
         self.assertEqual(len(ts), 1)
         self.assertEqual(ts[0].name, "t")
         self.assertEqual(ts[0].path, 'tests/do_t')
         self.assertEqual(ts[0].command, None)
         self.assertEqual(ts[0].depends, ['foo (>= 1)', 'bar | baz'])
         self.assertEqual(ts[0].clicks, ['/foo/myapp.click'])
+        self.assertEqual(ts[0].installed_clicks, [])
         self.assertEqual(ts[0].restrictions, ['allow-stderr', 'needs-recommends'])
         self.assertEqual(ts[0].features, ['turns-blue', 'bites-back'])
 
@@ -526,7 +529,7 @@ fi''' % kls.click_src)
         '''parsing manifest without tests'''
 
         self.assertEqual(
-            testdesc.parse_click_manifest('{"name":"foo"}', [], [], '/'),
+            testdesc.parse_click_manifest('{"name":"foo"}', [], [], False, '/'),
             ('/', [], False))
 
     def test_path_only(self):
@@ -538,7 +541,7 @@ fi''' % kls.click_src)
       "t1": "tests/do_t",
       "t2": "runtests"
   }
-}''', [], ['/foo/myapp.click'], '/src')
+}''', [], ['/foo/myapp.click'], False, '/src')
         self.assertEqual(len(ts), 2)
         self.assertEqual(ts[0].name, "t1")
         self.assertEqual(ts[0].path, 'tests/do_t')
@@ -551,6 +554,24 @@ fi''' % kls.click_src)
             self.assertEqual(ts[i].restrictions, [])
             self.assertEqual(ts[i].features, [])
 
+        self.assertEqual(srcdir, '/src')
+        self.assertFalse(skipped)
+
+    def test_installed(self):
+        '''parsing manifest test with already installed click'''
+
+        (srcdir, ts, skipped) = testdesc.parse_click_manifest('''{
+  "name": "foo",
+  "x-test": {
+    "t": "tests/do_t"
+  }
+}''', [], [], True, '/src')
+        self.assertEqual(len(ts), 1)
+        self.assertEqual(ts[0].name, "t")
+        self.assertEqual(ts[0].path, 'tests/do_t')
+        self.assertEqual(ts[0].command, None)
+        self.assertEqual(ts[0].clicks, [])
+        self.assertEqual(ts[0].installed_clicks, ['foo'])
         self.assertEqual(srcdir, '/src')
         self.assertFalse(skipped)
 
