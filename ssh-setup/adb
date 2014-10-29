@@ -80,7 +80,7 @@ open() {
 
 
     # Configure SSH
-    adb $ADBOPTS shell gdbus call -y -d com.canonical.PropertyService -o /com/canonical/PropertyService -m com.canonical.PropertyService.SetProperty ssh true
+    adb $ADBOPTS shell 'gdbus call -y -d com.canonical.PropertyService -o /com/canonical/PropertyService -m com.canonical.PropertyService.SetProperty ssh true >/dev/null'
     for port in `seq 2222 2299`; do
         adb $ADBOPTS forward tcp:$port tcp:22 && break
     done
@@ -162,12 +162,12 @@ ubuntu_prepare_config() {
     echo "Configuring Ubuntu phone for testing..." >&2
 
     # allow autopilot to introspect programs
-    phablet-config $ADBOPTS autopilot --dbus-probe enable
+    phablet-config $ADBOPTS autopilot --dbus-probe enable >&2
 
     # disable first-time wizards; these fail due to adb instability from time
     # to time, so retry
     for retry in `seq 5`; do
-        if phablet-config $ADBOPTS welcome-wizard --disable; then
+        if phablet-config $ADBOPTS welcome-wizard --disable >/dev/null; then
             break
         else
             echo "Failed to disable welcome wizard, retrying (attempt $retry)..." >&2
@@ -177,7 +177,7 @@ ubuntu_prepare_config() {
     # this needs accounts-daemon running
     adb $ADBOPTS shell 'while ! pidof accounts-daemon >/dev/null; do sleep 1; done'
     for retry in `seq 5`; do
-        if phablet-config $ADBOPTS edges-intro --disable; then
+        if phablet-config $ADBOPTS edges-intro --disable >/dev/null; then
             break
         else
             echo "Failed to disable edges intro, retrying (attempt $retry)..." >&2
@@ -222,7 +222,7 @@ ubuntu_prepare_for_testing() {
                while ! pidof powerd-cli >/dev/null; do sleep 0.1; done"
 
     # unlock the greeter
-    adb shell "gdbus call --session --dest com.canonical.UnityGreeter --object-path / --method com.canonical.UnityGreeter.HideGreeter && echo Greeter unlocked"
+    adb shell "gdbus call --session --dest com.canonical.UnityGreeter --object-path / --method com.canonical.UnityGreeter.HideGreeter && echo Greeter unlocked" >/dev/null
 }
 
 revert() {
