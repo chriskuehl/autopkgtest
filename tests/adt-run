@@ -1534,7 +1534,7 @@ class SchrootRunner(AdtTestCase):
         p = self.build_src('Tests: p1 p2\n'
                            'Depends: coreutils, aspell-doc [linux-any], apt-doc:native, unknown [nosucharch]\n'
                            'Restrictions: needs-root\n',
-                           {'p1': '#!/bin/sh\necho I am fine\n',
+                           {'p1': '#!/bin/sh -e\nif dpkg -s adt-satdep 2>/dev/null; then exit 1; fi; echo I am fine\n',
                             'p2': '#!/bin/sh\necho I am also fine\n'})
 
         (code, out, err) = self.adt_run(['-d', '--no-built-binaries', '--unbuilt-tree=' + p],
