@@ -218,11 +218,11 @@ ubuntu_prepare_for_testing() {
     fi
 
     # disable screen dimming; ugly, but pretty much everything else hangs forever
-    adb shell "setsid powerd-cli display </dev/null >/dev/null 2>&1 & disown;
-               while ! pidof powerd-cli >/dev/null; do sleep 0.1; done"
+    adb $ADBOPTS shell "setsid powerd-cli display </dev/null >/dev/null 2>&1 & disown;
+                        while ! pidof powerd-cli >/dev/null; do sleep 0.1; done"
 
     # unlock the greeter
-    adb shell "gdbus call --session --dest com.canonical.UnityGreeter --object-path / --method com.canonical.UnityGreeter.HideGreeter && echo Greeter unlocked" >/dev/null
+    adb $ADBOPTS shell "gdbus call --session --dest com.canonical.UnityGreeter --object-path / --method com.canonical.UnityGreeter.HideGreeter && echo Greeter unlocked" >/dev/null
 }
 
 revert() {
