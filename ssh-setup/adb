@@ -161,9 +161,6 @@ ubuntu_prepare_config() {
 
     echo "Configuring Ubuntu phone for testing..." >&2
 
-    # allow autopilot to introspect programs
-    phablet-config $ADBOPTS autopilot --dbus-probe enable >&2
-
     # disable first-time wizards; these fail due to adb instability from time
     # to time, so retry
     for retry in `seq 5`; do
