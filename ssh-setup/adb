@@ -185,14 +185,8 @@ ubuntu_prepare_config() {
         fi
     done
 
-    # if welcome wizard is already running, restart unity8
-    out="$(adb $ADBOPTS shell 'if pidof system-settings-wizard >/dev/null; then kill -9 -1; else echo NO; fi')"
-    if [ -z "$out" ]; then
-        sleep 5
-        # this also needs to restart local adb daemon
-        kill `pidof adb` || true
-        adb $ADBOPTS wait-for-device
-    fi
+    # kill an already running welcome wizard
+    adb $ADBOPTS shell 'kill `pidof system-settings-wizard` 2>/dev/null'
 }
 
 # test run time setup for Ubuntu device
