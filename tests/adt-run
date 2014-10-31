@@ -712,14 +712,14 @@ bad                  FAIL non-zero exit status 1
     @unittest.skipIf(os.getuid() == 0, 'needs to run as user')
     @unittest.skipIf(os.path.exists('/usr/share/perl5/Test/Tester.pm'),
                      'needs libtest-tester-perl uninstalled')
-    @unittest.skipIf(os.path.exists('/usr/share/doc/libalgorithm-combinatorics-perl'),
-                     'needs libalgorithm-combinatorics-perl uninstalled')
+    @unittest.skipIf(os.path.exists('/usr/share/doc/libconvert-uulib-perl'),
+                     'needs libconvert-uulib-perl uninstalled')
     def test_tmp_install_perl(self):
         '''temp dir unpack of Perl dependencies'''
 
         # one arch: all, one binary
-        p = self.build_src('Tests: t\nDepends: libtest-tester-perl, libalgorithm-combinatorics-perl',
-                           {'t': '#!/usr/bin/perl\nuse Test::Tester;\nuse Algorithm::Combinatorics;\n'})
+        p = self.build_src('Tests: t\nDepends: libtest-tester-perl, libconvert-uulib-perl',
+                           {'t': '#!/usr/bin/perl\nuse Test::Tester;\nuse Convert::UUlib;\n'})
 
         (code, out, err) = self.adt_run(['-B', p + '//'])
         self.assertEqual(code, 0, err)
