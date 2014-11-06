@@ -114,7 +114,14 @@ EOF
 
     # verify that we can connect through ssh
     local ssh_cmd="ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i $IDENTITY -p $port -l $SSH_USER localhost"
-    if ! $ssh_cmd true; then
+    for retry in `seq 10`; do
+        if $ssh_cmd true; then
+            can_ssh=1
+            break
+        fi
+        sleep 2
+    done
+    if [ -z "$can_ssh" ]; then
         echo "ssh setup failed, cannot connect" >&2
         exit 1
     fi
