@@ -2342,6 +2342,23 @@ class LxcRunner(AdtTestCase):
         # should not have any test stderr
         self.assertNotIn(' stderr ', err)
 
+    def test_timeout(self):
+        '''handling test timeout'''
+
+        p = self.build_dsc('Tests: totest\nDepends:\n',
+                           {'totest': '#!/bin/sh\necho start\nsleep 10\necho after_sleep\n'})
+
+        (code, out, err) = self.adt_run(['-B', '-d', '--timeout-test=3', p], self.virt_args)
+        # test should time out
+        self.assertEqual(code, 16, err)
+        self.assertIn("timed out on command", err)
+        self.assertNotIn('totest', out)
+
+        # should show test stdout
+        self.assertIn('start', out)
+        # but not let the test finish
+        self.assertNotIn('after_sleep', out)
+
 
 @unittest.skipUnless('ADT_TEST_QEMU' in os.environ,
                      'Set $ADT_TEST_QEMU to an existing autopkgtest QEMU image')
