@@ -239,8 +239,8 @@ discovered in the archive.
 Reboot during a test
 --------------------
 
-Some testbeds support rebooting; for those, the testbed will have an
-``autopkgtest-reboot`` command which tests can call to cause a reboot.
+Some testbeds support rebooting; for those, the testbed will have a
+``/tmp/autopkgtest-reboot`` command which tests can call to cause a reboot.
 **Do not** use ``reboot`` and similar commands directly! They will cause
 testbeds like ``null`` or ``schroot`` to reboot the entire host, and
 even for ``qemu`` it will just cause the test to fail as there is no
@@ -248,7 +248,7 @@ state keeping to resume a test at the right position after reboot.
 
 The particular steps for a rebooting tests are:
 
-- The test calls ``autopkgtest-reboot my_mark`` with a "mark"
+- The test calls ``/tmp/autopkgtest-reboot my_mark`` with a "mark"
   identifier. ``autopkgtest-reboot`` will cause the test to terminate
   (with ``SIGKILL``).
 
@@ -270,8 +270,8 @@ This example test will reboot the testbed two times in between:
 
     #!/bin/sh -e
     case "$ADT_REBOOT_MARK" in
-      "") echo "test beginning"; autopkgtest-reboot mark1 ;;
-      mark1) echo "test in mark1"; autopkgtest-reboot mark2 ;;
+      "") echo "test beginning"; /tmp/autopkgtest-reboot mark1 ;;
+      mark1) echo "test in mark1"; /tmp/autopkgtest-reboot mark2 ;;
       mark2) echo "test in mark2" ;;
     esac
     echo "test end"

@@ -2507,6 +2507,7 @@ class QemuRunner(AdtTestCase):
     def test_reboot(self):
         '''test that reboots'''
 
+        # note that this uses the backwards compat symlink in $PATH
         p = self.build_src('Tests: s r\nDepends:\nRestrictions: needs-root breaks-testbed',
                            {'s': '#!/bin/sh\necho simple_done',
                             'r': '''#!/bin/sh -e
@@ -2522,6 +2523,47 @@ class QemuRunner(AdtTestCase):
         os.mkdir(outdir)
 
         (code, out, err) = self.adt_run(['--output-dir=' + outdir, '-B', p + '//'], [self.image])
+
+        # test should succeed
+        self.assertEqual(code, 0, err)
+        self.assertRegex(out, 's\s+PASS', out)
+        self.assertRegex(out, 'r\s+PASS', out)
+
+        # should have all three phases
+        self.assertIn('simple_done\n', out)
+        self.assertIn('\ntest beginning\ntest in mark1\ntest in mark2\ntest end\n', out)
+        self.assertIn('test process requested reboot with marker mark1', err)
+        self.assertIn('test process requested reboot with marker mark2', err)
+
+        # should not have any test stderr
+        self.assertNotIn(' stderr ', err)
+
+    def test_reboot_ro(self):
+        '''test that reboots, r/o system'''
+
+        p = self.build_src('Tests: s r\nDepends:\nRestrictions: needs-root breaks-testbed',
+                           {'s': '#!/bin/sh\necho simple_done',
+                            'r': '''#!/bin/sh -e
+        case "$ADT_REBOOT_MARK" in
+          mark1) echo "test in mark1"; echo one > $ADT_ARTIFACTS/mark1.txt; /tmp/autopkgtest-reboot mark2 ;;
+          mark2) echo "test in mark2"; echo two > $ADT_ARTIFACTS/mark2.txt ;;
+          "") echo "test beginning"; echo zero > $ADT_ARTIFACTS/begin.txt; /tmp/autopkgtest-reboot mark1 ;;
+          *) echo "unknown ADT_REBOOT_MARK value $ADT_REBOOT_MARK" >&2; exit 1 ;;
+        esac
+        echo "test end"'''})
+
+        outdir = os.path.join(self.workdir, 'out')
+        os.mkdir(outdir)
+
+        ro_sbin = 'M=$(mktemp --directory /run/ro-sbin.XXXXX); ' \
+                  'mount -t tmpfs tmpfs $M; ' \
+                  'cp -a /sbin/* $M; ' \
+                  'mount -o remount,ro $M; ' \
+                  'mount -o bind,ro $M /sbin; '
+
+        (code, out, err) = self.adt_run(['--output-dir=' + outdir, '-B', p + '//',
+                                         '--setup-commands', ro_sbin],
+                                        [self.image])
 
         # test should succeed
         self.assertEqual(code, 0, err)
