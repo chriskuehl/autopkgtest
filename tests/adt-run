@@ -2557,9 +2557,10 @@ class QemuRunner(AdtTestCase):
 
         ro_sbin = 'M=$(mktemp --directory /run/ro-sbin.XXXXX); ' \
                   'mount -t tmpfs tmpfs $M; ' \
-                  'cp -a /sbin/* $M; ' \
+                  'cp -a /sbin $M; cp -a /var/cache $M; ' \
                   'mount -o remount,ro $M; ' \
-                  'mount -o bind,ro $M /sbin; '
+                  'mount -o bind,ro $M/sbin /sbin; ' \
+                  'mount -o bind,ro $M/cache /var/cache; '
 
         (code, out, err) = self.adt_run(['--output-dir=' + outdir, '-B', p + '//',
                                          '--setup-commands', ro_sbin],
