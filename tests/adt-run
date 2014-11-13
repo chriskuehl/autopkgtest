@@ -2163,8 +2163,8 @@ class LxcRunner(AdtTestCase):
         (code, out, err) = self.adt_run(['--no-built-binaries', '--unbuilt-tree=' + p],
                                         self.virt_args)
         # test should succeed
-        self.assertRegex(out, 'pass\s+PASS', out)
         self.assertEqual(code, 0, err)
+        self.assertRegex(out, 'pass\s+PASS', out)
 
         # should build package
         self.assertIn('dh build', err)
