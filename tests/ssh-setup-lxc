@@ -44,6 +44,9 @@ open() {
     # password: python3 -c 'from crypt import *; print(crypt("adt_test", mksalt(METHOD_CRYPT)))'
     $PREFIX lxc-attach --name=$CONTAINER -- useradd --password uMBz978HXrv8s --create-home $USER
 
+    # install SSH
+    $PREFIX lxc-attach --name=$CONTAINER -- apt-get install -y openssh-server >/dev/null 2>&1
+
     if [ -n "$INSTALL_KEY" ]; then
         key=`cat $HOME/.ssh/id_rsa.pub`
         $PREFIX lxc-attach --name=$CONTAINER -- su -c "mkdir ~/.ssh; echo '$key' > ~/.ssh/authorized_keys" $USER
