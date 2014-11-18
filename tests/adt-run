@@ -1022,6 +1022,10 @@ class ChrootRunner(AdtTestCase):
                 if cmd == 'apt-get':
                     f.write('if [ "$1" = source ]; then cp -r /aptget-src $4-1; fi\n')
             os.chmod(p, 0o755)
+        path_su = os.path.join(self.chroot, 'bin', 'su')
+        with open(path_su, 'w') as f:
+            f.write('#!/bin/sh\nshift 4\nexec bash -c "$@"\n')
+        os.chmod(path_su, 0o755)
 
         p = os.path.join(self.chroot, 'tmp')
         os.mkdir(p)
@@ -2373,7 +2377,14 @@ class QemuRunner(AdtTestCase):
         p = self.build_src('Tests: pass\nDepends: aspell-doc\n',
                            {'pass': '#!/bin/sh -e\necho I am fine\n'
                             '[ -d "$HOME" ] || echo "HOME not set" >&2\n'
-                            '[ -n "$USER" ] && [ "$USER" != "root" ] || echo "USER invalid: $USER" >&2\n'})
+                            '[ -n "$USER" ] && [ "$USER" != "root" ] || echo "USER invalid: $USER" >&2\n'
+                            'if type loginctl >/dev/null 2>&1; then '
+                            '  [ -n "$XDG_SESSION_ID" ] || echo "no XDG_SESSION_ID" >&2; '
+                            '  O=$(loginctl show-session $XDG_SESSION_ID);'
+                            '  echo "$O" | grep -q "^Active=yes" || echo "$O" >&2; '
+                            '  echo "$O" | grep -q "^Name=$USER" || echo "$O" >&2; '
+                            'fi\n'
+                            })
 
         (code, out, err) = self.adt_run(['--no-built-binaries', '--unbuilt-tree=' + p],
                                         [self.image])
@@ -2418,7 +2429,13 @@ class QemuRunner(AdtTestCase):
 
         p = self.build_src('Tests: zap boom\nDepends:\nRestrictions: needs-root breaks-testbed',
                            {'zap': '#!/bin/sh\ntouch /zap\n'
-                            '[ -d "$HOME" ] || echo "HOME not set" >&2\n',
+                            '[ -d "$HOME" ] || echo "HOME not set" >&2\n'
+                            'if type loginctl >/dev/null 2>&1; then '
+                            '  [ -n "$XDG_SESSION_ID" ] || echo "no XDG_SESSION_ID" >&2; '
+                            '  O=$(loginctl show-session $XDG_SESSION_ID);'
+                            '  echo "$O" | grep -q "^Active=yes" || echo "$O" >&2; '
+                            '  echo "$O" | grep -q "^Name=root" || echo "$O" >&2; '
+                            'fi\n',
                             'boom': '#!/bin/sh\n[ ! -e /zap ]; touch /boom'})
 
         (code, out, err) = self.adt_run(['--no-built-binaries', '--unbuilt-tree=' + p, '-d'],
