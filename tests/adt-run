@@ -41,6 +41,12 @@ root_dir = os.path.dirname(test_dir)
 if not hasattr(unittest.TestCase, 'assertRegex'):
     unittest.TestCase.assertRegex = unittest.TestCase.assertRegexpMatches
 
+# in some corner cases apt-get download might not be available in a build
+# environment, so check if this actually works
+have_apt = subprocess.call(['apt-get', 'download', 'gir1.2-json-1.0'],
+                   stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                   cwd='/tmp') == 0
+
 
 class AdtTestCase(unittest.TestCase):
     '''Base class for adt-run tests'''
@@ -677,6 +683,7 @@ bad                  FAIL non-zero exit status 1
     @unittest.skipIf(os.getuid() == 0, 'needs to run as user')
     @unittest.skipIf(os.path.exists('/usr/bin/dotty'),
                      'needs graphviz uninstalled')
+    @unittest.skipUnless(have_apt, 'needs apt-get download working')
     def test_tmp_install(self):
         '''temp dir unpack of test dependencies'''
 
@@ -714,6 +721,7 @@ bad                  FAIL non-zero exit status 1
                      'needs libtest-tester-perl uninstalled')
     @unittest.skipIf(os.path.exists('/usr/share/doc/libconvert-uulib-perl'),
                      'needs libconvert-uulib-perl uninstalled')
+    @unittest.skipUnless(have_apt, 'needs apt-get download working')
     def test_tmp_install_perl(self):
         '''temp dir unpack of Perl dependencies'''
 
