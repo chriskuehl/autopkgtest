@@ -334,6 +334,36 @@ class NullRunner(AdtTestCase):
                  not fnmatch.fnmatch(i, '[sb]*-packages')]
         self.assertEqual(set(files), set(['log', 'summary', 'testpkg-version', 'testbed-packages']))
 
+    def test_tree_output_dir_in_test_tree(self):
+        '''source tree, --output-dir in tests tree
+
+        NB that this is a pathological case, but easy to run into.
+        '''
+        p = self.build_src('Tests: s\nDepends:\n',
+                           {'s': '#!/bin/sh\necho OK'})
+
+        outdir = os.path.join(p, 'out')
+
+        (code, out, err) = self.adt_run(['-B', p + '/', '--output-dir=' + outdir])
+
+        # test results
+        self.assertEqual(code, 0, err)
+        self.assertRegex(out, 's\s+PASS', out)
+
+        # should show test stdout and stderr
+        self.assertRegex(out, '(^|\n)OK\n')
+
+        # check outdir test stdout/err
+        with open(os.path.join(outdir, 's-stdout')) as f:
+            self.assertEqual(f.read(), 'OK\n')
+        self.assertFalse(os.path.exists(
+            os.path.join(outdir, 's-stderr')))
+
+        # check outdir log
+        with open(os.path.join(outdir, 'log')) as f:
+            contents = f.read()
+        self.assertRegex(contents, 's\s+PASS')
+
     def test_tree_apply_patches(self):
         '''source tree, 3.0 (quilt) patches get applied'''
 
