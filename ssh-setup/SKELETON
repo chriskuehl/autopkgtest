@@ -50,8 +50,12 @@ revert() {
 
 # only needs to handle this if CAPABILITIES offers "reboot"
 reboot() {
-    echo "reboot not implemented" >&2
-    exit 1
+    # exiting with code 10 means: just call "reboot" through ssh
+    # exit 10
+
+    # exiting with any other non-zero code counts as failure
+    # echo "reboot not implemented" >&2
+    # exit 1
 }
 
 case "$1" in

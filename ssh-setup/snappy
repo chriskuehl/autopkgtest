@@ -188,10 +188,8 @@ revert() {
     exit 1
 }
 
-# only needs to handle this if CAPABILITIES offers "reboot"
 reboot() {
-    echo "reboot not implemented" >&2
-    exit 1
+    exit 10  # use standard reboot
 }
 
 ###########################
