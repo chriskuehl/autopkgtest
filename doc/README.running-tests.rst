@@ -272,7 +272,8 @@ nothing else than a working ssh connection. This can call a "setup
 script" to create/configure a testbed (such as spinning up a cloud VM
 with nova or setting up SSH on a phone through ADB). See the manpage for
 details. autopkgtest ships setup scripts for an adb host (mostly for
-Ubuntu Touch) and for nova currently, see their comment headers in
+Ubuntu Touch), for nova (for cloud instances) and for Ubuntu Snappy
+currently; see their comment headers in
 ``/usr/share/autopkgtest/ssh-setup/``.
 
 ..  vim: ft=rst tw=72

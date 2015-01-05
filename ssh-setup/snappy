@@ -1,0 +1,218 @@
+#!/bin/sh
+# adt-virt-ssh setup script that builds and uses an Ubuntu Snappy testbed in
+# QEMU. See "man adt-virt-ssh" for details, and http://www.ubuntu.com/snappy
+# for information about Snappy.
+#
+# Options:
+# -i path | --image path
+#      Path to an existing snappy image. This won't be modified (QEMU will use
+#      this as a snapshot base with a temporary overlay). If not given, uses
+#      ubuntu-device-flash to create a temporary image.
+# --channel <channel>
+#      Passed to ubuntu-device-flash's "core" command to select a non-default
+#      channel (e. g. "ubuntu-core/devel-proposed"). This does not work
+#      together with --image.
+#
+# autopkgtest is Copyright (C) 2006-2015 Canonical Ltd.
+#
+# Author: Martin Pitt <martin.pitt@ubuntu.com>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+#
+# See the file CREDITS for a full list of credits information (often
+# installed as /usr/share/doc/autopkgtest/CREDITS).
+
+set -eu
+
+IMAGE=
+DEBUG=
+TEMPIMAGE=
+QEMU_PID=
+CHANNEL=
+
+QEMU_CMD="qemu-system-$(uname -m) -enable-kvm -m 512 -localtime -nographic -net user -net nic,model=virtio -snapshot"
+
+debug() {
+    [ -z "$DEBUG" ] && return
+    echo "snappy ssh setup: $@" >&2
+}
+
+info() {
+    echo "snappy ssh setup: $@" >&2
+}
+
+error() {
+    echo "snappy ssh setup ERROR: $@">&2
+    exit 1
+}
+
+parse_args() {
+    SHORTOPTS="i:"
+    LONGOPTS="image:,debug,channel:,temp-image,qemu-pid:"
+
+    TEMP=$(getopt -o $SHORTOPTS --long $LONGOPTS -- "$@")
+    eval set -- "$TEMP"
+
+    while true; do
+        case "$1" in
+            -i|--image)
+                IMAGE="$2"; shift 2;;
+            --debug)
+                DEBUG=1; shift;;
+            --channel)
+                CHANNEL="$2"; shift 2;;
+
+            # internal options
+            --temp-image)
+                TEMPIMAGE=1; shift;;
+            --qemu-pid)
+                QEMU_PID="$2"; shift 2;;
+
+            --)
+                shift;
+                break;;
+            *)
+                error "E: $(basename $0): Unsupported option $1"
+                exit 1;;
+        esac
+    done
+
+    debug "parse_args: IMAGE='$IMAGE' DEBUG=$DEBUG CHANNEL='$CHANNEL' TEMPIMAGE=$TEMPIMAGE"
+}
+
+find_free_port() {
+    start=$1
+    for port in `seq $start $((start+50))`; do
+        debug "find_free_port: trying port $port"
+        port_lock_file=/run/lock/autopkgtest_ssh_snappy.$port
+        # if it exists already, check if it contains a running pid
+        if pid=$(cat $port_lock_file 2>/dev/null); then
+            if [ -n "$pid" -a ! -d "/proc/$pid" ]; then
+                debug "find_free_port: $port_lock_file already exists, but pid $pid does not exist, re-using"
+                return
+            else
+                debug "find_free_port: $port_lock_file and its pid $pid already exist"
+            fi
+        else
+            touch $port_lock_file
+            debug "find_free_port: $port_lock_file does not exist, creating"
+            return
+        fi
+    done
+    error "all free ports are taken"
+}
+
+open() {
+    # create an image unless options specified one
+    local EXTRAOPTS=
+    if [ -z "$IMAGE" ]; then
+        info "No image given, calling ubuntu-device-flash to create a temporary one..."
+        IMAGE=$(mktemp --tmpdir snappy.XXXXXX.img)
+        EXTRAOPTS="--image $IMAGE --temp-image"
+        UDF_OPTS=""
+        if [ -n "$CHANNEL" ]; then
+            UDF_OPTS="--channel=$CHANNEL"
+        fi
+        sudo ubuntu-device-flash --verbose core --output="$IMAGE" --developer-mode $UDF_OPTS >&2
+        debug "image $IMAGE built successfully"
+    elif [ -n "$CHANNEL" ]; then
+        error "The --channel option does not work with --image"
+    fi
+
+    # Determine free port for SSH forwarding
+    find_free_port 11022
+    debug "using port $port for redirecting ssh"
+
+    # start QEMU; redirect its stdout/err to a copy of our stderr to avoid the
+    # setup script becoming a zombie at the end
+    exec 3>&2
+    $QEMU_CMD -snapshot -drive file="$IMAGE",if=virtio -redir tcp:$port::22 -monitor none -serial none </dev/null >&3 2>&3 &
+    QEMU_PID=$!
+    echo $QEMU_PID > $port_lock_file
+    sleep 3
+    if [ -d /proc/$QEMU_PID ]; then
+        debug "qemu running, pid $QEMU_PID"
+    else
+        error "QEMU failed to start"
+    fi
+
+    # done, print the info
+    cat<<EOF
+login=ubuntu
+hostname=localhost
+port=$port
+capabilities=isolation-machine,reboot
+extraopts=--qemu-pid $QEMU_PID $EXTRAOPTS
+EOF
+    # use ssh key in potentially different $HOME, if given
+    key=$HOME/.ssh/id_rsa
+    if [ -e "$key" ]; then
+        echo "identity=$key"
+    fi
+}
+
+cleanup() {
+    if [ -z "$IMAGE" ]; then
+        echo "Needs to be called with --image <imagepath>" >&2
+        exit 1
+    fi
+    if [ -z "$QEMU_PID" ]; then
+        echo "Needs to be called with --qemu-pid <pid>" >&2
+        exit 1
+    fi
+
+    debug "killing QEMU pid $QEMU_PID"
+    kill $QEMU_PID
+
+    if [ -n "$TEMPIMAGE" ]; then
+        debug "cleaning up temporary image $IMAGE"
+        rm "$IMAGE"
+    fi
+    exit 0
+}
+
+revert() {
+    echo "revert not implemented" >&2
+    exit 1
+}
+
+# only needs to handle this if CAPABILITIES offers "reboot"
+reboot() {
+    echo "reboot not implemented" >&2
+    exit 1
+}
+
+###########################
+
+parse_args "$@"
+
+case "$1" in
+    open)
+        open $@;;
+    cleanup)
+        cleanup $@;;
+    revert)
+        revert $@;;
+    reboot)
+        reboot $@;;
+    '')
+        echo "Needs to be called with command as first argument" >&2
+        exit 1
+        ;;
+    *)
+        echo "invalid command $1" >&2
+        exit 1
+        ;;
+esac

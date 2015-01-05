@@ -47,6 +47,10 @@ have_apt = subprocess.call(['apt-get', 'download', 'gir1.2-json-1.0'],
                            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                            cwd='/tmp') == 0
 
+have_ubuntu_device_flash = subprocess.call(['which', 'ubuntu-device-flash'],
+                                           stdout=subprocess.PIPE,
+                                           stderr=subprocess.PIPE) == 0
+
 
 class AdtTestCase(unittest.TestCase):
     '''Base class for adt-run tests'''
@@ -3272,6 +3276,58 @@ class SshRunnerWithScript(AdtTestCase):
         self.assertNotIn('PASS', out)
         self.assertNotIn('NotReached', err)
         self.assertLess(duration, 60, err)
+
+
+@unittest.skipUnless(have_ubuntu_device_flash,
+                     'ubuntu-device-flash not installed')
+class SshRunnerSnappy(AdtTestCase):
+    def __init__(self, *args, **kwargs):
+        super(SshRunnerSnappy, self).__init__('ssh', *args, **kwargs)
+        self.virt_args = ['--debug', '-s',
+                          os.path.join(root_dir, 'ssh-setup', 'snappy')]
+
+    def test_default_download(self):
+        '''downloaded temp image'''
+
+        p = self.build_src('Tests: user\nDepends:\n\n'
+                           'Tests: root\nDepends:\nRestrictions: needs-root',
+                           {'user': '#!/bin/sh\necho I am fine\nwhoami\nsnappy info',
+                            'root': '#!/bin/sh\necho I am powerful\nwhoami'})
+
+        (code, out, err) = self.adt_run(['-d', '-B', p + '//'], self.virt_args)
+        self.assertEqual(code, 0, err)
+        self.assertRegex(out, 'user\s+PASS', out)
+        self.assertRegex(out, 'root\s+PASS', out)
+
+        self.assertRegex(err, 'testbed capabilities:.*root-on-testbed')
+
+        # should show test stdout/err
+        self.assertIn('I am fine\nubuntu\n', out)
+        # snappy info output
+        self.assertRegex(out, 'release: .*ubuntu.*core')
+        self.assertIn('I am powerful\nroot\n', out)
+
+    def test_channel(self):
+        '''--channel ubuntu-core/devel-proposed'''
+
+        p = self.build_src('Tests: user\nDepends:\n\n'
+                           'Tests: root\nDepends:\nRestrictions: needs-root',
+                           {'user': '#!/bin/sh\necho I am fine\nwhoami\nsnappy info',
+                            'root': '#!/bin/sh\necho I am powerful\nwhoami'})
+
+        (code, out, err) = self.adt_run(['-d', '-B', p + '//'], self.virt_args +
+                                        ['--', '--channel', 'ubuntu-core/devel-proposed'])
+        self.assertEqual(code, 0, err)
+        self.assertRegex(out, 'user\s+PASS', out)
+        self.assertRegex(out, 'root\s+PASS', out)
+
+        self.assertRegex(err, 'testbed capabilities:.*root-on-testbed')
+
+        # should show test stdout/err
+        self.assertIn('I am fine\nubuntu\n', out)
+        # snappy info output
+        self.assertRegex(out, 'release: .*ubuntu.*core.*devel-proposed')
+        self.assertIn('I am powerful\nroot\n', out)
 
 
 if __name__ == '__main__':
