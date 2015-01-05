@@ -896,6 +896,25 @@ if ($pid) { # parent
         self.assertIn('P: done\n', out)
         self.assertNotIn('survived', out)
 
+    def test_tree_debian_tests_only(self):
+        '''tree with only debian/tests/'''
+
+        srcdir = os.path.join(self.workdir, 'testpkg')
+        testdir = os.path.join(srcdir, 'debian', 'tests')
+        os.makedirs(testdir)
+        with open(os.path.join(testdir, 'control'), 'w') as f:
+            f.write('Test-Command: echo IamFine\nDepends:\n')
+
+        (code, out, err) = self.adt_run(['-d', '-B', srcdir + '/'])
+        # test should succeed
+        self.assertEqual(code, 0, err)
+        self.assertRegex(out, 'command1\s+PASS', out)
+
+        # should show test stdout
+        self.assertRegex(out, '(^|\n)IamFine\n')
+        # should not have any test stderr
+        self.assertNotIn(' stderr ', err)
+
 
 @unittest.skipIf(os.getuid() > 0,
                  'NullRunnerRoot tests need to run as root')
