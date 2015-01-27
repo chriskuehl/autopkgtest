@@ -150,7 +150,9 @@ EOF
 
 wait_booted() {
     echo "Waiting for device ADB to appear..." >&2
-    adb $ADBOPTS wait-for-device
+    if ! timeout 300 adb $ADBOPTS wait-for-device >/dev/null; then
+        echo "ERROR: Timed out waiting for adb device" >&2
+    fi
 }
 
 # configure Ubuntu device for testing
