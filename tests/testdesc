@@ -214,7 +214,8 @@ class Debian(unittest.TestCase):
             'Tests: t1 t2',
             'Source: nums\n\nPackage: one\nArchitecture: any\n\n'
             'Package: two\nArchitecture: all\n\n'
-            'Package: two-udeb\nXC-Package-Type: udeb\nArchitecture: any')
+            'Package: two-udeb\nXC-Package-Type: udeb\nArchitecture: any\n\n'
+            'Package: three-udeb\nPackage-Type: udeb\nArchitecture: any')
         self.assertEqual(len(ts), 2)
         self.assertEqual(ts[0].name, 't1')
         self.assertEqual(ts[0].path, 'debian/tests/t1')
