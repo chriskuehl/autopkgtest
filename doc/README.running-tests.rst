@@ -136,7 +136,7 @@ specifying tests and packages, so it is merely abbreviated as
    ::
 
      adt-run --setup-commands ubuntu-touch-session \
-             --setup-commands apt-ro \
+             --setup-commands ro-apt \
              myclickapp/ myclickapp_0.1_all.click --- lxc adt-utopic
 
    See the comments in the setup-commands scripts for details.
