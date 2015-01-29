@@ -45,6 +45,7 @@ PID=\$!
 sleep 1
 . \$XDG_RUNTIME_DIR/upstart/sessions/\$PID.session
 export UPSTART_SESSION
+unset UPSTART_JOB UPSTART_EVENTS
 echo "UPSTART_SESSION=\$UPSTART_SESSION"
 echo DBUS_SESSION_BUS_ADDRESS=\$(initctl --user get-env DBUS_SESSION_BUS_ADDRESS)
 EOF
