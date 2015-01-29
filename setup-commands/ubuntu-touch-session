@@ -17,7 +17,7 @@ apt-get install --assume-yes --no-install-recommends click ubuntu-sdk-libs ubunt
 apt-get install --assume-yes --no-install-recommends dbus-x11 xvfb python3-xlib gir1.2-glib-2.0 gir1.2-gtk-3.0
 
 # avoid tripping over AppArmor restrictions in container in click hook
-rm /sbin/apparmor_parser
+rm -f /sbin/apparmor_parser
 
 # start X server
 su -c 'Xvfb :5 -screen 0 1024x768x24 >/tmp/Xvfb-5.log 2>&1 &' $ADT_NORMAL_USER
@@ -26,6 +26,13 @@ DISPLAY=:5
 XAUTHORITY=/dev/null
 EOF
 sleep 1
+
+if [ -e /dev/uinput ]; then
+     mkdir -p /run/udev/rules.d
+     echo 'KERNEL=="uinput", SUBSYSTEM=="misc", MODE="666"' > /run/udev/rules.d/99_uinput_perms.rules
+     udevadm control --reload
+     udevadm trigger --action=change --sysname-match=uinput
+fi
 
 # start user upstart session
 cat <<EOF | su $ADT_NORMAL_USER >> /etc/environment
