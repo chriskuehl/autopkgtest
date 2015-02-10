@@ -30,8 +30,7 @@ sleep 1
 if [ -e /dev/uinput ]; then
      mkdir -p /run/udev/rules.d
      echo 'KERNEL=="uinput", SUBSYSTEM=="misc", MODE="666"' > /run/udev/rules.d/99_uinput_perms.rules
-     udevadm control --reload
-     udevadm trigger --action=change --sysname-match=uinput
+     udevadm control --reload && udevadm trigger --action=change --sysname-match=uinput || true
 fi
 
 # start user upstart session
