@@ -771,6 +771,10 @@ bad                  FAIL non-zero exit status 1
     @unittest.skipIf(os.path.exists('/usr/lib/python3/dist-packages/wand/'),
                      'needs python3-wand uninstalled')
     @unittest.skipUnless(have_apt, 'needs apt-get download working')
+    @unittest.skipUnless(subprocess.call(['apt-cache', 'show', 'python3-wand'],
+                                         stdout=subprocess.PIPE,
+                                         stderr=subprocess.STDOUT) == 0,
+                         'needs python3-wand package')
     def test_tmp_install_imagemagick(self):
         '''temp dir unpack of imagemagick dependencies'''
 
