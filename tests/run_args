@@ -164,6 +164,17 @@ Files:
                                 ('click', 'x.click', None),
                                 ('unbuilt-tree', './/', False)])
 
+    def test_timeouts(self):
+        (args, acts, virt) = self.parse(
+            ['--timeout-short=37', '--timeout-factor=0.5',
+             '--timeout-build=1337', '--source', 'x.dsc', '---', 'null'])
+        # explicit, not affected by factor
+        self.assertEqual(args.timeout_short, 37)
+        self.assertEqual(args.timeout_build, 1337)
+        # default, with factor
+        self.assertEqual(args.timeout_copy, int(adt_run_args.timeouts['copy'] * 0.5))
+        self.assertEqual(args.timeout_test, int(adt_run_args.timeouts['test'] * 0.5))
+
     def test_read_file(self):
         argfile = os.path.join(self.workdir.name, 'myopts')
         with open(argfile, 'w') as f:
