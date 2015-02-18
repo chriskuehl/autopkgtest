@@ -213,7 +213,7 @@ class Debian(unittest.TestCase):
         (ts, skipped) = self.call_parse(
             'Tests: t1 t2',
             'Source: nums\n\nPackage: one\nArchitecture: any\n\n'
-            'Package: two\nArchitecture: all\n\n'
+            'Package: two\nPackage-Type: deb\nArchitecture: all\n\n'
             'Package: two-udeb\nXC-Package-Type: udeb\nArchitecture: any\n\n'
             'Package: three-udeb\nPackage-Type: udeb\nArchitecture: any')
         self.assertEqual(len(ts), 2)
