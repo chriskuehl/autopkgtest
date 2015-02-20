@@ -2480,6 +2480,9 @@ class QemuRunner(AdtTestCase):
         # should not have any test stderr
         self.assertNotIn(' stderr ', err)
 
+        # should not show boot messages
+        self.assertNotIn(' login:', err)
+
         # should not build package
         self.assertNotIn('dh build', err)
 
@@ -2537,7 +2540,7 @@ class QemuRunner(AdtTestCase):
 
         (code, out, err) = self.adt_run(['-B', '-d', p + '//',
                                          '--setup-commands', 'echo setupok >> /setup.log'],
-                                        [self.image])
+                                        ['--show-boot', self.image])
 
         # test should succeed
         self.assertEqual(code, 0, err)
@@ -2553,6 +2556,9 @@ class QemuRunner(AdtTestCase):
         # should not have rebooted for these commands
         self.assertIn('@@@@@@ test bed setup', err)
         self.assertNotIn('rebooting testbed', err)
+
+        # should show boot console output
+        self.assertIn(' login:', err)
 
     def test_setup_commands_reboot(self):
         '''--setup-commands with reboot'''
