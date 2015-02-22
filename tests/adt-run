@@ -996,10 +996,13 @@ rm $TMPDIR/rootowned.txt $TMPDIR/world.txt
 
         p = self.build_src('Tests: r\nDepends:\nRestrictions: needs-root\n\n'
                            'Tests: u\nDepends:\n',
-                           {'r': '#!/bin/sh -e\necho root $LANG',
-                            'u': '#!/bin/sh -e\necho user $LANG'})
+                           {'r': '#!/bin/sh -e\necho root $LANG\nlocale',
+                            'u': '#!/bin/sh -e\necho user $LANG\nlocale'})
 
-        (code, out, err) = self.adt_run(['-B', '--unbuilt-tree=' + p])
+        # invalid LC_* should not be copied, only $LANG set
+        env = os.environ.copy()
+        env['LC_PAPER'] = 'fo_BAR.UTF-9'
+        (code, out, err) = self.adt_run(['-B', '--unbuilt-tree=' + p], env=env)
         self.assertEqual(code, 0, err)
 
         # test should succeed
