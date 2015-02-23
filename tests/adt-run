@@ -69,6 +69,11 @@ class AdtTestCase(unittest.TestCase):
         temp_home = os.path.join(self.workdir, 'home')
         shutil.copytree(os.path.join(test_dir, 'home'), temp_home)
         os.chmod(os.path.join(temp_home, '.ssh', 'id_rsa'), 0o600)
+
+        # avoid re-downloading ubuntu-device-flash images
+        os.symlink(os.path.expanduser('~/.cache/ubuntuimages'),
+                   os.path.join(temp_home, '.cache', 'ubuntuimages'))
+
         os.environ['HOME'] = temp_home
 
     def build_src(self, test_control, test_scripts):
