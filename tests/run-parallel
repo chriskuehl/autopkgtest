@@ -11,13 +11,12 @@ $MYDIR/testdesc
 $MYDIR/run_args
 set +e
 
-# parse out the AdtTestCase classes
-CLASSES=`grep -oP '(?<=class )[a-zA-Z]+(?=\(AdtTest)' tests/adt-run`
-
 # get sudo password early, to avoid asking for it in background jobs
 [ `id -u` -eq 0 ] || sudo true
 
-for c in $CLASSES; do
-    (OUT=$($MYDIR/adt-run $c 2>&1) || rc=$?; echo "=== $c ==="; echo "$OUT"; exit $rc) &
-done
-for c in $CLASSES; do wait; done
+(OUT=$($MYDIR/adt-run QemuRunner SshRunnerSnappy 2>&1) || rc=$?; echo "=== $c ==="; echo "$OUT"; exit $rc) &
+(OUT=$($MYDIR/adt-run LxcRunner SshRunnerNoScript SshRunnerWithScript 2>&1) || rc=$?; echo "=== $c ==="; echo "$OUT"; exit $rc) &
+(OUT=$($MYDIR/adt-run SchrootRunner SchrootClickRunner 2>&1) || rc=$?; echo "=== $c ==="; echo "$OUT"; exit $rc) &
+(OUT=$($MYDIR/adt-run NullRunner 2>&1) || rc=$?; echo "=== $c ==="; echo "$OUT"; exit $rc) &
+(OUT=$(sudo $MYDIR/adt-run NullRunnerRoot ChrootRunner 2>&1) || rc=$?; echo "=== $c ==="; echo "$OUT"; exit $rc) &
+for c in `seq 5`; do wait; done
