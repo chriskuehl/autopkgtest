@@ -108,6 +108,16 @@ class T(unittest.TestCase):
                                 ('unbuilt-tree', './/', True),
                                 ('apt-source', 'myapt3', False)])
 
+    def test_testname(self):
+        acts = self.parse(
+            ['--source', 'dsc1',
+             '--testname', 'foo', '--source', 'dsc2',
+             '--source', 'dsc3'])[1]
+        self.assertEqual(acts, [('source', 'dsc1', True),
+                                ('testname', 'foo', None),
+                                ('source', 'dsc2', True),
+                                ('source', 'dsc3', True)])
+
     def test_changes(self):
         ch = os.path.join(self.workdir.name, 'foo.changes')
         with open(ch, 'w') as f:

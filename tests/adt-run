@@ -941,6 +941,41 @@ if ($pid) { # parent
         # should not have any test stderr
         self.assertNotIn(' stderr ', err)
 
+    def test_testname(self):
+        '''Run only one specified test'''
+
+        p = self.build_src('Tests: one two three\nDepends:',
+                           {'one': '#!/bin/sh\necho 1_ONE',
+                            'two': '#!/bin/sh\necho 2_TWO',
+                            'three': '#!/bin/sh\necho 3_THREE'})
+
+        (code, out, err) = self.adt_run(['-B', '--testname', 'two',
+                                         '--unbuilt-tree=' + p])
+
+        self.assertEqual(code, 0, err)
+        self.assertRegex(out, 'two\s+PASS', out)
+        self.assertNotIn('one', out)
+        self.assertNotIn('three', out)
+
+        self.assertIn('2_TWO', out)
+        self.assertNotIn('1_ONE', out)
+        self.assertNotIn('3_THREE', out)
+
+    def test_testname_noexist(self):
+        '''Run only one specified test which does not exist'''
+
+        p = self.build_src('Tests: one two three\nDepends:',
+                           {'one': '#!/bin/sh\necho 1_ONE',
+                            'two': '#!/bin/sh\necho 2_TWO',
+                            'three': '#!/bin/sh\necho 3_THREE'})
+
+        (code, out, err) = self.adt_run(['-B', '--testname', 'four',
+                                         '--unbuilt-tree=' + p])
+
+        self.assertEqual(code, 8, err)
+        for w in ['one', 'two', 'three']:
+            self.assertNotIn(w, out)
+
 
 @unittest.skipIf(os.getuid() > 0,
                  'NullRunnerRoot tests need to run as root')
