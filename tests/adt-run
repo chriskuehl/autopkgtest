@@ -2496,9 +2496,9 @@ class LxcRunner(AdtTestCase):
                            {'s': '#!/bin/sh\necho simple_done',
                             'r': '''#!/bin/sh -e
         case "$ADT_REBOOT_MARK" in
-          mark1) echo "test in mark1"; echo one > $ADT_ARTIFACTS/mark1.txt; autopkgtest-reboot mark2 ;;
+          mark1) echo "test in mark1"; echo one > $ADT_ARTIFACTS/mark1.txt; /tmp/autopkgtest-reboot mark2 ;;
           mark2) echo "test in mark2"; echo two > $ADT_ARTIFACTS/mark2.txt ;;
-          "") echo "test beginning"; echo zero > $ADT_ARTIFACTS/begin.txt; autopkgtest-reboot mark1 ;;
+          "") echo "test beginning"; echo zero > $ADT_ARTIFACTS/begin.txt; /tmp/autopkgtest-reboot mark1 ;;
           *) echo "unknown ADT_REBOOT_MARK value $ADT_REBOOT_MARK" >&2; exit 1 ;;
         esac
         echo "test end"'''})
@@ -2696,9 +2696,9 @@ class QemuRunner(AdtTestCase):
                            {'s': '#!/bin/sh\necho simple_done',
                             'r': '''#!/bin/sh -e
         case "$ADT_REBOOT_MARK" in
-          mark1) echo "test in mark1"; echo one > $ADT_ARTIFACTS/mark1.txt; autopkgtest-reboot mark2 ;;
+          mark1) echo "test in mark1"; echo one > $ADT_ARTIFACTS/mark1.txt; /tmp/autopkgtest-reboot mark2 ;;
           mark2) echo "test in mark2"; echo two > $ADT_ARTIFACTS/mark2.txt ;;
-          "") echo "test beginning"; echo zero > $ADT_ARTIFACTS/begin.txt; autopkgtest-reboot mark1 ;;
+          "") echo "test beginning"; echo zero > $ADT_ARTIFACTS/begin.txt; /tmp/autopkgtest-reboot mark1 ;;
           *) echo "unknown ADT_REBOOT_MARK value $ADT_REBOOT_MARK" >&2; exit 1 ;;
         esac
         echo "test end"'''})
