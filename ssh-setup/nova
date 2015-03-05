@@ -148,7 +148,7 @@ open() {
         KEYNAME=$(nova keypair-list | awk 'BEGIN {FS="|"} /([0-9a-f][0-9a-f]:)+/ {print $2; exit }')
         if [ -z "$KEYNAME" ]; then
             error "Could not determine default key name from 'nova keypair-list'" \
-                  "Run 'nova keypair-create' to generate a key."
+                  "Run 'nova keypair-add' to generate a key."
             exit 1
         fi
         debug "Using nova key $KEYNAME"
