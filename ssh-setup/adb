@@ -255,6 +255,7 @@ reboot() {
     fi
     adb $ADBOPTS reboot
     wait_booted
+    adb $ADBOPTS shell 'gdbus call -y -d com.canonical.PropertyService -o /com/canonical/PropertyService -m com.canonical.PropertyService.SetProperty ssh true >/dev/null'
     adb $ADBOPTS forward tcp:$FWD_PORT tcp:22
     ubuntu_prepare_for_testing
 }
