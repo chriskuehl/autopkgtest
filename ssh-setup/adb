@@ -128,11 +128,18 @@ EOF
 
     # try to auto-detect sudo password from common ones used by CI
     for p in phablet 0000; do
-        if $ssh_cmd "echo $p | sudo -S true" >/dev/null 2>&1; then
+        if $ssh_cmd "echo $p | sudo -p '' -S true" >/dev/null 2>&1; then
             SUDO_PASSWORD="$p"
             break
         fi
     done
+
+    # ensure that adb comes back after reboot
+    if [ -n "$SUDO_PASSWORD" ]; then
+        if ! $ssh_cmd "echo \"$SUDO_PASSWORD\" | sudo -p '' -S touch /userdata/.adb_onlock"; then
+            echo "WARNING: Could not create /userdata/.adb_onlock, reboot will not work properly" >&2
+        fi
+    fi
 
     # print info for adt-virt-ssh
     cat<<EOF
