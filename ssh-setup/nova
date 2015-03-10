@@ -19,6 +19,9 @@
 #        'nova keypair-list'
 # -N net-id | --net-id=net-id
 #        UUID of the network that should be used for the instance
+# -s secgroup1,secgroup2 | --security-groups secgroup1,secgroup2
+#        Assign given security groups to the testbeds, instead of the
+#        'default' one.
 # -a | --associate-ip
 #        If the internal instance IP is not accessible to you, this option will
 #        request and associate a floating IP to the instance.
@@ -64,6 +67,7 @@ SRVNAME=""
 NET_ID=""
 ASSOCIATE_IP=""
 FLOATING_IP=""
+SECURITY_GROUPS=""
 
 DEBUG=""
 
@@ -83,8 +87,8 @@ error() {
 parse_args() {
     # Parse command line argument and populate environment
 
-    SHORTOPTS="f:,i:,k:,N:,l:,n:,a,d"
-    LONGOPTS="flavor:,image:,keyname:,net-id:,login:,name:,associate-ip,floating-ip:,debug"
+    SHORTOPTS="f:,i:,k:,N:,l:,n:,s:,a,d"
+    LONGOPTS="flavor:,image:,keyname:,net-id:,login:,name:,security-groups:,associate-ip,floating-ip:,debug"
 
     TEMP=$(getopt -o $SHORTOPTS --long $LONGOPTS -- "$@")
     eval set -- "$TEMP"
@@ -108,6 +112,9 @@ parse_args() {
                 shift 2;;
             -n|--name)
                 SRVNAME=$2
+                shift 2;;
+            -s|--security-groups)
+                SECURITY_GROUPS="$2"
                 shift 2;;
             -a|--associate-ip)
                 ASSOCIATE_IP=1; shift;;
@@ -172,13 +179,18 @@ runcmd:
  - echo 'force-unsafe-io' > /etc/dpkg/dpkg.cfg.d/autopkgtest
 EOF
 
+    EXTRA_OPTS=''
     if [ -n "$NET_ID" ]; then
-        NET_ID="--nic net-id=$NET_ID"
+        EXTRA_OPTS="$EXTRA_OPTS --nic net-id=$NET_ID"
+    fi
+
+    if [ -n "$SECURITY_GROUPS" ]; then
+        EXTRA_OPTS="$EXTRA_OPTS --security-groups $SECURITY_GROUPS"
     fi
 
     # Boot the instance
     OUT=$(nova boot --flavor $FLAVOR --key_name $KEYNAME --user-data $userdata \
-        --image $IMAGE $NET_ID --poll $SRVNAME 2>&1) || {
+        --image $IMAGE $EXTRA_OPTS --poll $SRVNAME 2>&1) || {
         error "nova boot failed:"
         error "$OUT"
         exit 1
