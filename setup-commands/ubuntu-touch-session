@@ -39,7 +39,7 @@ set -e
 export LANG=$LANG
 export XDG_RUNTIME_DIR=\$(mktemp -d)
 echo XDG_RUNTIME_DIR=\$XDG_RUNTIME_DIR
-init --quiet --user &
+upstart --quiet --user &
 PID=\$!
 sleep 1
 . \$XDG_RUNTIME_DIR/upstart/sessions/\$PID.session
