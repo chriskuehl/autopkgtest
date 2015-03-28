@@ -1,0 +1,141 @@
+#!/usr/bin/python3
+#
+# adt-virt-docker is part of autopkgtest
+# autopkgtest is a tool for testing Debian binary packages
+#
+# autopkgtest is Copyright (C) 2006-2015 Canonical Ltd.
+#
+# adt-virt-docker was derived from adt-virt-lxc and modified to suit Docker by
+# Mathieu Parent <math.parent@gmail.com>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+#
+# See the file CREDITS for a full list of credits information (often
+# installed as /usr/share/doc/autopkgtest/CREDITS).
+
+import sys
+import os
+import subprocess
+import tempfile
+import shutil
+import argparse
+
+try:
+    our_base = os.environ['AUTOPKGTEST_BASE'] + '/lib'
+except KeyError:
+    our_base = '/usr/share/autopkgtest/python'
+sys.path.insert(1, our_base)
+
+import VirtSubproc
+import adtlog
+
+
+capabilities = ['revert-full-system', 'root-on-testbed',
+                'isolation-container']
+
+args = None
+docker_container_id = None
+shared_dir = None
+
+
+def parse_args():
+    global args
+
+    parser = argparse.ArgumentParser(fromfile_prefix_chars='@')
+
+    parser.add_argument('-d', '--debug', action='store_true',
+                        help='Enable debugging output')
+    parser.add_argument('image', help='Base image')
+    parser.add_argument('dockerargs', nargs=argparse.REMAINDER,
+                        help='Additional arguments to pass to docker run ')
+    args = parser.parse_args()
+    if args.debug:
+        adtlog.verbosity = 2
+
+
+def hook_open():
+    global args, docker_container_id, shared_dir
+
+    if shared_dir is None:
+        shared_dir = tempfile.mkdtemp(prefix='adt-virt-docker.shared.')
+    else:
+        # don't change the name between resets, to provide stable downtmp paths
+        os.makedirs(shared_dir)
+    os.chmod(shared_dir, 0o755)
+    docker_container_id = VirtSubproc.check_exec(['docker', 'run', '--detach=true',
+        '--volume', "{0}:{0}".format(shared_dir)] + args.dockerargs + [args.image, 'sh', '-c', 'while true; do sleep 600; done'],
+        outp=True)
+    adtlog.debug('hook_open: got docker container id %s' % docker_container_id)
+    VirtSubproc.auxverb = [
+        'docker', 'exec', docker_container_id
+    ]
+    (status, out, err) = VirtSubproc.execute_timeout(None, 0, VirtSubproc.auxverb + ['false'], stdout=subprocess.PIPE)
+    if status == 0:
+        # In Docker < 1.4, docker exec doesn't pass the return value
+        # We use nsenter which pass return value
+        # See https://github.com/duglin/docker/commit/90928eb1140fc0394e2
+        adtlog.debug('hook_open: using nsenter workaround')
+        docker_container_pid = VirtSubproc.check_exec(['docker', 'inspect',
+            '--format', '{{.State.Pid}}', docker_container_id], outp=True)
+        VirtSubproc.auxverb = [
+            'sudo', 'nsenter', '--target', docker_container_pid, '--mount', '--uts', '--ipc', '--net',
+            '--pid', '--root', '--wd' # '--user'
+        ]
+    (status, out, err) = VirtSubproc.execute_timeout(None, 0, VirtSubproc.auxverb + ['apt-get', 'update'], stdout=subprocess.PIPE)
+
+
+def hook_downtmp(path):
+    global capabilities, shared_dir
+
+    if shared_dir:
+        d = os.path.join(shared_dir, 'downtmp')
+        # these permissions are ugly, but otherwise we can't clean up files
+        # written by the testbed when running as user
+        VirtSubproc.check_exec(['mkdir', '-m', '777', d], downp=True)
+        capabilities.append('downtmp-host=' + d)
+    else:
+        d = VirtSubproc.downtmp_mktemp(path)
+    return d
+
+
+def hook_revert():
+    hook_cleanup()
+    hook_open()
+
+
+def hook_cleanup():
+    global capabilities, docker_container_id, shared_dir
+
+    VirtSubproc.downtmp_remove()
+    capabilities = [c for c in capabilities if not c.startswith('downtmp-host')]
+    if shared_dir:
+        shutil.rmtree(shared_dir)
+
+    stop_outp = VirtSubproc.check_exec(['docker', 'stop', docker_container_id], outp=True)
+    adtlog.debug('hook_cleanup: %s stopped' % stop_outp)
+    rm_outp = VirtSubproc.check_exec(['docker', 'rm', docker_container_id], outp=True)
+    adtlog.debug('hook_cleanup: %s removed' % rm_outp)
+
+
+def hook_forked_inchild():
+    pass
+
+
+def hook_capabilities():
+    return capabilities
+
+
+parse_args()
+VirtSubproc.main()

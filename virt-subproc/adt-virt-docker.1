@@ -1,0 +1,81 @@
+.TH adt\-virt-docker 1 2015 "Linux Programmer's Manual"
+.SH NAME
+adt\-virt\-docker \- autopkgtest virtualisation server using Docker
+
+.SH SYNOPSYS
+.B adt\-virt\-docker
+.RI [ options ]
+.I docker\-image
+.RI [ "-- extra docker-run args..." ]
+
+.SH DESCRIPTION
+.B adt-virt-docker
+provides an autopkgtest virtualisation server using Docker. It adapts the
+functionality provided by the
+.BR docker
+command line for use by autopkgtest.
+
+Normally
+.B adt-virt-docker
+will be invoked by
+.BR adt-run .
+
+.SH REQUIREMENTS
+.B adt-virt-docker
+needs the docker client (in the docker.io package).
+
+.SH OPTIONS
+
+.TP
+.BR \-d " | " \-\-debug
+Enables debugging output.
+
+.PP
+You can pass additional options to Docker: Anything after a
+.B --
+gets passed verbatim to \fBdocker-run\fR(1).
+
+.SH INPUT, OUTPUT AND EXIT STATUS
+The behaviour of
+.B adt-virt-docker
+is as described by the AutomatedTesting virtualisation regime
+specification.
+
+.SH NOTES
+
+Read \fB/usr/share/doc/docker.io/README.Debian\fR first to communicate to the
+daemon.
+
+\fBadt-virt-docker\fR try to use \fBdocker-exec\fR(1), but fall back to
+\fBsudo\fR(1) \fBnsenter\fR(1) on Docker < 1.4 which doesn't return status.
+
+\fBadt-virt-docker\fR does run \fBapt-get update\fR at the start of a package
+build, as most images needs it.
+
+.SH EXAMPLE
+
+You can use "(Semi) Official Debian base images" like \fBdebian:jessie\fR,
+or "Official Ubuntu base images", like \fBubuntu:trusty\fR.
+
+Run tests against \fIhello_2.8\-4.dsc\fR, using the Docker image \fIdebian:jessie\fR:
+
+.RS
+.EX
+adt-run \fIhello_2.8\-4.dsc\fR --- adt-virt-docker \fIdebian:jessie\fR
+.EE
+.RE
+
+.SH SEE ALSO
+\fBadt\-run\fR(1),
+\fBdocker\-run\fR(1),
+\fB/usr/share/doc/autopkgtest/\fR.
+
+.SH AUTHORS AND COPYRIGHT
+.B adt-virt-docker
+was written by Mathieu Parent <math.parent@gmail.com>.
+
+This manpage is part of autopkgtest, a tool for testing Debian binary
+packages.  autopkgtest is Copyright (C) 2006-2015 Canonical Ltd and others.
+
+See \fB/usr/share/doc/autopkgtest/CREDITS\fR for the list of
+contributors and full copying conditions.
