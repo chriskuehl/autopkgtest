@@ -46,6 +46,9 @@ into ``outputdir/artifacts/``.
 
 Tests must declare all applicable Restrictions - see below.
 
+The '#' character introduces a comment. Everything from '#' to the end
+of line will be entirely ignored.
+
 Control fields
 --------------
 
