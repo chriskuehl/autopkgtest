@@ -280,6 +280,17 @@ class Debian(unittest.TestCase):
         self.assertTrue(skipped)
         adtlog.report.assert_called_once_with('t', 'SKIP unknown restriction explodes-spontaneously')
 
+    @patch('adtlog.report')
+    def test_unknown_field(self, *args):
+        '''unknown field'''
+
+        (ts, skipped) = self.call_parse('Tests: s\nFuture: quantum\n\nTests: t\nDepends:')
+        self.assertEqual(len(ts), 1)
+        self.assertEqual(ts[0].name, 't')
+        self.assertTrue(skipped)
+        adtlog.report.assert_called_once_with(
+            's', 'SKIP unknown field Future')
+
     def test_invalid_control(self):
         '''invalid control file'''
 
