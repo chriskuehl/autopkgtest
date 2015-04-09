@@ -18,6 +18,10 @@
 # -p PASSWORD | --password PASSWORD
 #             sudo password; if not given, tries "phablet" and "0000"; if
 #             neither works, tests cannot run as root
+# --keep-screen-active
+#             "powerd-cli display" is run during tests, and stopped at the end.
+#             With this option it will stay running, so that the display never
+#             turns off and locks after the test. Use with caution!
 #
 # autopkgtest is Copyright (C) 2006-2014 Canonical Ltd.
 #
@@ -55,6 +59,7 @@ ADBOPTS=""
 RESET=""
 REBOOT=""
 IDENTITY=
+KEEP_POWERD_CLI=
 
 open() {
     # Setup a connection to an adb device
@@ -148,7 +153,7 @@ hostname=localhost
 port=$port
 capabilities=$CAPABILITIES
 identity=$IDENTITY
-extraopts=--no-reset --fwd-port=$port
+extraopts=--no-reset --fwd-port=$port $KEEP_POWERD_CLI
 EOF
     if [ -n "$SUDO_PASSWORD" ]; then
         echo "password=$SUDO_PASSWORD"
@@ -268,7 +273,7 @@ reboot() {
 }
 
 cleanup() {
-    adb $ADBOPTS shell pkill powerd-cli
+    [ -n "$KEEP_POWERD_CLI" ] || adb $ADBOPTS shell pkill powerd-cli
 }
 
 
@@ -278,7 +283,7 @@ cleanup() {
 
 # argument parsing
 SHORTOPTS="l:,p:,s:,w,r,b"
-LONGOPTS="login:,password:,serial:,rw,apt-update,reset,reboot,no-reset,fwd-port:"
+LONGOPTS="login:,password:,serial:,rw,apt-update,reset,reboot,no-reset,fwd-port:,keep-screen-active"
 
 TEMP=$(getopt -o $SHORTOPTS --long $LONGOPTS -- "$@")
 eval set -- "$TEMP"
@@ -310,6 +315,9 @@ while true; do
         --fwd-port)
             FWD_PORT="$2"
             shift 2;;
+        --keep-screen-active)
+            KEEP_POWERD_CLI="$1"
+            shift;;
         --)
             shift;
             break;;
