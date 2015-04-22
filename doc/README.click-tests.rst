@@ -76,8 +76,8 @@ command
     (string) Shell command which is passed verbatim to bash
 
 autopilot_module
-    (string) Python module name in ``tests/autopilot`` which is an
-    Autopilot test. See below for details.
+    (string) Python module name in ``app/tests/autopilot`` or
+    ``tests/autopilot`` which is an Autopilot test. See below for details.
 
 *Exactly one* of ``path``, ``command``, or ``autopilot_module`` must be
 given for each test. All other fields below are optional, and assumed to
@@ -125,8 +125,9 @@ Autopilot tests
 ---------------
 For autopilot tests you can use the ``autopilot_module`` test field,
 which will be interpreted as a Python module name under
-``tests/autopilot``. An appropriate test command and default
-dependencies are automatically provided. Thus a test description
+``app/tests/autopilot`` or ``tests/autopilot``. An appropriate test
+command and default dependencies are automatically provided. Thus a test
+description
 
 ::
 
@@ -141,7 +142,7 @@ expands to
 ::
 
     "testname": {
-        "command": "PYTHONPATH=tests/autopilot:$PYTHONPATH python3 -m autopilot.run run foo_tests",
+        "command": "PYTHONPATH=app/tests/autopilot:tests/autopilot:$PYTHONPATH python3 -m autopilot.run run foo_tests",
         "depends": ["ubuntu-ui-toolkit-autopilot", "autopilot-touch", "python3-dateutil"],
         "restrictions": ["allow-stderr"]
     }
