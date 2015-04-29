@@ -33,13 +33,19 @@ this:
                 "command": "echo hello"
             }
         }
+        "x-source": {
+            "vcs-bzr": "lp:testclick-app"
+        }
     }
 
 The complete manifest usually gets generated during building and thus is
 read from the .click binary package. However, the tests are run from the
 click package *source* as usually they are not shipped in the binary.
-Thus at the moment you always have to specify the click source directory
-and the built .click binary package (in that order) to ``adt-run``.
+If the manifest has an ``x-source`` key with a ``vcs-bzr`` link (the
+only supported VCS at the moment), ``adt-run`` will check out that
+branch and run the tests from it; Otherwise you have to specify the
+click source directory and the built .click binary package (in that
+order) to ``adt-run``.
 
 The tests are run with the corresponding click package being installed
 into the virtualization server. Note that this may fail if the testbed
