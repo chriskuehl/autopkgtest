@@ -3138,7 +3138,8 @@ class SshRunnerNoScript(AdtTestCase):
         super(SshRunnerNoScript, self).__init__('ssh', *args, **kwargs)
         self.info = {}
 
-    def start_container(self, install_key=True, sudo=False, sudo_nopwd=False):
+    def start_container(self, install_key=True, sudo=False, sudo_nopwd=False,
+                        clone=False):
         '''Set up container with SSH'''
 
         cmd = [os.path.join(test_dir, 'ssh-setup-lxc')]
@@ -3148,6 +3149,8 @@ class SshRunnerNoScript(AdtTestCase):
             cmd.append('-S')
         elif sudo:
             cmd.append('-s')
+        if clone:
+            cmd.append('-c')
         cmd += ['open', os.environ.get('ADT_TEST_LXC')]
         out = subprocess.check_output(cmd, universal_newlines=True)
         for l in out.splitlines():

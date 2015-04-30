@@ -19,6 +19,7 @@ CONTAINER=""
 TEMPLATE=""
 INSTALL_KEY=
 ENABLE_SUDO=
+CLONE=
 
 [ `id -u` -eq 0 ] || PREFIX="sudo "
 
@@ -36,7 +37,15 @@ open() {
 
     [ -n "$CONTAINER" ] || CONTAINER=`mktemp -u adt-testsuite-XXX`
 
-    OUT=`$PREFIX lxc-start-ephemeral -n $CONTAINER -o $TEMPLATE -d`
+    if [ -n "$CLONE" ]; then
+        $PREFIX lxc-clone -n $CONTAINER -o $TEMPLATE >/dev/null
+        $PREFIX lxc-start -n $CONTAINER -d
+        while ! OUT=`$PREFIX lxc-info -n $CONTAINER | grep '^IP:'`; do
+            sleep 1
+        done
+    else
+        OUT=`$PREFIX lxc-start-ephemeral -n $CONTAINER -o $TEMPLATE -d`
+    fi
     # parse out IP
     IP=$(echo "$OUT" | grep -o '10\.[0-9]\+\.[0-9]\+\.[0-9]\+')
 
@@ -62,7 +71,7 @@ login=$USER
 hostname=$IP
 capabilities=$CAPABILITIES
 password=$SUDO_PASSWORD
-extraopts=-n $CONTAINER -T $TEMPLATE
+extraopts=-n $CONTAINER -T $TEMPLATE $CLONE
 EOF
 }
 
@@ -86,10 +95,13 @@ cleanup() {
         exit 1
     fi
     $PREFIX lxc-stop --kill --name=$CONTAINER || true
+    if [ -n "$CLONE" ]; then
+        $PREFIX lxc-destroy --name=$CONTAINER || true
+    fi
 }
 
 # parse options
-eval set -- $(getopt -o "ksSn:T:" -- "$@")
+eval set -- $(getopt -o "ksSn:T:c" -- "$@")
 while true; do
     case "$1" in
         -k)
@@ -102,6 +114,8 @@ while true; do
             CONTAINER="$2"; shift 2 ;;
         -T)
             TEMPLATE="$2"; shift 2 ;;
+        -c)
+            CLONE='-c'; shift ;;
         --)
             shift; break ;;
         *)
