@@ -2603,7 +2603,9 @@ class QemuRunner(AdtTestCase):
                             '  O=$(loginctl show-session $XDG_SESSION_ID);'
                             '  echo "$O" | grep -q "^Active=yes" || echo "$O" >&2; '
                             '  echo "$O" | grep -q "^Name=root" || echo "$O" >&2; '
-                            'fi\n',
+                            'fi\n'
+                            'apt-get install -y aspell-doc\n'
+                            'ls /usr/share/doc/aspell-doc/copyright\n',
                             'boom': '#!/bin/sh\n[ ! -e /zap ]; touch /boom'})
 
         (code, out, err) = self.adt_run(['--no-built-binaries', '--unbuilt-tree=' + p, '-d'],
@@ -2613,6 +2615,7 @@ class QemuRunner(AdtTestCase):
         self.assertEqual(code, 0, err)
         self.assertRegex(out, 'zap\s+PASS')
         self.assertRegex(out, 'boom\s+PASS')
+        self.assertIn('Unpacking aspell-doc', out)
 
     def test_setup_commands(self):
         '''--setup-commands'''
