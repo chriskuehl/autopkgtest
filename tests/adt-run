@@ -1663,7 +1663,10 @@ class SchrootRunner(AdtTestCase):
         p = self.build_src('Tests: p1 p2\n'
                            'Depends: coreutils, aspell-doc [linux-any], apt-doc:native, unknown [nosucharch]\n'
                            'Restrictions: needs-root\n',
-                           {'p1': '#!/bin/sh -e\nif dpkg -s adt-satdep 2>/dev/null; then exit 1; fi; echo I am fine\n',
+                           {'p1': '#!/bin/sh -e\nif dpkg -s adt-satdep 2>/dev/null; then exit 1; fi; '
+                            'apt-get --purge -y autoremove; '
+                            'ls /usr/share/doc/aspell-doc/copyright;'
+                            'echo I am fine\n',
                             'p2': '#!/bin/sh\necho I am also fine\n'})
 
         (code, out, err) = self.adt_run(['-d', '--no-built-binaries', '--unbuilt-tree=' + p],
@@ -1678,6 +1681,7 @@ class SchrootRunner(AdtTestCase):
         self.assertIn('Unpacking aspell-doc', out)
         self.assertIn('Unpacking apt-doc', out)
         self.assertNotIn('unknown', out)
+        self.assertNotIn('Removing aspell-doc', out)
 
         # should show test stdout
         self.assertRegex(out, '(^|\n)I am fine\n')
