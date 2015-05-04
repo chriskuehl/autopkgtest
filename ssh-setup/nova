@@ -290,15 +290,6 @@ revert() {
     open
 }
 
-reboot() {
-    if [ -z "$SRVNAME" ]; then
-        error "Cannot determine server name. Instance won't be rebooted!"
-        exit 1
-    fi
-
-    nova reboot --poll $SRVNAME >/dev/null 2>&1||true
-}
-
 # ########################################
 # Main procedure
 #
@@ -317,8 +308,6 @@ case $cmd in
         cleanup;;
     revert)
         revert;;
-    reboot)
-        reboot;;
     '')
         echo "Needs to be called with command as first argument" >&2
         exit 1

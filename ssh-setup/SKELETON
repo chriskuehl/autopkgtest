@@ -48,14 +48,12 @@ revert() {
     # open
 }
 
-# only needs to handle this if CAPABILITIES offers "reboot"
-reboot() {
-    # exiting with code 10 means: just call "reboot" through ssh
-    # exit 10
-
-    # exiting with any other non-zero code counts as failure
-    # echo "reboot not implemented" >&2
-    # exit 1
+# Called after "reboot". You only need to implement this if CAPABILITIES offers
+# "reboot" and you need to do something more elaborate than just waiting for
+# ssh to go down and come back.
+wait_reboot() {
+    # wait for testbed to shut down, come back up, and re-prepare for ssh login
+    exit 1  # not implemented
 }
 
 case "$1" in
@@ -65,8 +63,8 @@ case "$1" in
         cleanup $@;;
     revert)
         revert $@;;
-    reboot)
-        reboot $@;;
+    wait-reboot)
+        wait_reboot $@;;
     '')
         echo "Needs to be called with command as first argument" >&2
         exit 1

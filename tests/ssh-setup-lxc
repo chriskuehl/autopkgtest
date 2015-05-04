@@ -84,11 +84,6 @@ revert() {
     open
 }
 
-reboot() {
-    echo "reboot not implemented" >&2
-    exit 1
-}
-
 cleanup() {
     if [ -z "$CONTAINER" ]; then
         echo "Needs to be called with -n <container name>" >&2
@@ -131,8 +126,6 @@ case "$1" in
         cleanup $@;;
     revert)
         revert $@;;
-    reboot)
-        reboot $@;;
     '')
         echo "Needs to be called with command as first argument" >&2
         exit 1

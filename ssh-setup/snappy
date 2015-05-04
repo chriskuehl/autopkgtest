@@ -188,10 +188,6 @@ revert() {
     exit 1
 }
 
-reboot() {
-    exit 10  # use standard reboot
-}
-
 ###########################
 
 parse_args "$@"
@@ -203,8 +199,6 @@ case "$1" in
         cleanup $@;;
     revert)
         revert $@;;
-    reboot)
-        reboot $@;;
     '')
         echo "Needs to be called with command as first argument" >&2
         exit 1

@@ -260,12 +260,13 @@ revert() {
     ubuntu_prepare_for_testing
 }
 
-reboot() {
+wait_reboot() {
     if [ -z "$FWD_PORT" ]; then
         echo "ERROR: Must pass --fwd-port" >&2
         exit 1
     fi
-    adb $ADBOPTS reboot
+    # wait until this fails because adbd shuts down
+    adb $ADBOPTS shell sleep 300 2>/dev/null || true
     wait_booted
     adb $ADBOPTS shell 'gdbus call -y -d com.canonical.PropertyService -o /com/canonical/PropertyService -m com.canonical.PropertyService.SetProperty ssh true >/dev/null'
     adb $ADBOPTS forward tcp:$FWD_PORT tcp:22
@@ -340,8 +341,8 @@ case $cmd in
         open;;
     revert)
         revert;;
-    reboot)
-        reboot;;
+    wait-reboot)
+        wait_reboot;;
     cleanup)
         cleanup;;
     *)
