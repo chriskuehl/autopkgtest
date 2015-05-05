@@ -1127,6 +1127,7 @@ class ChrootRunner(AdtTestCase):
         install_elf('/usr/bin/env')
         install_elf('/usr/bin/tee')
         install_elf('/usr/bin/touch')
+        install_elf('/usr/bin/id')
 
         # necessary bind mounts
         dev_dir = os.path.join(self.chroot, 'dev')
