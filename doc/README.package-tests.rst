@@ -243,11 +243,13 @@ Reboot during a test
 --------------------
 
 Some testbeds support rebooting; for those, the testbed will have a
-``/tmp/autopkgtest-reboot`` command which tests can call to cause a reboot.
-**Do not** use ``reboot`` and similar commands directly! They will cause
+``/tmp/autopkgtest-reboot`` command which tests can call to cause a
+reboot.  **Do not** use ``reboot`` and similar commands directly without
+at least checking for the presence of that script! They will cause
 testbeds like ``null`` or ``schroot`` to reboot the entire host, and
-even for ``qemu`` it will just cause the test to fail as there is no
-state keeping to resume a test at the right position after reboot.
+even for ``lxc`` or ``qemu`` it will just cause the test to fail as there
+is no state keeping to resume a test at the right position after reboot
+without further preparation (see below).
 
 The particular steps for a rebooting tests are:
 
@@ -279,6 +281,28 @@ This example test will reboot the testbed two times in between:
     esac
     echo "test end"
 
+In some cases your test needs to do the reboot by itself, e. g. through
+kexec, or a reboot command that is hardcoded in the piece of software
+that you want to test. To support those, you need to call
+``/tmp/autopkgtest-reboot-prepare my_mark`` at a point as close as
+possible to the reboot instead; this will merely save the state but not
+issue the actual reboot by itself. Note that all logs and artifacts from
+the time between calling ``autopkgtest-reboot-prepare`` and rebooting
+will be lost. Other than that, the usage is very similar to above.
+Example:
+
+::
+
+    #!/bin/sh
+    if [ "$ADT_REBOOT_MARK" = phase1 ]; then
+        echo "continuing test after reboot"
+        ls -l /var/post-request-action
+        echo "end of test"
+    else
+        echo "beginning test"
+        /tmp/autopkgtest-reboot-prepare phase1
+        touch /var/post-request-action
+        reboot
+    fi
 
 .. vim: ft=rst tw=72
-
