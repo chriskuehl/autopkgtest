@@ -568,7 +568,7 @@ bad                  FAIL non-zero exit status 1
 
         # test should not time out
         self.assertEqual(code, 0, err)
-        self.assertNotIn('timeout', err)
+        self.assertNotIn('timed out', err)
 
         # should show test stdout
         self.assertIn('start\n', out)
