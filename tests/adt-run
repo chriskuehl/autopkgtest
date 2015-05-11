@@ -1634,6 +1634,19 @@ deb-src http://bar.debian.org/ fluffy-proposed extras
         self.assertNotIn('NOTME', out)
         self.assertNotIn('NOTME', err)
 
+    def test_nonexisting_override_control(self):
+        '''nonexisting --override-control'''
+
+        p = self.build_src('Tests: NOTME\nDepends: nonexisting\n', {})
+        (code, out, err) = self.adt_run(['--override-control=/nonexisting', p + '/'],
+                                        [self.chroot])
+        self.assertEqual(code, 20, err)
+        self.assertIn('/nonexisting', err)
+
+        # should not try anything with the original control file
+        self.assertNotIn('NOTME', out)
+        self.assertNotIn('NOTME', err)
+
     def test_relative_chroot_path(self):
         '''relative chroot path'''
 
