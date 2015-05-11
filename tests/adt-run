@@ -1670,7 +1670,7 @@ deb-src http://bar.debian.org/ fluffy-proposed extras
 
         argfile = os.path.join(self.workdir, 'myopts')
         with open(argfile, 'w') as f:
-            f.write('-d\n%s' % self.chroot)
+            f.write(' -d \n%s' % self.chroot)
 
         (code, out, err) = self.adt_run(['--no-built-binaries', '--unbuilt-tree=' + p],
                                         ['@' + argfile])

@@ -202,6 +202,23 @@ Files:
                                 ('click', 'x.click', None),
                                 ('unbuilt-tree', './/', True)])
 
+    def test_read_file_spaces(self):
+        argfile = os.path.join(self.workdir.name, 'myopts')
+        with open(argfile, 'w') as f:
+            f.write(' --source=mysrc_1.dsc \n -q \n -B \n --timeout-copy=5 ')
+
+        (args, acts, virt) = self.parse(
+            ['-d', './', '--shell-fail', '@' + argfile, 'x.click',
+             '--built-binaries', './/'])
+
+        self.assertEqual(args.verbosity, 0)
+        self.assertEqual(args.timeout_copy, 5)
+
+        self.assertEqual(acts, [('built-tree', './', False),
+                                ('source', 'mysrc_1.dsc', True),
+                                ('click', 'x.click', None),
+                                ('unbuilt-tree', './/', True)])
+
     def test_read_file_with_runner(self):
         argfile = os.path.join(self.workdir.name, 'myopts')
         with open(argfile, 'w') as f:
