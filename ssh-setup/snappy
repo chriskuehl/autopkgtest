@@ -12,6 +12,8 @@
 #      Passed to ubuntu-device-flash's "core" command to select a non-default
 #      channel (e. g. "ubuntu-core/devel-proposed"). This does not work
 #      together with --image.
+# -b | --show-boot
+#      Show VM console output on stdout, to make boot messages visible.
 #
 # autopkgtest is Copyright (C) 2006-2015 Canonical Ltd.
 #
@@ -41,6 +43,7 @@ DEBUG=
 TEMPIMAGE=
 QEMU_PID=
 CHANNEL=
+SERIAL=none
 
 QEMU_CMD="qemu-system-$(uname -m) -enable-kvm -m 512 -localtime -nographic -net user -net nic,model=virtio -snapshot"
 
@@ -59,8 +62,8 @@ error() {
 }
 
 parse_args() {
-    SHORTOPTS="i:"
-    LONGOPTS="image:,debug,channel:,temp-image,qemu-pid:"
+    SHORTOPTS="i:b"
+    LONGOPTS="image:,debug,channel:,temp-image,qemu-pid:,show-boot"
 
     TEMP=$(getopt -o $SHORTOPTS --long $LONGOPTS -- "$@")
     eval set -- "$TEMP"
@@ -73,6 +76,8 @@ parse_args() {
                 DEBUG=1; shift;;
             --channel)
                 CHANNEL="$2"; shift 2;;
+            -b|--show-boot)
+                SERIAL=stdio; shift;;
 
             # internal options
             --temp-image)
@@ -138,7 +143,7 @@ open() {
     # start QEMU; redirect its stdout/err to a copy of our stderr to avoid the
     # setup script becoming a zombie at the end
     exec 3>&2
-    $QEMU_CMD -snapshot -drive file="$IMAGE",if=virtio -redir tcp:$port::22 -monitor none -serial none </dev/null >&3 2>&3 &
+    $QEMU_CMD -snapshot -drive file="$IMAGE",if=virtio -redir tcp:$port::22 -monitor none -serial $SERIAL </dev/null >&3 2>&3 &
     QEMU_PID=$!
     echo $QEMU_PID > $port_lock_file
     sleep 3
