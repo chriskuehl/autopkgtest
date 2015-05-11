@@ -1662,6 +1662,26 @@ deb-src http://bar.debian.org/ fluffy-proposed extras
         # should show test stdout
         self.assertRegex(out, '^I am fine\n')
 
+    def test_cli_args_from_file(self):
+        '''read CLI arguments from file'''
+
+        p = self.build_src('Tests: pass\nDepends:\nRestrictions: needs-root\n',
+                           {'pass': '#!/bin/sh\necho I am fine\n'})
+
+        argfile = os.path.join(self.workdir, 'myopts')
+        with open(argfile, 'w') as f:
+            f.write('-d\n%s' % self.chroot)
+
+        (code, out, err) = self.adt_run(['--no-built-binaries', '--unbuilt-tree=' + p],
+                                        ['@' + argfile])
+
+        # test should succeed
+        self.assertEqual(code, 0, err)
+        self.assertRegex(out, 'pass\s+PASS', out)
+
+        # should have debug messages
+        self.assertIn('adt-virt-chroot: DBG:', err)
+
 
 @unittest.skipUnless('ADT_TEST_SCHROOT' in os.environ,
                      'Set $ADT_TEST_SCHROOT to an existing schroot')
