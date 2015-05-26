@@ -59,9 +59,11 @@ class AdtTestCase(unittest.TestCase):
         super(AdtTestCase, self).__init__(*args, **kwargs)
         self.adt_run_path = os.path.join(root_dir, 'run-from-checkout')
         self.virt = 'adt-virt-' + virt
+        self.orig_home = os.path.expanduser('~')
 
     def setUp(self):
         self.workdir = tempfile.mkdtemp(prefix='test.adt-run.')
+        os.chmod(self.workdir, 0o755)
         self.addCleanup(shutil.rmtree, self.workdir)
         self.cwd = os.getcwd()
         self.addCleanup(os.chdir, self.cwd)
@@ -71,8 +73,15 @@ class AdtTestCase(unittest.TestCase):
         os.chmod(os.path.join(temp_home, '.ssh', 'id_rsa'), 0o600)
 
         # avoid re-downloading ubuntu-device-flash images
-        os.symlink(os.path.expanduser('~/.cache/ubuntuimages'),
+        os.symlink(os.path.join(self.orig_home, '.cache', 'ubuntuimages'),
                    os.path.join(temp_home, '.cache', 'ubuntuimages'))
+
+        # also keep per-user LXC containers
+        lxc_orig = os.path.join(self.orig_home, '.local', 'share', 'lxc')
+        if os.path.isdir(lxc_orig):
+            lxc_temp = os.path.join(temp_home, '.local', 'share', 'lxc')
+            os.makedirs(os.path.dirname(lxc_temp))
+            os.symlink(lxc_orig, lxc_temp)
 
         os.environ['HOME'] = temp_home
 
@@ -2226,7 +2235,10 @@ class LxcRunner(AdtTestCase):
         super(LxcRunner, self).__init__('lxc', *args, **kwargs)
         self.container_name = os.environ.get('ADT_TEST_LXC')
         self.virt_args = ['--ephemeral', self.container_name]
-        if os.getuid() > 0:
+        # check for unprivileged containers
+        if os.getuid() > 0 and subprocess.call(
+                ['lxc-info', '-n', self.container_name],
+                stdout=subprocess.PIPE, stderr=subprocess.STDOUT) != 0:
             self.virt_args.insert(0, '--sudo')
 
     def test_tree_norestrictions_nobuild_success(self):
@@ -2238,6 +2250,7 @@ class LxcRunner(AdtTestCase):
         (code, out, err) = self.adt_run(['--no-built-binaries', '--unbuilt-tree=' + p],
                                         self.virt_args,
                                         env={'SOMEVAR': 'junk',
+                                             'HOME': os.environ['HOME'],
                                              'PATH': '/something/broken:' + os.environ.get('PATH', '')})
         # test should succeed
         self.assertEqual(code, 0, err)
