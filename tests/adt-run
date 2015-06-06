@@ -3672,6 +3672,17 @@ class SshRunnerWithScript(AdtTestCase):
         self.assertNotIn('NotReached', err)
         self.assertLess(duration, 60, err)
 
+    def test_ssh_failure(self):
+        '''ssh failure is testbed failure'''
+
+        p = self.build_src('Tests: f\nDepends:\n', {'f': '#!/bin/sh\npkill sshd'})
+
+        (code, out, err) = self.adt_run(['-d', '-B', p + '//'],
+                                        ['-ds', self.script, '--', '-k', self.container_template])
+        self.assertEqual(code, 16, err)
+        self.assertIn('testbed auxverb failed with exit code 255', err)
+        self.assertEqual(out.strip(), '')
+
 
 @unittest.skipUnless(have_ubuntu_device_flash,
                      'ubuntu-device-flash not installed')
