@@ -277,10 +277,8 @@ class NullRunner(AdtTestCase):
                             'bP': '#!/bin/sh\n./test_built'})
 
         outdir = os.path.join(self.workdir, 'out')
+        # check pre-existing, but empty dir
         os.mkdir(outdir)
-        # put some cruft into it, to check that it gets cleaned up
-        with open(os.path.join(outdir, 'cruft.txt'), 'w') as f:
-            f.write('hello world')
 
         (code, out, err) = self.adt_run(['--no-built-binaries',
                                          '--unbuilt-tree=' + p,
@@ -351,6 +349,32 @@ class NullRunner(AdtTestCase):
                  if not fnmatch.fnmatch(i, '[sb]*-std*') and
                  not fnmatch.fnmatch(i, '[sb]*-packages')]
         self.assertEqual(set(files), set(['log', 'summary', 'testpkg-version', 'testbed-packages']))
+
+    def test_tree_output_dir_nonempty(self):
+        '''existing and non-empty --output-dir'''
+
+        p = self.build_src('Tests: p\nDepends:\n', {'p': '#!/bin/sh\ntrue\n'})
+
+        outdir = os.path.join(self.workdir, 'out')
+        os.mkdir(outdir)
+        # put some cruft into it
+        with open(os.path.join(outdir, 'cruft.txt'), 'w') as f:
+            f.write('hello world')
+
+        (code, out, err) = self.adt_run(['--no-built-binaries',
+                                         '--unbuilt-tree=' + p,
+                                         '--output-dir=' + outdir])
+
+        # test results
+        self.assertEqual(code, 20, err)
+        self.assertEqual(out, '')
+        self.assertRegex(err, '--output-dir.*not empty')
+
+        # file is still there
+        with open(os.path.join(outdir, 'cruft.txt')) as f:
+            self.assertEqual(f.read(), 'hello world')
+        # nothing else got written there
+        self.assertEqual(os.listdir(outdir), ['cruft.txt'])
 
     def test_tree_output_dir_in_test_tree(self):
         '''source tree, --output-dir in tests tree
