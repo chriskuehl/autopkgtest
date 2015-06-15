@@ -156,6 +156,7 @@ Files:
         self.assertEqual(args.shell_fail, True)
         self.assertEqual(args.timeout_copy, 5)
         self.assertEqual(args.set_lang, 'en_US.UTF-8')
+        self.assertEqual(args.auto_control, True)
 
         self.assertEqual(acts, [('built-tree', './', False)])
         self.assertEqual(virt, ['adt-virt-foo', '-d', '-s', '--', '-d'])
@@ -271,6 +272,13 @@ Files:
         self.assertIn('--no-built-binaries', out)
         # has virt server
         self.assertIn('---', out)
+
+    def test_no_auto_control(self):
+        (args, acts, virt) = self.parse(
+            ['--no-auto-control', './', '---', 'adt-virt-foo'])
+        self.assertEqual(args.auto_control, False)
+        self.assertEqual(acts, [('built-tree', './', False)])
+        self.assertEqual(virt, ['adt-virt-foo'])
 
     #
     # Errors

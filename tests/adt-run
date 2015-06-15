@@ -51,6 +51,8 @@ have_ubuntu_device_flash = subprocess.call(['which', 'ubuntu-device-flash'],
                                            stdout=subprocess.PIPE,
                                            stderr=subprocess.PIPE) == 0
 
+have_autodep8 = subprocess.call(['which', 'autodep8'], stdout=subprocess.PIPE) == 0
+
 
 class AdtTestCase(unittest.TestCase):
     '''Base class for adt-run tests'''
@@ -2250,6 +2252,28 @@ class SchrootRunner(AdtTestCase):
 
         (code, out, err) = self.adt_run(['--unbuilt-tree=' + p], [self.schroot_name])
         self.assertEqual(code, 0, out + err)
+
+    def test_apt_autodep8(self):
+        '''apt, autodep8'''
+
+        (code, out, err) = self.adt_run(['libtest-carp-perl'], [self.schroot_name])
+        if not have_autodep8:
+            self.assertEqual(code, 8, err)
+            self.assertIn('SKIP no tests in this package', out)
+            return
+
+        # test should succeed
+        self.assertEqual(code, 0, err)
+        self.assertRegex(out, 'command1\s+PASS', out)
+
+    @unittest.skipUnless(have_autodep8,
+                         'autodep8 not installed')
+    def test_apt_no_autocontrol(self):
+        '''apt, disable automatic test generation'''
+
+        (code, out, err) = self.adt_run(['--no-auto-control', 'libtest-carp-perl'], [self.schroot_name])
+        self.assertEqual(code, 8, err)
+        self.assertIn('SKIP no tests in this package', out)
 
 
 @unittest.skipUnless('ADT_TEST_LXC' in os.environ,

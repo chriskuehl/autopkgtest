@@ -232,7 +232,8 @@ There are groups of similarly-structured packages for which the contents
 of ``debian/tests/control`` would be mostly identical, such as Perl or
 Ruby libraries. If ``debian/tests/control`` is absent, the ``autodep8``
 tool can generate an automatic control file. If installed, ``adt-run``
-will automatically use it.
+will automatically use it; this can be disabled with the
+``--no-auto-control`` option.
 
 Those packages do not have to provide ``debian/tests/``, but they should
 still include an appropriate source package header
