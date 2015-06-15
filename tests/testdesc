@@ -352,9 +352,11 @@ class Debian(unittest.TestCase):
             'Tests: t\n# ♪ ï\nDepends: @, @builddeps@',
             'Source: nums\nMaintainer: Üñïcøδ€ <u@x.com>\nBuild-Depends: bd1 # moo\n'
             '# more c☺ mments\n'
+            '   # intented comment\n'
+            ' , bd2\n'
             '\n'
             'Package: one\nArchitecture: any')
-        self.assertEqual(ts[0].depends, ['one (>= 0~)', 'bd1', 'build-essential'])
+        self.assertEqual(ts[0].depends, ['one (>= 0~)', 'bd1', 'bd2', 'build-essential'])
         self.assertFalse(skipped)
 
     @patch('adtlog.report')
