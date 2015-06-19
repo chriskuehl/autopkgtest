@@ -33,13 +33,15 @@
 #        Additional environment variable to put into the testbed's
 #        /etc/environment. Mostly useful to set $http_proxy and friends.
 #        Can be specified multiple times.
+# --mirror=URL
+#        Use given archive mirror for apt
 #
 #
 # Authors:
 # Jean-Baptiste Lallement <jean-baptiste.lallement@canonical.com>
 # Martin Pitt <martin.pitt@ubuntu.com>
 #
-# autopkgtest is Copyright (C) 2006-2014 Canonical Ltd.
+# autopkgtest is Copyright (C) 2006-2015 Canonical Ltd.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -73,6 +75,7 @@ ASSOCIATE_IP=""
 FLOATING_IP=""
 SECURITY_GROUPS=""
 EXTRA_ENV=""
+MIRROR=""
 
 DEBUG=""
 
@@ -93,7 +96,7 @@ parse_args() {
     # Parse command line argument and populate environment
 
     SHORTOPTS="f:,i:,k:,N:,l:,n:,s:,a,d,e:"
-    LONGOPTS="flavor:,image:,keyname:,net-id:,login:,name:,security-groups:,associate-ip,floating-ip:,debug,env:"
+    LONGOPTS="flavor:,image:,keyname:,net-id:,login:,name:,security-groups:,associate-ip,floating-ip:,debug,env:,mirror:"
 
     TEMP=$(getopt -o $SHORTOPTS --long $LONGOPTS -- "$@")
     eval set -- "$TEMP"
@@ -127,6 +130,8 @@ parse_args() {
                 FLOATING_IP="$2"; shift 2;;
             -e|--env)
                 EXTRA_ENV="$EXTRA_ENV\n$2"; shift 2;;
+            --mirror)
+                MIRROR="apt_mirror: $2"; shift 2;;
             -d|--debug)
                 DEBUG=1; shift;;
             --)
@@ -180,6 +185,7 @@ open() {
 manage_etc_hosts: true
 apt_update: true
 apt_upgrade: false
+$MIRROR
 
 runcmd:
  - echo 'Acquire::Languages "none";' > /etc/apt/apt.conf.d/90nolanguages
