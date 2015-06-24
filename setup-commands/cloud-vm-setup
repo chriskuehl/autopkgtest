@@ -1,0 +1,55 @@
+#!/bin/sh
+# cloud-setup-vm is part of autopkgtest
+# autopkgtest is a tool for testing Debian binary packages
+#
+# autopkgtest is Copyright (C) 2006-2015 Canonical Ltd.
+#
+# --setup-commands script for cloud instances to prepare them for running
+# autopkgtests. This is similar to adt-setup-vm, but won't configure serial
+# console or networking.
+
+# set up apt sources
+mirror_rel=`awk '/^deb .*(debian|ubuntu)/ { print $2,$3; exit }' /etc/apt/sources.list`
+if [ "${mirror_rel%ubuntu*}" != "$mirror_rel" ]; then
+    cat << EOF > "$root/etc/apt/sources.list"
+deb     $mirror_rel main restricted universe multiverse
+deb     ${mirror_rel}-updates main restricted universe multiverse
+deb-src $mirror_rel main restricted universe multiverse
+deb-src ${mirror_rel}-updates main restricted universe multiverse
+EOF
+else
+    cat << EOF > "$root/etc/apt/sources.list"
+deb $mirror_rel main contrib non-free
+deb-src $mirror_rel main contrib non-free
+EOF
+fi
+# prevent subsequent cloud-init runs from modifying the apt sources again
+if [ -e /etc/cloud/cloud.cfg ]; then
+    echo 'apt_preserve_sources_list: true' >> /etc/cloud/cloud.cfg
+fi
+
+# go-faster apt/dpkg
+echo "Acquire::Languages \"none\";" > /etc/apt/apt.conf.d/90nolanguages
+echo 'force-unsafe-io' > /etc/dpkg/dpkg.cfg.d/autopkgtest
+
+# install some necessary packages
+if [ "${mirror_rel%ubuntu*}" != "$mirror_rel" ]; then
+    # provides kmods like scsi_debug or mac80211_hwsim
+    apt-get install -y linux-generic
+fi
+# some tests use a lot of /dev/random, avoid hangs
+apt-get install -y haveged
+
+# clean up some unnecessary packages
+for p in accountsservice apt-xapian-index cryptsetup landscape-client \
+    landscape-common open-vm-tools w3m vim-runtime aptitude-common \
+    command-not-found-data manpages ntfs-3g sosreport \
+    ubuntu-release-upgrader-core; do
+    apt-get --auto-remove -y purge $p || true
+done
+
+# bump vmalloc on i386, necessary for tests like udisks2
+if [ $(dpkg --print-architecture) = i386 ]; then
+    sed -i '/CMDLINE_LINUX_DEFAULT/ s/"$/ vmalloc=512M"/' /etc/default/grub.d/*.cfg
+    update-grub
+fi
