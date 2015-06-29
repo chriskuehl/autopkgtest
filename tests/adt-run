@@ -1717,6 +1717,31 @@ deb-src http://bar.debian.org/ fluffy-proposed extras
         # should have debug messages
         self.assertIn('adt-virt-chroot: DBG:', err)
 
+    def test_no_dpkg_query(self):
+        '''testbed does not have dpkg-query'''
+
+        p = self.build_src('Tests: t\nDepends:\nRestrictions: needs-root\n',
+                           {'t': '#!/bin/sh -e\necho ok\n'})
+        outdir = os.path.join(self.workdir, 'out')
+        (code, out, err) = self.adt_run(['--setup-commands', 'rm /usr/bin/dpkg-query',
+                                         '-d', '--built-tree=' + p,
+                                         '--output-dir=' + outdir],
+                                        [self.chroot])
+
+        # test should succeed
+        self.assertEqual(code, 0, err)
+        self.assertRegex(out, 't\s+PASS', out)
+
+        # check outdir
+        with open(os.path.join(outdir, 't-stdout')) as f:
+            self.assertEqual(f.read(), 'ok\n')
+        with open(os.path.join(outdir, 'log')) as f:
+            contents = f.read()
+        self.assertRegex(contents, 't\s+PASS\n')
+
+        # don't create empty/bogus files
+        self.assertNotIn('testbed-packages', os.listdir(outdir))
+
 
 @unittest.skipUnless('ADT_TEST_SCHROOT' in os.environ,
                      'Set $ADT_TEST_SCHROOT to an existing schroot')
