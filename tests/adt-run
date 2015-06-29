@@ -775,10 +775,10 @@ bad                  FAIL non-zero exit status 1
             from gi.repository import Json
             Json  # pyflakes
             # already installed on the system
-            self.assertRegex(out, 'DynamicModule.*Json.* from .*/usr/lib/.*girepository')
+            self.assertRegex(out, '(Dynamic|Introspection)Module.*Json.* from .*/usr/lib/.*girepository')
         except ImportError:
             # should use from local unpack dir
-            self.assertRegex(out, 'DynamicModule.*Json.* from .*/tmp/adt-run.*/deps/usr/lib')
+            self.assertRegex(out, '(Dynamic|Introspection)Module.*Json.* from .*/tmp/adt-run.*/deps/usr/lib')
         # no stderr
         self.assertNotIn(' stderr ', err)
 
