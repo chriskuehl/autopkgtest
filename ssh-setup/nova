@@ -202,13 +202,22 @@ EOF
         EXTRA_OPTS="$EXTRA_OPTS --security-groups $SECURITY_GROUPS"
     fi
 
-    # Boot the instance
-    OUT=$(nova boot --flavor $FLAVOR --key_name $KEYNAME --user-data $userdata \
-        --image $IMAGE $EXTRA_OPTS --poll $SRVNAME 2>&1) || {
-        error "nova boot failed:"
+    # Boot the instance; this might temporarily fail due to exceeding quota or
+    # some glitch, so retry a few times
+    retry=0
+    while true; do
+        retry=$((retry+1))
+        set +e
+        OUT=$(nova boot --flavor $FLAVOR --key_name $KEYNAME --user-data $userdata \
+            --image $IMAGE $EXTRA_OPTS --poll $SRVNAME 2>&1)
+        rc=$?
+        set -e
+        [ $rc -ne 0 ] || break
+        error "nova boot failed (attempt #$retry):"
         error "$OUT"
-        exit 1
-    }
+        [ $retry -lt 3 ] || exit 1
+        sleep 300
+    done
     debug "Nova boot succeeded"
     rm $userdata
 
