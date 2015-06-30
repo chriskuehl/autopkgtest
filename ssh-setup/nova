@@ -331,6 +331,8 @@ case $cmd in
         cleanup;;
     revert)
         revert;;
+    wait-reboot)
+        exit 1;;  # use default implementation
     '')
         echo "Needs to be called with command as first argument" >&2
         exit 1
