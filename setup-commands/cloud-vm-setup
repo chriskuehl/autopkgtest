@@ -23,10 +23,6 @@ deb $mirror_rel main contrib non-free
 deb-src $mirror_rel main contrib non-free
 EOF
 fi
-# prevent subsequent cloud-init runs from modifying the apt sources again
-if [ -e /etc/cloud/cloud.cfg ]; then
-    echo 'apt_preserve_sources_list: true' >> /etc/cloud/cloud.cfg
-fi
 
 # go-faster apt/dpkg
 echo "Acquire::Languages \"none\";" > /etc/apt/apt.conf.d/90nolanguages
@@ -44,7 +40,7 @@ apt-get install -y haveged
 for p in accountsservice apt-xapian-index cryptsetup landscape-client \
     landscape-common open-vm-tools w3m vim-runtime aptitude-common \
     command-not-found-data manpages ntfs-3g sosreport \
-    ubuntu-release-upgrader-core; do
+    ubuntu-release-upgrader-core cloud-init; do
     apt-get --auto-remove -y purge $p || true
 done
 
