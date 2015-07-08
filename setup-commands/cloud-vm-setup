@@ -8,22 +8,6 @@
 # autopkgtests. This is similar to adt-setup-vm, but won't configure serial
 # console or networking.
 
-# set up apt sources
-mirror_rel=`awk '/^deb .*(debian|ubuntu)/ { print $2,$3; exit }' /etc/apt/sources.list`
-if [ "${mirror_rel%ubuntu*}" != "$mirror_rel" ]; then
-    cat << EOF > "$root/etc/apt/sources.list"
-deb     $mirror_rel main restricted universe multiverse
-deb     ${mirror_rel}-updates main restricted universe multiverse
-deb-src $mirror_rel main restricted universe multiverse
-deb-src ${mirror_rel}-updates main restricted universe multiverse
-EOF
-else
-    cat << EOF > "$root/etc/apt/sources.list"
-deb $mirror_rel main contrib non-free
-deb-src $mirror_rel main contrib non-free
-EOF
-fi
-
 # go-faster apt/dpkg
 echo "Acquire::Languages \"none\";" > /etc/apt/apt.conf.d/90nolanguages
 echo 'force-unsafe-io' > /etc/dpkg/dpkg.cfg.d/autopkgtest
