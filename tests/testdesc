@@ -184,7 +184,7 @@ class Debian(unittest.TestCase):
         if pkgcontrol:
             with open(os.path.join(self.pkgdir, 'debian', 'control'), 'w', encoding='UTF-8') as f:
                 f.write(pkgcontrol)
-        return testdesc.parse_debian_source(self.pkgdir, caps)
+        return testdesc.parse_debian_source(self.pkgdir, caps, 'amd64')
 
     def test_no_control(self):
         '''no test control file'''
@@ -318,12 +318,22 @@ class Debian(unittest.TestCase):
         (ts, skipped) = self.call_parse(
             'Tests: t\nDepends: @, @builddeps@, foo (>= 7)',
             'Source: nums\nBuild-Depends: bd1, bd2 [armhf], bd3:native (>= 7) | bd4 [linux-any]\n'
-            'Build-Depends-Indep: bdi1\n'
+            'Build-Depends-Indep: bdi1, bdi2 [amd64]\n'
             '\n'
             'Package: one\nArchitecture: any')
-        self.assertEqual(ts[0].depends, ['one (>= 0~)', 'bd1', 'bd2 [armhf]',
-                                         'bd3:native (>= 7) | bd4 [linux-any]',
-                                         'bdi1', 'build-essential', 'foo (>= 7)'])
+        self.assertEqual(ts[0].depends, ['one (>= 0~)', 'bd1', 'bd3:native (>= 7) | bd4',
+                                         'bdi1', 'bdi2', 'build-essential', 'foo (>= 7)'])
+        self.assertFalse(skipped)
+
+    def test_builddeps_profiles(self):
+        '''@builddeps@ expansion with build profiles'''
+
+        (ts, skipped) = self.call_parse(
+            'Tests: t\nDepends: @, @builddeps@',
+            'Source: nums\nBuild-Depends: bd1, bd2 <!check>, bd3 <!cross>, bdnotme <stage1> <cross>\n'
+            '\n'
+            'Package: one\nArchitecture: any')
+        self.assertEqual(ts[0].depends, ['one (>= 0~)', 'bd1', 'bd2', 'bd3', 'build-essential'])
         self.assertFalse(skipped)
 
     def test_complex_deps(self):
@@ -377,7 +387,7 @@ class Debian(unittest.TestCase):
         with open(c_path, 'w') as f:
             f.write('Tests: one\nDepends: foo')
 
-        (ts, skipped) = testdesc.parse_debian_source(self.pkgdir, [],
+        (ts, skipped) = testdesc.parse_debian_source(self.pkgdir, [], 'amd64',
                                                      control_path=c_path)
         self.assertEqual(len(ts), 1)
         t = ts[0]

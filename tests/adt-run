@@ -1341,6 +1341,27 @@ Restrictions: needs-root
         self.assertIn('synthesised dependency build-essential\n', err)
         self.assertIn('processing dependency testdep2\n', err)
 
+    def test_build_deps_profiles(self):
+        '''test depends on build dependencies with build profiles'''
+
+        p = self.build_src('''Tests: pass
+Depends: @builddeps@
+Restrictions: needs-root
+''', {'pass': '#!/bin/sh\ntrue'})
+
+        # add extra build dependencies to testpkg
+        subprocess.check_call(['sed', '-i', '/^Build-Depends:/ s/:.*/: bdepyes <!nocheck>, bdepno <stage1> <cross>/',
+                               os.path.join(p, 'debian', 'control')])
+
+        (code, out, err) = self.adt_run(['-d', '-B', '--unbuilt-tree=' + p],
+                                        [self.chroot])
+        self.assertEqual(code, 0, err)
+        self.assertRegex(out, 'pass\s+PASS')
+
+        self.assertIn('synthesised dependency bdepyes\n', err)
+        self.assertNotIn('bdepno', err)
+        self.assertIn('synthesised dependency build-essential\n', err)
+
     def test_logfile(self):
         '''--log-file option'''
 
