@@ -3807,8 +3807,8 @@ class SshRunnerSnappy(AdtTestCase):
         self.assertRegex(out, 'release: .*ubuntu.*core')
         self.assertIn('I am powerful\nroot\n', out)
 
-    def test_channel(self):
-        '''--channel ubuntu-core/devel-proposed'''
+    def test_release_channel(self):
+        '''--release and --channel'''
 
         p = self.build_src('Tests: user\nDepends:\n\n'
                            'Tests: root\nDepends:\nRestrictions: needs-root',
@@ -3816,7 +3816,7 @@ class SshRunnerSnappy(AdtTestCase):
                             'root': '#!/bin/sh\necho I am powerful\nwhoami'})
 
         (code, out, err) = self.adt_run(['-d', '-B', p + '//'], self.virt_args +
-                                        ['--', '--channel', 'ubuntu-core/devel-proposed'])
+                                        ['--', '--release=15.04', '--channel=stable'])
         self.assertEqual(code, 0, err)
         self.assertRegex(out, 'user\s+PASS', out)
         self.assertRegex(out, 'root\s+PASS', out)

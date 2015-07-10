@@ -8,10 +8,13 @@
 #      Path to an existing snappy image. This won't be modified (QEMU will use
 #      this as a snapshot base with a temporary overlay). If not given, uses
 #      ubuntu-device-flash to create a temporary image.
-# --channel <channel>
-#      Passed to ubuntu-device-flash's "core" command to select a non-default
-#      channel (e. g. "ubuntu-core/devel-proposed"). This does not work
-#      together with --image.
+# -r <release> | --release <release>
+#      Passed to ubuntu-device-flash's "core" command to select a release other
+#      than the default "rolling". This does not work together with --image.
+# -c <channel> | --channel <channel>
+#      Passed to ubuntu-device-flash's "core" command to select a
+#      channel other than the default "edge" (e. g. "alpha"). This does not
+#      work together with --image.
 # -b | --show-boot
 #      Show VM console output on stdout, to make boot messages visible.
 #
@@ -42,7 +45,8 @@ IMAGE=
 DEBUG=
 TEMPIMAGE=
 QEMU_PID=
-CHANNEL=
+RELEASE=rolling
+CHANNEL=edge
 SERIAL=none
 
 QEMU_CMD="qemu-system-$(uname -m) -enable-kvm -m 512 -localtime -nographic -net user -net nic,model=virtio -snapshot"
@@ -62,8 +66,8 @@ error() {
 }
 
 parse_args() {
-    SHORTOPTS="i:b"
-    LONGOPTS="image:,debug,channel:,temp-image,qemu-pid:,show-boot"
+    SHORTOPTS="i:bc:r:"
+    LONGOPTS="image:,debug,channel:,release:,temp-image,qemu-pid:,show-boot"
 
     TEMP=$(getopt -o $SHORTOPTS --long $LONGOPTS -- "$@")
     eval set -- "$TEMP"
@@ -74,8 +78,10 @@ parse_args() {
                 IMAGE="$2"; shift 2;;
             --debug)
                 DEBUG=1; shift;;
-            --channel)
+            -c|--channel)
                 CHANNEL="$2"; shift 2;;
+            -r|--release)
+                RELEASE="$2"; shift 2;;
             -b|--show-boot)
                 SERIAL=stdio; shift;;
 
@@ -94,7 +100,7 @@ parse_args() {
         esac
     done
 
-    debug "parse_args: IMAGE='$IMAGE' DEBUG=$DEBUG CHANNEL='$CHANNEL' TEMPIMAGE=$TEMPIMAGE"
+    debug "parse_args: IMAGE='$IMAGE' DEBUG=$DEBUG RELEASE='$RELEASE' CHANNEL='$CHANNEL' TEMPIMAGE=$TEMPIMAGE"
 }
 
 find_free_port() {
@@ -125,12 +131,9 @@ open() {
     if [ -z "$IMAGE" ]; then
         info "No image given, calling ubuntu-device-flash to create a temporary one..."
         IMAGE=$(mktemp --tmpdir snappy.XXXXXX.img)
+        rm -f $IMAGE
         EXTRAOPTS="--image $IMAGE --temp-image"
-        UDF_OPTS=""
-        if [ -n "$CHANNEL" ]; then
-            UDF_OPTS="--channel=$CHANNEL"
-        fi
-        sudo ubuntu-device-flash --verbose core --output="$IMAGE" --developer-mode $UDF_OPTS >&2
+        sudo ubuntu-device-flash --verbose core --channel=$CHANNEL --output="$IMAGE" --developer-mode $RELEASE >&2
         debug "image $IMAGE built successfully"
     elif [ -n "$CHANNEL" ]; then
         error "The --channel option does not work with --image"
