@@ -792,8 +792,8 @@ bad                  FAIL non-zero exit status 1
         self.assertRegex(err, 'WARNING.*will only work for some packages')
 
     @unittest.skipIf(os.getuid() == 0, 'needs to run as user')
-    @unittest.skipIf(os.path.exists('/usr/share/perl5/Test/Tester.pm'),
-                     'needs libtest-tester-perl uninstalled')
+    @unittest.skipIf(os.path.exists('/usr/share/perl5/Test/Requires.pm'),
+                     'needs libtest-requires-perl uninstalled')
     @unittest.skipIf(os.path.exists('/usr/share/doc/libconvert-uulib-perl'),
                      'needs libconvert-uulib-perl uninstalled')
     @unittest.skipUnless(have_apt, 'needs apt-get download working')
@@ -801,8 +801,8 @@ bad                  FAIL non-zero exit status 1
         '''temp dir unpack of Perl dependencies'''
 
         # one arch: all, one binary
-        p = self.build_src('Tests: t\nDepends: libtest-tester-perl, libconvert-uulib-perl',
-                           {'t': '#!/usr/bin/perl\nuse Test::Tester;\nuse Convert::UUlib;\n'})
+        p = self.build_src('Tests: t\nDepends: libtest-requires-perl, libconvert-uulib-perl',
+                           {'t': '#!/usr/bin/perl\nuse Test::Requires;\nuse Convert::UUlib;\n'})
 
         (code, out, err) = self.adt_run(['-B', p + '//'])
         self.assertEqual(code, 0, err)
