@@ -73,6 +73,7 @@ class AdtTestCase(unittest.TestCase):
         temp_home = os.path.join(self.workdir, 'home')
         shutil.copytree(os.path.join(test_dir, 'home'), temp_home)
         os.chmod(os.path.join(temp_home, '.ssh', 'id_rsa'), 0o600)
+        os.mkdir(os.path.join(temp_home, '.cache'))
 
         # avoid re-downloading ubuntu-device-flash images
         os.symlink(os.path.join(self.orig_home, '.cache', 'ubuntuimages'),
@@ -1910,7 +1911,7 @@ class SchrootRunner(AdtTestCase):
 
         # should build and install package
         self.assertIn('dh build', err)
-        self.assertRegex(out, '\npass\s+PASS', out)
+        self.assertRegex(out, '\npass\s+PASS', out + err)
         self.assertIn('Unpacking testpkg', out)
         self.assertIn('binaries/./testpkg.deb', out)
         self.assertIn('Unpacking aspell-doc', out)
@@ -2143,8 +2144,7 @@ class SchrootRunner(AdtTestCase):
         # check binaries
         bins = os.listdir(os.path.join(outdir, 'binaries'))
         self.assertEqual(set(bins),
-                         set(['Release.gpg', 'archive-key.pgp', 'Release',
-                              'Packages.gz', 'Packages', 'testpkg.deb']))
+                         set(['Release', 'Packages.gz', 'Packages', 'testpkg.deb']))
 
         # check for cruft in outdir
         self.assertEqual(set(os.listdir(outdir)),
