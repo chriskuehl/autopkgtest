@@ -1879,8 +1879,8 @@ class SchrootRunner(AdtTestCase):
         p = self.build_src('Tests: pass\nDepends: coreutils\nRestrictions: build-needed\n',
                            {'pass': '#!/bin/sh -e\n./test_built | grep -q "built script OK"\n'
                             './test_abspath | grep -q "built script OK"\necho GOOD'})
-        # add Build-Depends-Indep:
-        subprocess.check_call(['sed', '-i', '/^Build-Depends:/ a\Build-Depends-Indep: aspell-doc',
+        # add Build-Depends-Indep: and a build profile package
+        subprocess.check_call(['sed', '-i', '/^Build-Depends:/ a\Build-Depends-Indep: aspell-doc, nonexisting <cross>',
                                os.path.join(p, 'debian', 'control')])
 
         (code, out, err) = self.adt_run(['--no-built-binaries', '--unbuilt-tree=' + p],
