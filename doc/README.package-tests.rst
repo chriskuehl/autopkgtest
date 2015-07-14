@@ -54,15 +54,15 @@ Control fields
 
 The fields which may appear in debian/tests/control stanzas are:
 
-Tests: name-of-test [name-of-another-test ...]
+Tests: name-of-test [, name-of-another-test ...]
     This field names the tests which are defined by this stanza, and map
     to executables/scripts in the test directory. All of the other
     fields in the same stanza apply to all of the named tests. Either
     this field or ``Test-Command:`` must be present.
 
-    Test names are separated by whitespace and should contain only
-    characters which are legal in package names. It is permitted, but
-    not encouraged, to use upper-case characters as well.
+    Test names are separated by comma and/or whitespace and should
+    contain only characters which are legal in package names. It is
+    permitted, but not encouraged, to use upper-case characters as well.
 
 Test-Command: shell command
     If your test only contains a shell command or two, or you want to
@@ -71,7 +71,7 @@ Test-Command: shell command
     field to specify the shell command directly. It will be run under
     ``bash -e``. This is mutually exclusive with the ``Tests:`` field.
 
-Restrictions: restriction-name [another-restriction-name ...]
+Restrictions: restriction-name [, another-restriction-name ...]
     Declares some restrictions or problems with the tests defined in
     this stanza. Depending on the test environment capabilities, user
     requests, and so on, restrictions can cause tests to be skipped or
@@ -79,7 +79,7 @@ Restrictions: restriction-name [another-restriction-name ...]
     declare unknown restrictions will be skipped. See below for the
     defined restrictions.
 
-Features: feature-name [another-feature-name ...]
+Features: feature-name [, another-feature-name ...]
     Declares some additional capabilities or good properties of the
     tests defined in this stanza. Any unknown features declared will be
     completely ignored. See below for the defined features.
@@ -121,7 +121,7 @@ Tests-Directory: path
     This allows tests to live outside the debian/ metadata area, so that
     they can more palatably be shared with non-Debian distributions.
 
-Classes: class-1, class-2, ...
+Classes: class-1 [, class-2 ...]
     Most package tests should work in a minimal environment and are
     usually not hardware specific. However, some packages like the
     kernel, X.org, or graphics drivers should be tested on particular
