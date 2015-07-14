@@ -12,13 +12,14 @@
 echo "Acquire::Languages \"none\";" > /etc/apt/apt.conf.d/90nolanguages
 echo 'force-unsafe-io' > /etc/dpkg/dpkg.cfg.d/autopkgtest
 
-# install some necessary packages
-if [ "${mirror_rel%ubuntu*}" != "$mirror_rel" ]; then
-    # provides kmods like scsi_debug or mac80211_hwsim
-    apt-get install -y linux-generic
-fi
 # some tests use a lot of /dev/random, avoid hangs
-apt-get install -y haveged
+EXTRA_PKGS="haveged"
+
+# provides kmods like scsi_debug or mac80211_hwsim on Ubuntu
+if grep -q buntu /etc/os-release /etc/lsb-release; then
+    EXTRA_PKGS="$EXTRA_PKGS linux-generic"
+fi
+apt-get install -y $EXTRA_PKGS
 
 # clean up some unnecessary packages
 for p in accountsservice apt-xapian-index cryptsetup landscape-client \
