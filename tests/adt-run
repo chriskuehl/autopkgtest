@@ -1012,6 +1012,17 @@ if ($pid) { # parent
         for w in ['one', 'two', 'three']:
             self.assertNotIn(w, out)
 
+    def test_command_not_found(self):
+        '''command-not-found failure is test failure'''
+
+        p = self.build_src('Tests: f\nDepends:\n', {'f': '#!/bin/sh -e\nno_such_command'})
+
+        (code, out, err) = self.adt_run(['-d', '-B', p + '//'])
+        self.assertEqual(code, 4, err)
+        self.assertRegex(out, 'f\s+FAIL non-zero exit status 127', out)
+        # this isn't a failure of the auxverb
+        self.assertNotIn('testbed auxverb failed with', err)
+
 
 @unittest.skipIf(os.getuid() > 0,
                  'NullRunnerRoot tests need to run as root')
@@ -3774,8 +3785,21 @@ class SshRunnerWithScript(AdtTestCase):
         (code, out, err) = self.adt_run(['-d', '-B', p + '//'],
                                         ['-ds', self.script, '--', '-k', self.container_template])
         self.assertEqual(code, 16, err)
+        # this is a failure of the auxverb
         self.assertIn('testbed auxverb failed with exit code 255', err)
         self.assertEqual(out.strip(), '')
+
+    def test_command_not_found(self):
+        '''command-not-found failure is test failure'''
+
+        p = self.build_src('Tests: f\nDepends:\n', {'f': '#!/bin/sh -e\nno_such_command'})
+
+        (code, out, err) = self.adt_run(['-d', '-B', p + '//'],
+                                        ['-ds', self.script, '--', '-k', self.container_template])
+        self.assertEqual(code, 4, err)
+        self.assertRegex(out, 'f\s+FAIL non-zero exit status 127', out)
+        # this isn't a failure of the auxverb
+        self.assertNotIn('testbed auxverb failed with', err)
 
 
 @unittest.skipUnless(have_ubuntu_device_flash,

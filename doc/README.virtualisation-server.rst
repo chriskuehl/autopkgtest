@@ -199,9 +199,8 @@ The program has the following properties:
    signal number with 128 added, or (ii) ``program`` will die with the
    same signal (although it may fail to dump core even if the testbed
    program did), or (iii) ``program`` will fail. If ``program`` fails it
-   will exit 126, 127, 254, or 255; of course ``program`` may die to a
-   some signals other than because the testbed program died with the
-   same signal.
+   will exit 254 or 255; of course ``program`` may die to a some signals
+   other than because the testbed program died with the same signal.
 -  The caller may run several of these at once, subject to limitation of
    resources (e. g. file descriptors or processes)
 -  The behaviour if a command is running when the testbed is closed or
