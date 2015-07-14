@@ -218,7 +218,7 @@ EOF
         [ $rc -ne 0 ] || break
         error "nova boot failed (attempt #$retry):"
         error "$OUT"
-        [ $retry -lt 3 ] || exit 1
+        [ $retry -lt 3 ] || { rm $userdata; exit 1; }
         sleep 300
     done
     debug "Nova boot succeeded"
