@@ -175,7 +175,7 @@ open() {
 
     # Boot a nova instance and returns its connection parameters
     [ -n "$SRVNAME" ] || SRVNAME=`mktemp -u adt-nova-XXXXXX`
-    debug "Creating nova instance $SRVNAME ..."
+    echo "Creating nova instance $SRVNAME ..."
 
     # generate cloud-init user data; mostly for manage_etc_hosts, but also get
     # rid of some unnecessary stuff in the VM
