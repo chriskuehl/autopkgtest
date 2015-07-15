@@ -79,8 +79,10 @@ parse_args() {
             --debug)
                 DEBUG=1; shift;;
             -c|--channel)
+                [ -z "$IMAGE" ] || error "The --channel option does not work with --image"
                 CHANNEL="$2"; shift 2;;
             -r|--release)
+                [ -z "$IMAGE" ] || error "The --release option does not work with --image"
                 RELEASE="$2"; shift 2;;
             -b|--show-boot)
                 SERIAL=stdio; shift;;
@@ -135,8 +137,6 @@ open() {
         EXTRAOPTS="--image $IMAGE --temp-image"
         sudo ubuntu-device-flash --verbose core --channel=$CHANNEL --output="$IMAGE" --developer-mode $RELEASE >&2
         debug "image $IMAGE built successfully"
-    elif [ -n "$CHANNEL" ]; then
-        error "The --channel option does not work with --image"
     fi
 
     # Determine free port for SSH forwarding
