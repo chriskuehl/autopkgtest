@@ -18,7 +18,7 @@
 #        'nova keypair-add'; if not given, default to the first key in
 #        'nova keypair-list'
 # -N net-id | --net-id=net-id
-#        UUID of the network that should be used for the instance
+#        name or UUID of the network that should be used for the instance
 # -s secgroup1,secgroup2 | --security-groups secgroup1,secgroup2
 #        Assign given security groups to the testbeds, instead of the
 #        'default' one.
@@ -198,6 +198,9 @@ EOF
 
     EXTRA_OPTS=''
     if [ -n "$NET_ID" ]; then
+        # translate a name into a UUID
+        OUT=$(nova network-show $NET_ID)
+        NET_ID="$(echo "$OUT"| awk -F'|' '/ id / {gsub(" ", "", $3); print $3}')"
         EXTRA_OPTS="$EXTRA_OPTS --nic net-id=$NET_ID"
     fi
 
