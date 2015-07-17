@@ -2349,7 +2349,6 @@ class SchrootRunner(AdtTestCase):
     def test_broken_test_deps(self):
         '''unsatisfiable test dependencies'''
 
-        # also test some fancy dependencies
         p = self.build_src('Tests: p\nDepends: unknown, libc6 (>= 99:99)\n',
                            {'p': '#!/bin/sh -e\ntrue'})
 
@@ -2360,6 +2359,21 @@ class SchrootRunner(AdtTestCase):
         self.assertRegex(err, 'Test dependencies are unsatisfiable', err)
         self.assertRegex(out, 'blame: .*/testpkg', out)
         self.assertRegex(out, 'Test dependencies are unsatisfiable', out)
+
+    def test_install_failure(self):
+        '''test dependency install failure'''
+
+        p = self.build_src('Tests: p\nDepends: @\n',
+                           {'p': '#!/bin/sh -e\ntrue'})
+        with open(os.path.join(p, 'debian', 'testpkg.postinst'), 'w') as f:
+            f.write('#!/bin/sh -e\necho "BROKEN POSTINST"\nexit 1')
+
+        (code, out, err) = self.adt_run(['--unbuilt-tree=' + p],
+                                        [self.schroot_name])
+        self.assertEqual(code, 12, err)
+        self.assertIn('BROKEN POSTINST', out)
+        self.assertRegex(out, 'blame: .*/testpkg', out)
+        self.assertRegex(out, 'badpkg: .*failed.*apt-get', out)
 
 
 @unittest.skipUnless('ADT_TEST_LXC' in os.environ,
