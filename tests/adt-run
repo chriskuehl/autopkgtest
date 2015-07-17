@@ -539,7 +539,7 @@ bad                  FAIL non-zero exit status 1
 
         (code, out, err) = self.adt_run(['--no-built-binaries', '--timeout-test=3', p])
         # test should time out
-        self.assertEqual(code, 16, err)
+        self.assertEqual(code, 4, err)
         self.assertIn("timed out on command", err)
         self.assertNotIn('totest', out)
 
@@ -559,7 +559,7 @@ bad                  FAIL non-zero exit status 1
         duration = time.time() - time_start
 
         # test should time out
-        self.assertEqual(code, 16, err)
+        self.assertEqual(code, 4, err)
         self.assertIn("timed out on command", err)
         self.assertNotIn('totest', out)
         self.assertLess(duration, 10, err)
@@ -2635,7 +2635,7 @@ class LxcRunner(AdtTestCase):
 
         (code, out, err) = self.adt_run(['-B', '-d', '--timeout-test=3', p], self.virt_args)
         # test should time out
-        self.assertEqual(code, 16, err)
+        self.assertEqual(code, 4, err)
         self.assertIn("timed out on command", err)
         self.assertNotIn('totest', out)
 
@@ -3770,7 +3770,7 @@ class SshRunnerWithScript(AdtTestCase):
         (code, out, err) = self.adt_run(['-d', '-B', p + '//', '--timeout-test=5'],
                                         ['-ds', self.script, '--', '-k', self.container_template])
         duration = time.time() - time_start
-        self.assertEqual(code, 16, err)
+        self.assertEqual(code, 4, err)
         self.assertIn("timed out on command", err)
         self.assertIn('StartTest\n', out)
         self.assertNotIn('PASS', out)
