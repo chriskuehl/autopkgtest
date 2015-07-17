@@ -837,7 +837,7 @@ bad                  FAIL non-zero exit status 1
                            {'t': '#!/bin/sh\nfalse'})
 
         (code, out, err) = self.adt_run(['-B', p + '//'])
-        self.assertEqual(code, 20, err)
+        self.assertEqual(code, 12, err)
 
         self.assertRegex(err, 'E: .*nosuchpackage')
         self.assertIn('Test dependencies are unsatisfiable', err)
@@ -852,7 +852,7 @@ bad                  FAIL non-zero exit status 1
                            {'t': '#!/bin/sh\nfalse'})
 
         (code, out, err) = self.adt_run(['-B', p + '//'])
-        self.assertEqual(code, 20, err)
+        self.assertEqual(code, 12, err)
 
         self.assertIn('test dependency graphviz (>= 4:999) is unsatisfiable: available version ', err)
 
@@ -2331,6 +2331,21 @@ class SchrootRunner(AdtTestCase):
         (code, out, err) = self.adt_run(['--no-auto-control', 'libtest-carp-perl'], [self.schroot_name])
         self.assertEqual(code, 8, err)
         self.assertIn('SKIP no tests in this package', out)
+
+    def test_broken_test_deps(self):
+        '''unsatisfiable test dependencies'''
+
+        # also test some fancy dependencies
+        p = self.build_src('Tests: p\nDepends: unknown, libc6 (>= 99:99)\n',
+                           {'p': '#!/bin/sh -e\ntrue'})
+
+        (code, out, err) = self.adt_run(['--no-built-binaries', '--unbuilt-tree=' + p],
+                                        [self.schroot_name])
+        self.assertEqual(code, 12, err)
+        self.assertRegex(err, '[dD]epends.*unknown', err)
+        self.assertRegex(err, 'Test dependencies are unsatisfiable', err)
+        self.assertRegex(out, 'blame: .*/testpkg', out)
+        self.assertRegex(out, 'Test dependencies are unsatisfiable', out)
 
 
 @unittest.skipUnless('ADT_TEST_LXC' in os.environ,
