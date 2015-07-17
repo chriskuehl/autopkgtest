@@ -1023,6 +1023,20 @@ if ($pid) { # parent
         # this isn't a failure of the auxverb
         self.assertNotIn('testbed auxverb failed with', err)
 
+    def test_test_not_found(self):
+        '''Tests: specifies a nonexisting test'''
+
+        p = self.build_src('Tests: foo\nDepends:\n', {'bar': '#!/bin/sh -e\nno_such_command'})
+
+        (code, out, err) = self.adt_run(['-B', p + '//'])
+        self.assertEqual(code, 12, err)
+        self.assertRegex(out, 'blame: .*/testpkg', out)
+        self.assertIn('badpkg: debian/tests/foo does not exist', out)
+        self.assertIn('debian/tests/foo does not exist', err)
+        self.assertNotIn('testbed auxverb failed with', err)
+        self.assertNotIn('bar', out)
+        self.assertNotIn('bar', err)
+
 
 @unittest.skipIf(os.getuid() > 0,
                  'NullRunnerRoot tests need to run as root')
