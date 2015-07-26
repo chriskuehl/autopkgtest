@@ -49,7 +49,7 @@ RELEASE=rolling
 CHANNEL=edge
 SERIAL=none
 
-QEMU_CMD="qemu-system-$(uname -m) -enable-kvm -m 512 -localtime -nographic -net user -net nic,model=virtio -snapshot"
+QEMU_CMD="qemu-system-$(uname -m) -enable-kvm -m 512 -nographic -net user -net nic,model=virtio -snapshot"
 
 debug() {
     [ -z "$DEBUG" ] && return
