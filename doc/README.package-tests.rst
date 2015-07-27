@@ -14,8 +14,8 @@ RFC822-style stanzas, along these lines:
 
 ::
 
-    Tests: fred bill bongo
-    Restrictions: needs-root breaks-testbed
+    Tests: fred, bill, bongo
+    Restrictions: needs-root, breaks-testbed
 
 This example defines three tests, called ``fred``, ``bill`` and
 ``bongo``. The tests will be performed by executing
