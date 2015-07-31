@@ -182,6 +182,7 @@ open() {
     local userdata=`mktemp`
     cat <<EOF > $userdata
 #cloud-config
+hostname: adt
 manage_etc_hosts: true
 apt_sources:
 - source: deb \$MIRROR \$RELEASE restricted multiverse
