@@ -248,7 +248,7 @@ EOF
         retry=6
         while [ -z "$ipaddr" ]; do
             OUT=$(nova show --minimal $SRVNAME)
-            ipaddr=$(echo "$OUT" | awk 'BEGIN {FS="|"} /network/ {n=split($3,i,/,\s*/); gsub(" ", "", i[n]); print i[n]}')
+            ipaddr=$(echo "$OUT" | awk 'BEGIN {FS="|"} $2 ~ /network/ {n=split($3,i,/,\s*/); gsub(" ", "", i[n]); print i[n]}')
             retry=$(( retry - 1 ))
             if [ $retry -le 0 ]; then
                 error "Failed to acquire an IP address. Aborting!"
