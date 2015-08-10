@@ -3479,8 +3479,8 @@ class SshRunnerNoScript(AdtTestCase):
 
     def tearDown(self):
         if self.info:
-            subprocess.call([os.path.join(test_dir, 'ssh-setup-lxc'), 'cleanup']
-                            + self.info['extraopts'].split())
+            subprocess.call([os.path.join(test_dir, 'ssh-setup-lxc'), 'cleanup'] +
+                            self.info['extraopts'].split())
             self.info = {}
 
     def test_no_root(self):
