@@ -1037,6 +1037,17 @@ if ($pid) { # parent
         self.assertNotIn('bar', out)
         self.assertNotIn('bar', err)
 
+    def test_invalid_depends(self):
+        '''Depends: has invalid syntax'''
+
+        p = self.build_src('Tests: foo\nDepends: foo bar baz\n', {'foo': '#!/bin/sh -e\nfalse'})
+
+        (code, out, err) = self.adt_run(['-B', p + '//'])
+        self.assertEqual(code, 12, err)
+        self.assertRegex(out, 'blame: .*/testpkg//', out)
+        self.assertRegex(out, 'badpkg:.*test foo.*Depends field contains an invalid dependency.*foo bar baz')
+        self.assertRegex(err, 'erroneous package:.*test foo.*Depends field contains an invalid dependency.*foo bar baz')
+
 
 @unittest.skipIf(os.getuid() > 0,
                  'NullRunnerRoot tests need to run as root')
