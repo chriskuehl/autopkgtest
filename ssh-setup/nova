@@ -304,6 +304,16 @@ cleanup() {
 
     nova delete $SRVNAME || true
 
+    # wait until it gets deleted, to avoid name collisions and quota overflow
+    retry=60
+    while nova show $SRVNAME >/dev/null 2>&1; do
+        retry=$(( retry - 1 ))
+        if [ $retry -le 0 ]; then
+            error "Timed out waiting for $SRVNAME to get deleted."
+        fi
+        sleep 5
+    done
+
     # clean up floating IP
     if [ -n "$FLOATING_IP" ]; then
         nova floating-ip-delete $FLOATING_IP
