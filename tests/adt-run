@@ -162,6 +162,8 @@ class NullRunner(AdtTestCase):
         self.assertIn('processing dependency coreutils', err)
         # should show test stdout
         self.assertRegex(out, '(^|\n)I am fine\n')
+        # should show summary
+        self.assertRegex(err, '@@@ summary\npass\s+PASS\nadt-run: DBG')
         # should not have any test stderr
         self.assertNotIn(' stderr ', err)
 
@@ -183,6 +185,8 @@ class NullRunner(AdtTestCase):
         self.assertRegex(out, '(^|\n)I am sick\n')
         # should not have any test stderr
         self.assertNotIn(' stderr ', err)
+        # should show summary
+        self.assertRegex(err, '@@@ summary\nnz\s+FAIL non-zero exit status 7\n$')
 
     def test_tree_norestrictions_nobuild_fail_on_stderr(self):
         '''source tree, no build, no restrictions, test fails with stderr'''
@@ -298,6 +302,9 @@ class NullRunner(AdtTestCase):
         self.assertIn('\nbuilt script OK\n', out)
         self.assertRegex(err, 'stderr [ -]+\nkaputt', err)
 
+        # should show summary at the end
+        self.assertRegex(err, '@@@ summary\nsP\s+PASS\nsF\s+FAIL stderr: kaputt\nbP\s+PASS\n$')
+
         # should build package
         self.assertIn('dh build', err)
 
@@ -322,6 +329,7 @@ class NullRunner(AdtTestCase):
         self.assertIn('dh build', contents)
         self.assertRegex(contents, 'sF\s+FAIL stderr: kaputt')
         self.assertIn('testing package testpkg version 1\n', contents)
+        self.assertRegex(err, '@@@ summary\nsP\s+PASS\nsF\s+FAIL stderr: kaputt\nbP\s+PASS\n$')
 
         # check summary
         with open(os.path.join(outdir, 'summary')) as f:
