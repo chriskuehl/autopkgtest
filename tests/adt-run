@@ -2800,6 +2800,18 @@ class LxcRunner(AdtTestCase):
         with open(os.path.join(outdir, 'artifacts', 'mark2.txt')) as f:
             self.assertEqual(f.read(), 'two\n')
 
+    def test_exit_255(self):
+        '''test exits with code 255
+
+        This should not be considered a failure of the auxverb.
+        '''
+        p = self.build_src('Tests: t255\nDepends:\n', {'t255': '#!/bin/sh\nexit 255'})
+
+        (code, out, err) = self.adt_run(['-B', p + '//'], self.virt_args)
+        self.assertEqual(code, 4, err)
+        self.assertRegex(out, 't255\s+FAIL non-zero exit status 253')
+        self.assertNotIn('testbed auxverb failed with', err)
+
 
 @unittest.skipUnless('ADT_TEST_QEMU' in os.environ,
                      'Set $ADT_TEST_QEMU to an existing autopkgtest QEMU image')
