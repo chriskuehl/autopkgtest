@@ -187,6 +187,10 @@ manage_etc_hosts: true
 apt_sources:
 - source: deb \$MIRROR \$RELEASE restricted multiverse
 - source: deb-src \$MIRROR \$RELEASE restricted multiverse
+- source: deb \$MIRROR \${RELEASE}-updates restricted multiverse
+- source: deb-src \$MIRROR \${RELEASE}-updates restricted multiverse
+- source: deb \$MIRROR \${RELEASE}-security restricted multiverse
+- source: deb-src \$MIRROR \${RELEASE}-security restricted multiverse
 apt_update: true
 apt_upgrade: false
 $MIRROR
