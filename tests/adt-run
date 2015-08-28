@@ -3997,6 +3997,329 @@ class SshRunnerSnappy(AdtTestCase):
             self.assertEqual(f.read(), 'two\n')
 
 
+@unittest.skipUnless('ADT_TEST_DOCKER' in os.environ,
+                     'Set $ADT_TEST_DOCKER to an existing image name')
+class DockerRunner(AdtTestCase):
+    def __init__(self, *args, **kwargs):
+        super(DockerRunner, self).__init__('docker', *args, **kwargs)
+        self.image_name = os.environ.get('ADT_TEST_DOCKER')
+        if os.getuid() > 0:
+            self.virt_args = ['--sudo']
+        else:
+            self.virt_args = []
+
+    def test_tree_norestrictions_nobuild_success(self):
+        '''source tree, no build, no restrictions, test success'''
+
+        p = self.build_src('Tests: pass\nDepends: coreutils\n',
+                           {'pass': '#!/bin/sh\necho I am fine; echo "SOMEVAR: >$SOMEVAR<"; echo "PATH: $PATH"\n'})
+
+        (code, out, err) = self.adt_run(['--no-built-binaries', '--unbuilt-tree=' + p],
+                                        self.virt_args,
+                                        env={'SOMEVAR': 'junk',
+                                             'HOME': os.environ['HOME'],
+                                             'PATH': '/something/broken:' + os.environ.get('PATH', '')})
+        # test should succeed
+        self.assertEqual(code, 0, err)
+        self.assertRegex(out, 'pass\s+PASS', out)
+
+        # should show test stdout
+        self.assertRegex(out, '(^|\n)I am fine\n')
+        # should not have any test stderr
+        self.assertNotIn(' stderr ', err)
+        # $SOMEVAR does not leak into container
+        self.assertIn('\nSOMEVAR: ><\n', out)
+        # modified $PATH does not leak into container
+        self.assertNotIn('/something/broken', out)
+
+        # should not build package
+        self.assertNotIn('dh build', err)
+
+    def test_tree_norestrictions_nobuild_fail_on_exit(self):
+        '''source tree, no build, no restrictions, test fails with non-zero'''
+
+        p = self.build_src('Tests: nz\nDepends:\n',
+                           {'nz': '#!/bin/sh\necho I am sick\nexit 7'})
+
+        (code, out, err) = self.adt_run(['--no-built-binaries', '--unbuilt-tree=' + p],
+                                        self.virt_args)
+        self.assertEqual(code, 4, err)
+        self.assertRegex(out, 'nz\s+FAIL non-zero exit status 7')
+
+        # should show test stdout
+        self.assertRegex(out, '^I am sick\n')
+        # should not have any test stderr
+        self.assertNotIn(' stderr ', err)
+
+        # should not build package
+        self.assertNotIn('dh build', err)
+
+    def test_tree_norestrictions_nobuild_fail_on_stderr(self):
+        '''source tree, no build, no restrictions, test fails with stderr'''
+
+        p = self.build_src('Tests: se\nDepends:\n',
+                           {'se': '#!/bin/sh\necho I am sick >&2'})
+
+        (code, out, err) = self.adt_run(['--no-built-binaries', '--unbuilt-tree=' + p],
+                                        self.virt_args)
+        self.assertEqual(code, 4, err)
+        self.assertRegex(out, 'se\s+FAIL stderr: I am sick\n')
+
+        # should show test stderr
+        self.assertRegex(err, 'stderr [ -]+\nI am sick\n')
+
+    def test_tree_norestrictions_nobuild_fail_on_stderr_and_exit(self):
+        '''source tree, no build, no restrictions, test fails with stderr+exit'''
+
+        p = self.build_src('Tests: senz\nDepends:\n',
+                           {'senz': '#!/bin/sh\necho I am sick >&2\nexit 7\n'})
+
+        (code, out, err) = self.adt_run(['--no-built-binaries', '--built-tree=' + p],
+                                        self.virt_args)
+        # test should fail
+        self.assertEqual(code, 4, err)
+        self.assertRegex(out, 'senz\s+FAIL non-zero exit status 7')
+
+        # should show test stderr separately (no real-time output for chroot)
+        self.assertRegex(err, 'stderr [ -]+\nI am sick\n')
+
+    def test_tree_allow_stderr_nobuild_success(self):
+        '''source tree, no build, allow-stderr, test success'''
+
+        p = self.build_src('Tests: pass\nDepends:\nRestrictions: allow-stderr',
+                           {'pass': '#!/bin/sh\necho I am fine >&2\necho babble'})
+
+        (code, out, err) = self.adt_run(['--no-built-binaries', '--built-tree=' + p],
+                                        self.virt_args)
+        self.assertEqual(code, 0, err)
+        self.assertRegex(out, 'pass\s+PASS', out)
+
+        # should show test stdout/err
+        self.assertRegex(out, '^babble\n')
+        # stderr test output should be inline
+        self.assertIn('\nI am fine\n', err)
+        self.assertNotIn(' stderr ', err)
+
+    def test_tree_build_needed_success(self):
+        '''source tree, build-needed restriction, test success'''
+
+        p = self.build_src('Tests: pass\nDepends: coreutils\nRestrictions: build-needed\n',
+                           {'pass': '#!/bin/sh -e\n./test_built | grep -q "built script OK"\n'
+                            './test_abspath | grep -q "built script OK"\necho GOOD'})
+
+        (code, out, err) = self.adt_run(['--no-built-binaries', '--unbuilt-tree=' + p],
+                                        self.virt_args)
+        # test should succeed
+        self.assertEqual(code, 0, err)
+        self.assertRegex(out, 'pass\s+PASS', out)
+
+        # should build package
+        self.assertIn('dh build', err)
+
+        # should show test stdout
+        self.assertRegex(out, '(^|\n)GOOD\n')
+        # should not have any test stderr
+        self.assertNotIn(' stderr ', err)
+
+    def test_dsc_build_needed_success(self):
+        '''dsc, build-needed restriction, test success'''
+
+        p = self.build_dsc('Tests: pass\nDepends: coreutils\nRestrictions: build-needed\n',
+                           {'pass': '#!/bin/sh -e\n./test_built | grep -q "built script OK"\n'})
+
+        (code, out, err) = self.adt_run(['--no-built-binaries', p],
+                                        self.virt_args)
+        # test should succeed
+        self.assertRegex(out, 'pass\s+PASS', out)
+        self.assertEqual(code, 0, err)
+
+        # should not have any test stderr
+        self.assertNotIn(' stderr ', err)
+
+        # should build package
+        self.assertIn('dh build', err)
+
+    def test_tree_built_binaries(self):
+        '''source tree, install built binaries'''
+
+        # no "build-needed" restriction here, it should be built because we
+        # need to install the package as a dependency (@)
+        p = self.build_src('Tests: pass\n',
+                           {'pass': '#!/bin/sh -e\n/usr/bin/test_built | grep -q "built script OK"\necho GOOD'})
+
+        # add extra dependency to testpkg, to ensure autopkgtest does not stop
+        # and ask for confirmation in apt-get
+        subprocess.check_call(['sed', '-i', '/^Depends:/ s/$/, aspell-doc/',
+                               os.path.join(p, 'debian', 'control')])
+
+        (code, out, err) = self.adt_run(['--unbuilt-tree=' + p],
+                                        self.virt_args)
+
+        # test should succeed
+        self.assertEqual(code, 0, err)
+        self.assertRegex(out, 'pass\s+PASS', out)
+
+        # should build and install package
+        self.assertIn('dh build', err)
+        self.assertIn('binaries/./testpkg.deb', out)
+        self.assertRegex(out, '\.\.\./aspell-doc_\d.*_all.deb')
+
+        # should show test stdout
+        self.assertRegex(out, '(^|\n)GOOD\n', out)
+        # should not have any test stderr
+        self.assertNotIn(' stderr ', err)
+
+    def test_tree_clone(self):
+        '''source tree, no --ephemeral option (using clone)'''
+
+        p = self.build_src('Tests: senz\nDepends:\n',
+                           {'senz': '#!/bin/sh\necho hello\necho I am sick >&2\nexit 7\n'})
+
+        virt_args = [a for a in self.virt_args if a != '--ephemeral']
+        (code, out, err) = self.adt_run(['--no-built-binaries', '--built-tree=' + p],
+                                        virt_args)
+        # test should fail
+        self.assertEqual(code, 4, err)
+        self.assertRegex(out, 'senz\s+FAIL non-zero exit status 7')
+
+        # should show test stdout inline
+        self.assertRegex(out, '^hello\n')
+
+        # should show test stderr separately
+        self.assertRegex(err, 'stderr [ -]+\nI am sick\n')
+
+    def test_breaks_testbed(self):
+        '''breaks-testbed restriction'''
+
+        p = self.build_src('Tests: zap boom\nDepends:\nRestrictions: needs-root breaks-testbed',
+                           {'zap': '#!/bin/sh\ntouch /zap\n',
+                            'boom': '#!/bin/sh\n[ ! -e /zap ]; touch /boom'})
+
+        (code, out, err) = self.adt_run(['--no-built-binaries', '--unbuilt-tree=' + p, '-d'],
+                                        self.virt_args)
+        # both tests should run; the second one (boom) should not see the
+        # effect of the first one (/zap existing)
+        self.assertEqual(code, 0, err)
+        self.assertRegex(out, 'zap\s+PASS')
+        self.assertRegex(out, 'boom\s+PASS')
+
+    def test_setup_commands(self):
+        '''--setup-commands'''
+
+        p = self.build_src('Tests: t1 t2\nDepends:\n',
+                           {'t1': '#!/bin/sh -e\ncat /setup.log; echo t1ok\n',
+                            't2': '#!/bin/sh -e\ncat /setup.log; echo t2ok\n'})
+
+        # we expect a normal user for LXC
+        (code, out, err) = self.adt_run(['-B', '-d', p + '//', '--setup-commands',
+                                         '[ -n "$ADT_NORMAL_USER" ]; getent passwd $ADT_NORMAL_USER;'
+                                         'echo setupok >> /setup.log'],
+                                        self.virt_args)
+
+        # test should succeed
+        self.assertEqual(code, 0, err)
+        self.assertRegex(out, 't1\s+PASS', out)
+        self.assertRegex(out, 't2\s+PASS', out)
+
+        # should show test stdout
+        self.assertRegex(out, '^\w+:x:.*\nsetupok\nt1ok\n')
+        self.assertIn('\nsetupok\nt2ok\n', out)
+        # should not have any test stderr
+        self.assertNotIn(' stderr ', err)
+
+        # should not have rebooted for these commands
+        self.assertIn('@@@@@@ test bed setup', err)
+        self.assertNotIn('rebooting testbed', err)
+
+    def test_isolation(self):
+        '''isolation restrictions'''
+
+        p = self.build_src('Tests: ic\nDepends:\nRestrictions: isolation-container\n\n'
+                           'Tests: im\nDepends:\nRestrictions: isolation-machine\n',
+                           {'ic': '#!/bin/sh\necho container ok',
+                            'im': '#!/bin/sh\necho machine ok'})
+
+        (code, out, err) = self.adt_run(['-B', '--built-tree=' + p], self.virt_args)
+        self.assertEqual(code, 2, out + err)
+        self.assertRegex(out, 'ic\s+PASS', out)
+        self.assertRegex(out, 'im\s+SKIP .*machine', out)
+        self.assertIn('container ok\n', out)
+        self.assertNotIn('machine ok', out)
+
+    def test_user(self):
+        '''Run tests as different user'''
+
+        p = self.build_src('Tests: t\nDepends:\nRestrictions: rw-build-tree\n',
+                           {'t': '''#!/bin/sh -e
+                                    echo world > $ADTTMP/hello.txt
+                                    cat $ADTTMP/hello.txt
+                                    mkdir -p $ADTTMP/one/subdir
+                                    echo deep > $ADTTMP/one/subdir/subdir.txt
+                                    cat $ADTTMP/one/subdir/subdir.txt
+                                    rm -r $ADTTMP/one
+                                    echo dir_is_rw > rw_flag
+                                    cat rw_flag
+                                    whoami'''})
+
+        (code, out, err) = self.adt_run(['-B', p + '//', '--user=nobody'],
+                                        self.virt_args)
+        self.assertEqual(code, 0, err)
+
+        # test should succeed
+        self.assertRegex(out, 't\s+PASS', out)
+
+        # has output from cats and whoami
+        self.assertIn('world\ndeep\ndir_is_rw\nnobody\n', out)
+
+    def test_no_locale_conf(self):
+        '''No /etc/default/locale'''
+
+        p = self.build_src('Test-Command: locale; echo TestOK\nDepends:\n', {})
+
+        # we expect a normal user for LXC
+        (code, out, err) = self.adt_run(['-B', p + '//', '--setup-commands',
+                                         'rm -f /etc/default/locale /etc/environment'],
+                                        self.virt_args)
+
+        # test should succeed
+        self.assertEqual(code, 0, err)
+        self.assertRegex(out, 'command1\s+PASS')
+        self.assertRegex(out, 'LC_MESSAGES="C.UTF-8"')
+        self.assertRegex(out, 'TestOK')
+        # should not have any test stderr
+        self.assertNotIn(' stderr ', err)
+
+    def test_timeout(self):
+        '''handling test timeout'''
+
+        p = self.build_dsc('Tests: totest\nDepends:\n',
+                           {'totest': '#!/bin/sh\necho start\nsleep 10\necho after_sleep\n'})
+
+        (code, out, err) = self.adt_run(['-B', '-d', '--timeout-test=3', p], self.virt_args)
+        # test should time out
+        self.assertEqual(code, 4, err)
+        self.assertIn("timed out on command", err)
+        self.assertNotIn('totest', out)
+
+        # should show test stdout
+        self.assertIn('start', out)
+        # but not let the test finish
+        self.assertNotIn('after_sleep', out)
+
+    def test_exit_255(self):
+        '''test exits with code 255
+
+        This should not be considered a failure of the auxverb.
+        '''
+        p = self.build_src('Tests: t255\nDepends:\n', {'t255': '#!/bin/sh\nexit 255'})
+
+        (code, out, err) = self.adt_run(['-B', p + '//'], self.virt_args)
+        self.assertEqual(code, 4, err)
+        self.assertRegex(out, 't255\s+FAIL non-zero exit status 253')
+        self.assertNotIn('testbed auxverb failed with', err)
+
+
+
 if __name__ == '__main__':
     # Force encoding to UTF-8 even in non-UTF-8 locales.
     import io
