@@ -1056,6 +1056,24 @@ if ($pid) { # parent
         self.assertRegex(out, 'badpkg:.*test foo.*Depends field contains an invalid dependency.*foo bar baz')
         self.assertRegex(err, 'erroneous package:.*test foo.*Depends field contains an invalid dependency.*foo bar baz')
 
+    def test_env_passing(self):
+        '''Pass environment variable to test'''
+
+        p = self.build_src('Tests: pass\nDepends: coreutils\n',
+                           {'pass': '#!/bin/sh -eu\necho Hey ${ADT_NAME}! favourite color: ${FAV_COLOR}.\n'})
+
+        (code, out, err) = self.adt_run(
+            ['-d', '--env=FAV_COLOR=blue', '--env', 'ADT_NAME=Joe', '-B', '--unbuilt-tree=' + p])
+        # test should succeed
+        self.assertEqual(code, 0, err)
+        self.assertRegex(out, 'pass\s+PASS', out)
+
+        self.assertIn('processing dependency coreutils', err)
+        # should show test stdout
+        self.assertRegex(out, '(^|\n)Hey Joe! favourite color: blue.\n')
+        # should not have any test stderr
+        self.assertNotIn(' stderr ', err)
+
 
 @unittest.skipIf(os.getuid() > 0,
                  'NullRunnerRoot tests need to run as root')

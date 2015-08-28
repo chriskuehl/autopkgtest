@@ -252,6 +252,17 @@ Files:
         args = self.parse(['--copy', '%s:/setup/stuff.txt' % stuff, './'])[0]
         self.assertEqual(args.copy, [(stuff, '/setup/stuff.txt')])
 
+    def test_env(self):
+        args = self.parse(['--env', 'ADT_X=one', '--env=ADT_Y=two', './'])[0]
+        self.assertEqual(args.env, ['ADT_X=one', 'ADT_Y=two'])
+
+    def test_wrong_env(self):
+        try:
+            self.parse(['--env', 'ADT_X', './'])[0]
+            self.fail('expected "--env ADT_X" to fail')
+        except SystemExit:
+            pass
+
     def test_help(self):
         try:
             out = io.StringIO()
