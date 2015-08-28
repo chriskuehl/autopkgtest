@@ -31,6 +31,11 @@ done
 
 # bump vmalloc on i386, necessary for tests like udisks2
 if [ $(dpkg --print-architecture) = i386 ]; then
-    sed -i '/CMDLINE_LINUX_DEFAULT/ s/"$/ vmalloc=512M"/' /etc/default/grub.d/*.cfg
+    if [ -d /etc/default/grub.d ]; then
+        sed -i '/CMDLINE_LINUX_DEFAULT/ s/"$/ vmalloc=512M"/' /etc/default/grub.d/*.cfg
+    else
+        # fallback for Ubuntu 12.04
+        sed -i '/CMDLINE_LINUX_DEFAULT/ s/"$/ vmalloc=512M"/' /etc/default/grub
+    fi
     update-grub
 fi
