@@ -2419,12 +2419,13 @@ class LxcRunner(AdtTestCase):
     def __init__(self, *args, **kwargs):
         super(LxcRunner, self).__init__('lxc', *args, **kwargs)
         self.container_name = os.environ.get('ADT_TEST_LXC')
-        self.virt_args = ['--ephemeral', self.container_name]
-        # check for unprivileged containers
-        if os.getuid() > 0 and subprocess.call(
-                ['lxc-info', '-n', self.container_name],
-                stdout=subprocess.PIPE, stderr=subprocess.STDOUT) != 0:
-            self.virt_args.insert(0, '--sudo')
+        if self.container_name:
+            self.virt_args = ['--ephemeral', self.container_name]
+            # check for unprivileged containers
+            if os.getuid() > 0 and subprocess.call(
+                    ['lxc-info', '-n', self.container_name],
+                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT) != 0:
+                self.virt_args.insert(0, '--sudo')
 
     def test_tree_norestrictions_nobuild_success(self):
         '''source tree, no build, no restrictions, test success'''
@@ -4008,6 +4009,8 @@ class DockerRunner(AdtTestCase):
         else:
             self.virt_args = []
 
+        self.virt_args += [self.image_name]
+
     def test_tree_norestrictions_nobuild_success(self):
         '''source tree, no build, no restrictions, test success'''
 
@@ -4107,7 +4110,7 @@ class DockerRunner(AdtTestCase):
                            {'pass': '#!/bin/sh -e\n./test_built | grep -q "built script OK"\n'
                             './test_abspath | grep -q "built script OK"\necho GOOD'})
 
-        (code, out, err) = self.adt_run(['--no-built-binaries', '--unbuilt-tree=' + p],
+        (code, out, err) = self.adt_run(['--no-built-binaries', '-U', '--unbuilt-tree=' + p],
                                         self.virt_args)
         # test should succeed
         self.assertEqual(code, 0, err)
@@ -4127,7 +4130,7 @@ class DockerRunner(AdtTestCase):
         p = self.build_dsc('Tests: pass\nDepends: coreutils\nRestrictions: build-needed\n',
                            {'pass': '#!/bin/sh -e\n./test_built | grep -q "built script OK"\n'})
 
-        (code, out, err) = self.adt_run(['--no-built-binaries', p],
+        (code, out, err) = self.adt_run(['--no-built-binaries', '-U', p],
                                         self.virt_args)
         # test should succeed
         self.assertRegex(out, 'pass\s+PASS', out)
@@ -4152,7 +4155,7 @@ class DockerRunner(AdtTestCase):
         subprocess.check_call(['sed', '-i', '/^Depends:/ s/$/, aspell-doc/',
                                os.path.join(p, 'debian', 'control')])
 
-        (code, out, err) = self.adt_run(['--unbuilt-tree=' + p],
+        (code, out, err) = self.adt_run(['-U', '--unbuilt-tree=' + p,],
                                         self.virt_args)
 
         # test should succeed
@@ -4176,14 +4179,14 @@ class DockerRunner(AdtTestCase):
                            {'senz': '#!/bin/sh\necho hello\necho I am sick >&2\nexit 7\n'})
 
         virt_args = [a for a in self.virt_args if a != '--ephemeral']
-        (code, out, err) = self.adt_run(['--no-built-binaries', '--built-tree=' + p],
+        (code, out, err) = self.adt_run(['--no-built-binaries', '-U', '--built-tree=' + p],
                                         virt_args)
         # test should fail
         self.assertEqual(code, 4, err)
         self.assertRegex(out, 'senz\s+FAIL non-zero exit status 7')
 
         # should show test stdout inline
-        self.assertRegex(out, '^hello\n')
+        self.assertRegex(out, '(^|\n)hello\n')
 
         # should show test stderr separately
         self.assertRegex(err, 'stderr [ -]+\nI am sick\n')
@@ -4195,7 +4198,7 @@ class DockerRunner(AdtTestCase):
                            {'zap': '#!/bin/sh\ntouch /zap\n',
                             'boom': '#!/bin/sh\n[ ! -e /zap ]; touch /boom'})
 
-        (code, out, err) = self.adt_run(['--no-built-binaries', '--unbuilt-tree=' + p, '-d'],
+        (code, out, err) = self.adt_run(['--no-built-binaries', '-U', '--unbuilt-tree=' + p, '-d'],
                                         self.virt_args)
         # both tests should run; the second one (boom) should not see the
         # effect of the first one (/zap existing)
@@ -4209,12 +4212,6 @@ class DockerRunner(AdtTestCase):
         p = self.build_src('Tests: t1 t2\nDepends:\n',
                            {'t1': '#!/bin/sh -e\ncat /setup.log; echo t1ok\n',
                             't2': '#!/bin/sh -e\ncat /setup.log; echo t2ok\n'})
-
-        # we expect a normal user for LXC
-        (code, out, err) = self.adt_run(['-B', '-d', p + '//', '--setup-commands',
-                                         '[ -n "$ADT_NORMAL_USER" ]; getent passwd $ADT_NORMAL_USER;'
-                                         'echo setupok >> /setup.log'],
-                                        self.virt_args)
 
         # test should succeed
         self.assertEqual(code, 0, err)
@@ -4239,7 +4236,7 @@ class DockerRunner(AdtTestCase):
                            {'ic': '#!/bin/sh\necho container ok',
                             'im': '#!/bin/sh\necho machine ok'})
 
-        (code, out, err) = self.adt_run(['-B', '--built-tree=' + p], self.virt_args)
+        (code, out, err) = self.adt_run(['-B', '-U', '--built-tree=' + p], self.virt_args)
         self.assertEqual(code, 2, out + err)
         self.assertRegex(out, 'ic\s+PASS', out)
         self.assertRegex(out, 'im\s+SKIP .*machine', out)
@@ -4261,7 +4258,7 @@ class DockerRunner(AdtTestCase):
                                     cat rw_flag
                                     whoami'''})
 
-        (code, out, err) = self.adt_run(['-B', p + '//', '--user=nobody'],
+        (code, out, err) = self.adt_run(['-B', '-U', p + '//', '--user=nobody'],
                                         self.virt_args)
         self.assertEqual(code, 0, err)
 
@@ -4277,7 +4274,7 @@ class DockerRunner(AdtTestCase):
         p = self.build_src('Test-Command: locale; echo TestOK\nDepends:\n', {})
 
         # we expect a normal user for LXC
-        (code, out, err) = self.adt_run(['-B', p + '//', '--setup-commands',
+        (code, out, err) = self.adt_run(['-B', '-U', p + '//', '--setup-commands',
                                          'rm -f /etc/default/locale /etc/environment'],
                                         self.virt_args)
 
@@ -4295,7 +4292,7 @@ class DockerRunner(AdtTestCase):
         p = self.build_dsc('Tests: totest\nDepends:\n',
                            {'totest': '#!/bin/sh\necho start\nsleep 10\necho after_sleep\n'})
 
-        (code, out, err) = self.adt_run(['-B', '-d', '--timeout-test=3', p], self.virt_args)
+        (code, out, err) = self.adt_run(['-B', '-d', '-U', '--timeout-test=3', p], self.virt_args)
         # test should time out
         self.assertEqual(code, 4, err)
         self.assertIn("timed out on command", err)
@@ -4313,7 +4310,7 @@ class DockerRunner(AdtTestCase):
         '''
         p = self.build_src('Tests: t255\nDepends:\n', {'t255': '#!/bin/sh\nexit 255'})
 
-        (code, out, err) = self.adt_run(['-B', p + '//'], self.virt_args)
+        (code, out, err) = self.adt_run(['-B', '-U', p + '//'], self.virt_args)
         self.assertEqual(code, 4, err)
         self.assertRegex(out, 't255\s+FAIL non-zero exit status 253')
         self.assertNotIn('testbed auxverb failed with', err)
